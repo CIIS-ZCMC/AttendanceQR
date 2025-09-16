@@ -9,12 +9,11 @@ use App\Models\Attendance_Information;
 
 class AttendanceController extends Controller
 {
-    public function index($attendance_key = null)
+    public function index(Request $request)
     {
         //hello_world_attendance
-
+        $attendance_key = $request->key ?? -1;
         $attendance = Attendance::where("attendance_key", $attendance_key)->first();
-
         $status = null;
         if (!$attendance) {
             $status['notFound'] = true;
