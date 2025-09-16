@@ -4,11 +4,28 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Models\Attendance;
+use App\Models\Attendance_Information;
 
 class AttendanceController extends Controller
 {
-    public function index()
+    public function index($attendance_key = null)
     {
-        return Inertia::render('Dashboard');
+        //hello_world_attendance
+
+        $attendance = Attendance::where("attendance_key", $attendance_key)->first();
+
+        $status = null;
+        if (!$attendance) {
+            $status['notFound'] = true;
+        } elseif (!$attendance->is_active) {
+            $status['isNotActive'] = true;
+        } elseif ($attendance->closed_at <= now()) {
+            $status['isClosed'] = true;
+        }
+        return Inertia::render('Scan/Scan', [
+            'invalid_status' => $status,
+            'attendance' => $attendance
+        ]);
     }
 }
