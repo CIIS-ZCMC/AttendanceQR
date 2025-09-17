@@ -75,7 +75,7 @@ class EmployeeProfile extends Authenticatable
         return $this->belongsTo(PersonalInformation::class);
     }
 
-  
+
     public function name()
     {
         $personal_information = $this->personalInformation;
@@ -101,4 +101,9 @@ class EmployeeProfile extends Authenticatable
         return $this->personalInformation;
     }
 
+
+    public function assignedArea()
+    {
+        return $this->hasOne(AssignArea::class)->latest();
+    }
 }

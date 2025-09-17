@@ -8,6 +8,9 @@ import { router, usePage, Link } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import { NotInLocation } from "@/Components/ui/CustomComponent/notinLocation";
 import { Toaster } from "@/Components/ui/sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import check from "../../src/check.gif";
+
 export default function FailedScan({ invalid_status, isInLocation }) {
     const page = usePage();
     const Display = () => {
@@ -74,6 +77,31 @@ export default function FailedScan({ invalid_status, isInLocation }) {
                             </p>
                         </CardContent>
                     </Card>
+                </div>
+            );
+        } else if (invalid_status.isRecorded) {
+            return (
+                <div>
+                    <div className="flex items-center justify-center min-h-[50vh]">
+                        <Card className="w-full max-w-md shadow-md border border-gray-200">
+                            <CardContent className="flex flex-col items-center justify-center p-6 space-y-3">
+                                <img
+                                    src={check}
+                                    alt=""
+                                    width="40px"
+                                    height="40px"
+                                />
+                                <h2 className="text-lg font-semibold text-gray-800">
+                                    Attendance is Recorded
+                                </h2>
+                                <p className="text-sm text-gray-500 text-center">
+                                    You have already submitted your attendance
+                                    for this time. Please try again during the
+                                    allowed schedule.
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
             );
         }

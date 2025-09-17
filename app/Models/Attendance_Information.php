@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Attendance_Information extends Model
-{   
+{
     use HasFactory;
 
     protected $table = "attendance__information";
@@ -20,6 +20,7 @@ class Attendance_Information extends Model
         'sector',
         'first_entry',
         'last_entry',
-        'attendances_id'
+        'attendances_id',
+        'userToken'
     ];
 }

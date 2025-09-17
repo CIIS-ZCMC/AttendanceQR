@@ -1,4 +1,4 @@
-import React from "react";
+import React, { use } from "react";
 import { useGeofence } from "@/hooks/use-geofence";
 import { useState, useEffect } from "react";
 import AppLayout from "@/layouts/app-layout";
@@ -12,10 +12,23 @@ import mappin from "../../src/mappin.gif";
 import check from "../../src/check.gif";
 import { toast } from "sonner";
 import FailedScan from "./FailedScan";
-import { router } from "@inertiajs/react";
+import { router, useForm } from "@inertiajs/react";
 import { usePage } from "@inertiajs/react";
 
 export default function Scan({ invalid_status, attendance }) {
+    const {
+        data,
+        setData,
+        post,
+        processing,
+        errors,
+        reset,
+        recentlySuccessful,
+    } = useForm({
+        employeeId: "",
+        attendanceId: attendance?.id,
+    });
+
     const [serverTime, setServerTime] = useState(
         new Date().toLocaleTimeString([], {
             hour: "numeric",
@@ -34,11 +47,11 @@ export default function Scan({ invalid_status, attendance }) {
     const [remainingTime, setRemainingTime] = useState("");
     const [load, setLoad] = useState(true);
     const [isInLocation, setIsInLocation] = useState(false);
-    const [isRecorded, setIsRecorded] = useState(false);
+
     const isInsideGeofence = useGeofence();
-    const [btnLoad, setBtnLoad] = useState(false);
 
     useEffect(() => {
+        setData({ attendanceId: attendance?.id });
         const interval = setInterval(() => {
             setCloseAt(new Date(attendance?.closed_at));
             const closeTime = new Date(attendance?.closed_at);
@@ -120,13 +133,23 @@ export default function Scan({ invalid_status, attendance }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        const employeeId = e.target.employeeId.value;
-        setBtnLoad(true);
-        console.log("Submitted", employeeId);
-        setTimeout(() => {
-            setIsRecorded(true);
-            setBtnLoad(false);
-        }, 4000);
+        //setData({ ...data, attendanceId: attendance?.id });
+        post("/store_attendance", {
+            onSuccess: (response) => {
+                if (response.props?.session?.type == "error") {
+                    toast.error(response.props.session.message);
+                } else {
+                    toast.success("Attendance recorded successfully");
+                }
+            },
+        });
+
+        // setBtnLoad(true);
+        // console.log("Submitted", employeeId);
+        // setTimeout(() => {
+        //     setIsRecorded(true);
+        //     setBtnLoad(false);
+        // }, 4000);
     };
 
     return (
@@ -164,24 +187,6 @@ export default function Scan({ invalid_status, attendance }) {
                     />
                 ) : load ? (
                     <AttrSkeleton />
-                ) : isRecorded ? (
-                    <div>
-                        <br />
-                        <br />
-                        <Alert variant="default" className="border-none">
-                            <AlertDescription>
-                                <span className="text-md text-green-600  flex items-center">
-                                    Attendance recorded successfully{" "}
-                                    <img
-                                        src={check}
-                                        alt=""
-                                        width="40px"
-                                        height="40px"
-                                    />
-                                </span>
-                            </AlertDescription>
-                        </Alert>
-                    </div>
                 ) : isInLocation ? (
                     <div>
                         <br />
@@ -204,18 +209,26 @@ export default function Scan({ invalid_status, attendance }) {
                             Enter employee ID : <br />{" "}
                             <span className="text-gray-500"></span>
                         </span>
-                        <form action="" onSubmit={handleSubmit}>
+                        <form onSubmit={handleSubmit}>
                             <Input
                                 type="number"
                                 name="employeeId"
+                                value={data.employeeId}
+                                onChange={(e) =>
+                                    setData({
+                                        ...data,
+                                        employeeId: e.target.value,
+                                    })
+                                }
                                 required
                                 placeholder="e.g 2022090251"
                                 autoFocus
                                 className={"mt-4 mb-3 text-center shadow-lg  "}
                             />
-                            <Button type="submit" disabled={btnLoad}>
+
+                            <Button type="submit" disabled={processing}>
                                 {" "}
-                                {btnLoad ? (
+                                {processing ? (
                                     <>
                                         <LoaderCircle className="h-4 w-4 animate-spin" />{" "}
                                         Submitting
