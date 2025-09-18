@@ -19,7 +19,7 @@ export const AttrSkeleton = () => {
                     color="green"
                     className="animate-spin"
                 />
-                <span className="text-xs font-bold mt-2 text-gray-400 ">
+                <span className="text-xs font-bold mt-2 text-gray-400 min-[768px]:w-80 min-[768px]:ml-43 ">
                     UMIS-Attendance Logger
                 </span>
             </div>
