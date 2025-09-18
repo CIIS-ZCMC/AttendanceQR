@@ -13,10 +13,12 @@ class Attendance extends Model
         'title',
         'attendance_key',
         'is_active',
+        'is_open',
         'closed_at'
-    ];  
+    ];
 
-     public function logs(){
-        return $this->hasMany(Attendance_Information::class,"attendances_id","id");
+    public function logs()
+    {
+        return $this->hasMany(Attendance_Information::class, "attendances_id", "id");
     }
 }

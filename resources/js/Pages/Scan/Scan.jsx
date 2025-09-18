@@ -109,10 +109,11 @@ export default function Scan({ invalid_status, attendance }) {
     }, []);
 
     useEffect(() => {
+        setLoad(true);
         setIsInLocation(isInsideGeofence);
         setTimeout(() => {
             setLoad(false);
-        }, 500);
+        }, 1000);
     }, [isInsideGeofence]);
 
     useEffect(() => {
@@ -171,40 +172,37 @@ export default function Scan({ invalid_status, attendance }) {
                     </span>
                     <br />
                     <span className="text-xs" data-live="server-time">
-                        Title : <br />{" "}
-                        <span className="text-gray-500 text-lg font-bold">
+                        <span className="text-gray-500 text-md font-bold">
                             {attendance?.title}
                         </span>
                     </span>
-                    <br />
                 </>
             )}
+
             <div className="mt-4 flex justify-center items-center md:absolute md:top-80 md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2">
-                {invalid_status ? (
+                {load ? (
+                    <AttrSkeleton />
+                ) : !isInLocation ? (
+                    <NotInLocation />
+                ) : invalid_status ? (
                     <FailedScan
                         invalid_status={invalid_status}
                         isInLocation={isInLocation}
                     />
-                ) : load ? (
-                    <AttrSkeleton />
                 ) : isInLocation ? (
                     <div>
                         <br />
-                        <Alert variant="default">
-                            <AlertDescription>
-                                <span className="text-xs text-blue-600  flex items-center">
-                                    Attendance can be logged — you are inside
-                                    the allowed area.{" "}
-                                    <img
-                                        src={mappin}
-                                        alt=""
-                                        width="40px"
-                                        height="40px"
-                                    />
-                                </span>
-                            </AlertDescription>
-                        </Alert>
-                        <br />
+
+                        <span className="text-xs text-blue-600  flex items-center">
+                            Attendance can be logged — you are inside the
+                            allowed area.{" "}
+                            <img
+                                src={mappin}
+                                alt=""
+                                width="40px"
+                                height="40px"
+                            />
+                        </span>
                         <span className="text-sm">
                             Enter employee ID : <br />{" "}
                             <span className="text-gray-500"></span>
@@ -238,41 +236,56 @@ export default function Scan({ invalid_status, attendance }) {
                                 )}
                             </Button>
                         </form>
+                        <br />
+
+                        {isInLocation &&
+                            attendance &&
+                            invalid_status === null && (
+                                <>
+                                    <span
+                                        className="text-xs"
+                                        data-live="server-time"
+                                    >
+                                        <div className="text-center mt-2">
+                                            <span className="text-xs block">
+                                                Closes at:
+                                            </span>
+
+                                            <div className="mt-1 text-lg text-red-600 font-semibold">
+                                                {remainingTime}
+                                            </div>
+
+                                            {/* Current live date & time */}
+                                            <div className="mt-1 text-xs text-gray-400">
+                                                Closing Time:{" "}
+                                                <span className="font-medium">
+                                                    {closeAt.toLocaleDateString(
+                                                        [],
+                                                        {
+                                                            year: "numeric",
+                                                            month: "short",
+                                                            day: "numeric",
+                                                        }
+                                                    )}{" "}
+                                                    {closeAt.toLocaleTimeString(
+                                                        [],
+                                                        {
+                                                            hour: "2-digit",
+                                                            minute: "2-digit",
+                                                            second: "2-digit",
+                                                        }
+                                                    )}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </span>
+                                </>
+                            )}
                     </div>
                 ) : (
                     <NotInLocation />
                 )}
             </div>
-            {isInLocation && attendance && invalid_status === null && (
-                <>
-                    <span className="text-xs" data-live="server-time">
-                        <div className="text-center mt-2">
-                            <span className="text-xs block">Closes at:</span>
-
-                            <div className="mt-1 text-lg text-red-600 font-semibold">
-                                {remainingTime}
-                            </div>
-
-                            {/* Current live date & time */}
-                            <div className="mt-1 text-xs text-gray-400">
-                                Closing Time:{" "}
-                                <span className="font-medium">
-                                    {closeAt.toLocaleDateString([], {
-                                        year: "numeric",
-                                        month: "short",
-                                        day: "numeric",
-                                    })}{" "}
-                                    {closeAt.toLocaleTimeString([], {
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                        second: "2-digit",
-                                    })}
-                                </span>
-                            </div>
-                        </div>
-                    </span>
-                </>
-            )}
         </AppLayout>
     );
 }

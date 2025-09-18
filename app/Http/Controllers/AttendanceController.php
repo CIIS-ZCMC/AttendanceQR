@@ -12,22 +12,25 @@ class AttendanceController extends Controller
 {
     public function index(Request $request)
     {
-        $attendance_key = $request->key ?? -1;
-        $attendance = Attendance::where("attendance_key", $attendance_key)->first();
+        $attendance_key = $request->key ?? Attendance::where("is_active", true)->first()?->attendance_key;
+
+        $attendance = Attendance::where("attendance_key", $attendance_key)->where("is_active", true)->first();
 
 
 
         $status = null;
         if (!$attendance) {
             $status['notFound'] = true;
-        } elseif (!$attendance->is_active) {
-            $status['isNotActive'] = true;
+        } elseif (!$attendance->is_open) {
+            $status['isNotOpen'] = true;
         } elseif ($attendance->closed_at <= now()) {
             $status['isClosed'] = true;
         }
 
-        $userToken = session()->get('userToken');
-        $attendanceInformation = Attendance_Information::where('userToken', $userToken)->first();
+        $userToken = session()->get('userToken') . session()->get("employeeID");
+        $attendanceInformation = Attendance_Information::where('userToken', $userToken)
+            ->where('attendances_id', $attendance->id ?? -1)
+            ->first();
 
 
         if ($attendanceInformation) {

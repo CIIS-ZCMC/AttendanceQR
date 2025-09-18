@@ -21,6 +21,7 @@ class SessionMiddleware
             session()->put('userToken', $token);
         }
 
+
         return $next($request);
     }
 }

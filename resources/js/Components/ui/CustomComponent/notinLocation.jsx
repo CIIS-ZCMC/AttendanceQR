@@ -21,18 +21,18 @@ export const NotInLocation = () => {
                 <div className="">
                     <br />
                     <Alert variant="destructive">
-                        <AlertTitle className="flex items-center gap-2">
+                        <AlertTitle className="flex flex-col items-center gap-2">
                             <img
                                 src={warning}
                                 alt="Warning"
                                 className="w-10 h-10 "
                             />{" "}
-                            <span className="text-lg">
+                            <span className="text-md">
                                 Unable to log attendance
                             </span>
                         </AlertTitle>
-                        <AlertDescription>
-                            <span className="text-sm text-red-600 flex items-center gap-2">
+                        <AlertDescription className="flex justify-center">
+                            <span className="text-xs text-center text-red-600">
                                 You are outside the allowed area.
                             </span>
                         </AlertDescription>
@@ -45,7 +45,9 @@ export const NotInLocation = () => {
                 </div>
                 <br />
                 <Link href={page.url}>
-                    <Button type="button">Try again</Button>
+                    <Button type="button" className="w-full">
+                        Try again
+                    </Button>
                 </Link>
             </div>
             <Toaster position="top-right" richColors />

@@ -29,7 +29,8 @@ class AttendanceStoreRequest extends FormRequest
 
     public function userAttendanceInformation()
     {
-        $userToken = session()->get('userToken');
+        $userToken = session()->get('userToken') . $this->employeeId;
+        session()->put('employeeID', $this->employeeId);
         $employee = EmployeeProfile::where('employee_id', $this->employeeId)->first();
         if (!$employee) {
             return [];
