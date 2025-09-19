@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/Components/ui/input";
 import { Button } from "@/Components/ui/button";
-import { Plus } from "lucide-react";
+import { Edit, Plus } from "lucide-react";
 import {
     Pagination,
     PaginationContent,
@@ -33,22 +33,58 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { BadgeCheckIcon } from "lucide-react";
 import { Label } from "@/components/ui/label";
-
+import { Trash } from "lucide-react";
 export default function Settings({ attendanceList }) {
     const CreateAttendance = () => {
         return (
             <div className="grid gap-4">
                 <div className="grid gap-3">
-                    <Label htmlFor="name-1">Name</Label>
+                    <Label htmlFor="name-1">Title</Label>
                     <Input required id="name-1" name="name" />
                 </div>
                 <div className="grid gap-3">
-                    <Label htmlFor="username-1">Username</Label>
-                    <Input required id="username-1" name="username" />
+                    <Label htmlFor="username-1">Closing At</Label>
+                    <input
+                        required
+                        id="closing-at-1"
+                        name="closing-at"
+                        type="datetime-local"
+                        className="w-full block border border-gray-300 rounded-md p-1"
+                    />
+                </div>
+                <div className="flex gap-2">
+                    <Button variant="outline">Cancel</Button>
+                    <Button>Save</Button>
                 </div>
             </div>
         );
+    };
+
+    const displayStatus = (attendance) => {
+        const closingAt = new Date(attendance.closing_at);
+        const now = new Date();
+        if (attendance.is_active) {
+            //check if its open
+            if (attendance.is_open) {
+                if (now < closingAt) {
+                    return (
+                        <Badge
+                            variant="secondary"
+                            className="bg-green-500 text-white dark:bg-green-600"
+                        >
+                            <BadgeCheckIcon />
+                            Active
+                        </Badge>
+                    );
+                }
+            } else {
+                return <Badge className="bg-gray-500 text-white">Locked</Badge>;
+            }
+        }
+        return <Badge variant="secondary">Closed</Badge>;
     };
 
     console.log(attendanceList);
@@ -125,13 +161,30 @@ export default function Settings({ attendanceList }) {
                                 <TableCell className="font-medium">
                                     {attendance.title}
                                 </TableCell>
-                                <TableCell>statss</TableCell>
-                                <TableCell>{attendance.closing_at}</TableCell>
+                                <TableCell>
+                                    {displayStatus(attendance)}
+                                </TableCell>
+                                <TableCell>
+                                    {attendance.closed_at ?? (
+                                        <>
+                                            <span className="text-xs text-gray-400">
+                                                Not Available
+                                            </span>
+                                        </>
+                                    )}{" "}
+                                </TableCell>
                                 <TableCell className="text-right">
                                     {attendance.created_at}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    Actions
+                                    <div className="flex gap-2">
+                                        <Button size="sm" variant="outline">
+                                            <Edit
+                                                size={12}
+                                                className="text-blue-400"
+                                            />
+                                        </Button>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -139,26 +192,47 @@ export default function Settings({ attendanceList }) {
                 </Table>
                 <Pagination className="mt-5">
                     <PaginationContent>
-                        <PaginationItem>
-                            <PaginationPrevious href="#" />
-                        </PaginationItem>
-                        <PaginationItem>
-                            <PaginationLink href="#">1</PaginationLink>
-                        </PaginationItem>
-                        <PaginationItem>
-                            <PaginationLink href="#" isActive>
-                                2
-                            </PaginationLink>
-                        </PaginationItem>
-                        <PaginationItem>
-                            <PaginationLink href="#">3</PaginationLink>
-                        </PaginationItem>
-                        <PaginationItem>
+                        {console.log(attendanceList?.meta)}
+
+                        {attendanceList?.meta?.links?.map((link, key) => {
+                            if (key == 0) {
+                                return (
+                                    <PaginationItem className="cursor-pointer">
+                                        <PaginationPrevious
+                                            href={attendanceList?.links?.prev}
+                                        />
+                                    </PaginationItem>
+                                );
+                            }
+
+                            if (
+                                key ==
+                                attendanceList?.meta?.links?.length - 1
+                            ) {
+                                return (
+                                    <PaginationItem className="cursor-pointer">
+                                        <PaginationNext
+                                            href={attendanceList?.links?.next}
+                                        />
+                                    </PaginationItem>
+                                );
+                            }
+
+                            return (
+                                <PaginationItem key={link.label}>
+                                    <PaginationLink
+                                        href={link.url}
+                                        isActive={link.active}
+                                    >
+                                        {link.label}
+                                    </PaginationLink>
+                                </PaginationItem>
+                            );
+                        })}
+
+                        {/* <PaginationItem>
                             <PaginationEllipsis />
-                        </PaginationItem>
-                        <PaginationItem>
-                            <PaginationNext href="#" />
-                        </PaginationItem>
+                        </PaginationItem> */}
                     </PaginationContent>
                 </Pagination>
             </div>
