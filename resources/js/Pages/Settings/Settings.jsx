@@ -37,29 +37,49 @@ import { Badge } from "@/components/ui/badge";
 import { BadgeCheckIcon } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Trash } from "lucide-react";
+import { Checkbox } from "@/Components/ui/checkbox";
 export default function Settings({ attendanceList }) {
+    const [selectedAttendance, setSelectedAttendance] = React.useState(null);
     const CreateAttendance = () => {
         return (
-            <div className="grid gap-4">
-                <div className="grid gap-3">
-                    <Label htmlFor="name-1">Title</Label>
-                    <Input required id="name-1" name="name" />
+            <form>
+                <div className="grid gap-4 mb-4">
+                    <div className="grid gap-3">
+                        <Label htmlFor="name-1">Title</Label>
+                        <Input required id="name-1" name="name" />
+                    </div>
+                    <div className="grid gap-3">
+                        <Label htmlFor="username-1">Closing At</Label>
+                        <Input
+                            required
+                            id="closing-at-1"
+                            name="closing-at"
+                            type="datetime-local"
+                            className="w-full block rounded-md p-2"
+                        />
+                    </div>
+                    <div className="flex  flex-col  gap-2">
+                        <Label htmlFor="is_active">Status</Label>
+                        <div className="flex items-center gap-3">
+                            <Checkbox id="is_active" />
+                            <Label htmlFor="is_active">Set active</Label>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <Checkbox id="is_open" />
+                            <Label htmlFor="is_open">Set open</Label>
+                        </div>
+                    </div>
                 </div>
-                <div className="grid gap-3">
-                    <Label htmlFor="username-1">Closing At</Label>
-                    <input
-                        required
-                        id="closing-at-1"
-                        name="closing-at"
-                        type="datetime-local"
-                        className="w-full block border border-gray-300 rounded-md p-1"
-                    />
-                </div>
-                <div className="flex gap-2">
-                    <Button variant="outline">Cancel</Button>
-                    <Button>Save</Button>
-                </div>
-            </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button type="button" variant="outline">
+                            Cancel
+                        </Button>
+                    </DialogClose>
+                    <Button type="submit">Save</Button>
+                </DialogFooter>
+            </form>
         );
     };
 
@@ -85,6 +105,21 @@ export default function Settings({ attendanceList }) {
             }
         }
         return <Badge variant="secondary">Closed</Badge>;
+    };
+    const isEnabled = (attendance) => {
+        const closingAt = new Date(attendance.closing_at);
+        const now = new Date();
+        if (attendance.is_active) {
+            //check if its open
+            if (attendance.is_open) {
+                if (now < closingAt) {
+                    return true;
+                }
+            } else {
+                return true;
+            }
+        }
+        return false;
     };
 
     console.log(attendanceList);
@@ -124,14 +159,6 @@ export default function Settings({ attendanceList }) {
                                 </DialogDescription>
                             </DialogHeader>
                             <CreateAttendance />
-                            <DialogFooter>
-                                <DialogClose asChild>
-                                    <Button type="button" variant="outline">
-                                        Cancel
-                                    </Button>
-                                </DialogClose>
-                                <Button type="submit">Save</Button>
-                            </DialogFooter>
                         </DialogContent>
                     </form>
                 </Dialog>
@@ -178,7 +205,22 @@ export default function Settings({ attendanceList }) {
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex gap-2">
-                                        <Button size="sm" variant="outline">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            //disabled={!isEnabled(attendance)}
+                                            className={`${
+                                                !isEnabled(attendance)
+                                                    ? "hidden"
+                                                    : ""
+                                            }`}
+                                            onClick={() => {
+                                                console.log(attendance);
+                                                setSelectedAttendance(
+                                                    attendance
+                                                );
+                                            }}
+                                        >
                                             <Edit
                                                 size={12}
                                                 className="text-blue-400"

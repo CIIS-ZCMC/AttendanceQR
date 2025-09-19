@@ -1,4 +1,12 @@
-import { Calendar, Home, Inbox, QrCode, Search, Settings } from "lucide-react";
+import {
+    Calendar,
+    CalendarCog,
+    Home,
+    Inbox,
+    QrCode,
+    Search,
+    Settings,
+} from "lucide-react";
 
 import {
     Sidebar,
@@ -38,6 +46,11 @@ const mainNavItems = [
         title: "My Attendances",
         href: "/attendance-sheet",
         icon: Clock,
+    },
+    {
+        title: "Active Attendance",
+        href: "/active-configuration",
+        icon: CalendarCog,
     },
     {
         title: "Settings",

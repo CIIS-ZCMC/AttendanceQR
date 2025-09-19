@@ -16,4 +16,9 @@ class SettingsController extends Controller
             "attendanceList" => $attendanceList,
         ]);
     }
+
+    public function activeConfiguration()
+    {
+        return Inertia::render("Settings/ActiveConfiguration");
+    }
 }
