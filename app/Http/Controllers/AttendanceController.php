@@ -16,8 +16,6 @@ class AttendanceController extends Controller
 
         $attendance = Attendance::where("attendance_key", $attendance_key)->where("is_active", true)->first();
 
-
-
         $status = null;
         if (!$attendance) {
             $status['notFound'] = true;

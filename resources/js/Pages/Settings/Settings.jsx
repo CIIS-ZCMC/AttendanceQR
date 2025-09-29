@@ -38,35 +38,134 @@ import { BadgeCheckIcon } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Trash } from "lucide-react";
 import { Checkbox } from "@/Components/ui/checkbox";
+import { route } from "ziggy-js";
+import { useForm } from "@inertiajs/react";
+import { toast } from "sonner";
+import { LoaderCircle } from "lucide-react";
+import { router, usePage } from "@inertiajs/react";
+import { useEffect } from "react";
+
 export default function Settings({ attendanceList }) {
     const [selectedAttendance, setSelectedAttendance] = React.useState(null);
+    const [open, setOpen] = React.useState(false);
+    const { props } = usePage();
+
     const CreateAttendance = () => {
+        const [loading, setLoading] = React.useState(false);
+        const useCreateForm = useForm({
+            id: "",
+            name: "",
+            closing_at: "",
+            is_active: false,
+            is_open: false,
+        });
+
+        useEffect(() => {
+            if (selectedAttendance) {
+                useCreateForm.setData({
+                    id: selectedAttendance.id,
+                    name: selectedAttendance.title,
+                    closing_at: selectedAttendance.closing_at,
+                    is_active: selectedAttendance.is_active,
+                    is_open: selectedAttendance.is_open,
+                });
+            }
+        }, [selectedAttendance]);
+
+        const handleSubmit = async (e) => {
+            e.preventDefault();
+            setLoading(true);
+
+            await axios
+                .post("/store_attendance", useCreateForm.data)
+                .then(() => {
+                    setOpen(false);
+                    toast.success("Attendance created successfully");
+                    router.reload({
+                        preserveState: true,
+                        preserveScroll: true,
+                    });
+                })
+                .catch((error) => {
+                    useCreateForm.setError(error.response.data.errors);
+                    toast.error("Attendance creation failed");
+                    setOpen(true);
+                })
+                .finally(() => {
+                    setLoading(false);
+                });
+        };
+
+        const oneHourThirtyAhead = new Date();
+        oneHourThirtyAhead.setMinutes(oneHourThirtyAhead.getMinutes() + 90);
+        const minValue = oneHourThirtyAhead.toISOString().slice(0, 16);
+
         return (
-            <form>
+            <form onSubmit={handleSubmit}>
                 <div className="grid gap-4 mb-4">
                     <div className="grid gap-3">
                         <Label htmlFor="name-1">Title</Label>
-                        <Input required id="name-1" name="name" />
+                        <Input
+                            required
+                            id="name-1"
+                            name="name"
+                            value={useCreateForm.data.name}
+                            onChange={(e) =>
+                                useCreateForm.setData("name", e.target.value)
+                            }
+                        />
+                        {useCreateForm.errors.name && (
+                            <p className="text-red-500 text-xs">
+                                {useCreateForm.errors.name}
+                            </p>
+                        )}
                     </div>
                     <div className="grid gap-3">
                         <Label htmlFor="username-1">Closing At</Label>
                         <Input
                             required
                             id="closing-at-1"
-                            name="closing-at"
+                            name="closing_at"
+                            value={useCreateForm.data.closing_at}
+                            onChange={(e) =>
+                                useCreateForm.setData(
+                                    "closing_at",
+                                    e.target.value
+                                )
+                            }
                             type="datetime-local"
                             className="w-full block rounded-md p-2"
+                            min={minValue}
                         />
+                        {useCreateForm.errors.closing_at && (
+                            <p className="text-red-500 text-xs">
+                                {useCreateForm.errors.closing_at}
+                            </p>
+                        )}
                     </div>
                     <div className="flex  flex-col  gap-2">
                         <Label htmlFor="is_active">Status</Label>
                         <div className="flex items-center gap-3">
-                            <Checkbox id="is_active" />
+                            <Checkbox
+                                id="is_active"
+                                name="is_active"
+                                checked={useCreateForm.data.is_active}
+                                onCheckedChange={(checked) =>
+                                    useCreateForm.setData("is_active", checked)
+                                }
+                            />
                             <Label htmlFor="is_active">Set active</Label>
                         </div>
 
                         <div className="flex items-center gap-3">
-                            <Checkbox id="is_open" />
+                            <Checkbox
+                                id="is_open"
+                                name="is_open"
+                                checked={useCreateForm.data.is_open}
+                                onCheckedChange={(checked) =>
+                                    useCreateForm.setData("is_open", checked)
+                                }
+                            />
                             <Label htmlFor="is_open">Set open</Label>
                         </div>
                     </div>
@@ -77,7 +176,20 @@ export default function Settings({ attendanceList }) {
                             Cancel
                         </Button>
                     </DialogClose>
-                    <Button type="submit">Save</Button>
+                    <Button disabled={loading} type="submit">
+                        {loading ? (
+                            <div className="flex items-center">
+                                <LoaderCircle
+                                    size="sm"
+                                    color="green"
+                                    className="mr-2 animate-spin"
+                                />
+                                Saving...
+                            </div>
+                        ) : (
+                            "Save"
+                        )}
+                    </Button>
                 </DialogFooter>
             </form>
         );
@@ -119,10 +231,14 @@ export default function Settings({ attendanceList }) {
                 return true;
             }
         }
+
+        if (attendance.closing_at) {
+            return true;
+        }
+
         return false;
     };
 
-    console.log(attendanceList);
     return (
         <AppLayout title="Settings">
             <div className="text-lg font-semibold">Attendance Settings</div>
@@ -134,33 +250,37 @@ export default function Settings({ attendanceList }) {
                 <Button>Search</Button>
                 <Button variant="outline">Reset</Button>
 
-                <Dialog>
-                    <form
-                        onSubmit={(e) => e.preventDefault()}
-                        className="space-y-4"
+                <Dialog open={open} onOpenChange={setOpen}>
+                    <DialogTrigger asChild>
+                        <Button
+                            variant="primary"
+                            className={
+                                "bg-blue-900 hover:bg-blue-800 text-white"
+                            }
+                            onClick={() => setSelectedAttendance(null)}
+                        >
+                            Create Attendance <Plus className="ml-2 size-4" />
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent
+                        className="sm:max-w-[425px]"
+                        onInteractOutside={(e) => {
+                            e.preventDefault(); // 🚫 prevent closing when clicking outside
+                        }}
                     >
-                        <DialogTrigger asChild>
-                            <Button
-                                variant="primary"
-                                className={
-                                    "bg-blue-900 hover:bg-blue-800 text-white"
-                                }
-                            >
-                                Create Attendance{" "}
-                                <Plus className="ml-2 size-4" />
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                                <DialogTitle>Create Attendance</DialogTitle>
-                                <DialogDescription>
-                                    Create a new attendance. Click save when
-                                    you&apos;re done.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <CreateAttendance />
-                        </DialogContent>
-                    </form>
+                        <DialogHeader>
+                            <DialogTitle>
+                                {selectedAttendance ? "Edit " : "Create "}
+                                Attendance
+                            </DialogTitle>
+                            <DialogDescription>
+                                {selectedAttendance
+                                    ? "Edit attendance. Click save when you're done."
+                                    : "Create a new attendance. Click save when you're done."}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <CreateAttendance />
+                    </DialogContent>
                 </Dialog>
             </div>
             <div className="mt-5 max-[400px]:w-65 max-[500px]:w-[80%]  max-[639px]:w-[90%] md:w-full">
@@ -219,6 +339,8 @@ export default function Settings({ attendanceList }) {
                                                 setSelectedAttendance(
                                                     attendance
                                                 );
+
+                                                setOpen(true);
                                             }}
                                         >
                                             <Edit
@@ -239,7 +361,10 @@ export default function Settings({ attendanceList }) {
                         {attendanceList?.meta?.links?.map((link, key) => {
                             if (key == 0) {
                                 return (
-                                    <PaginationItem className="cursor-pointer">
+                                    <PaginationItem
+                                        key={key}
+                                        className="cursor-pointer"
+                                    >
                                         <PaginationPrevious
                                             href={attendanceList?.links?.prev}
                                         />

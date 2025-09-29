@@ -18,5 +18,6 @@ Route::middleware([
    Route::controller(SettingsController::class)->group(function () {
       Route::get("/settings", "index")->name("index.settings");
       Route::get("/active-configuration", "activeConfiguration")->name("active-configuration");
+      Route::post("/store_attendance", "store")->name("store_attendance");
    });
 });
