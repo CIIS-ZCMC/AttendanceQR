@@ -49,6 +49,7 @@ export default function Settings({ attendanceList }) {
     const [selectedAttendance, setSelectedAttendance] = React.useState(null);
     const [open, setOpen] = React.useState(false);
     const { props } = usePage();
+    const [search, setSearch] = React.useState("");
 
     const CreateAttendance = () => {
         const [loading, setLoading] = React.useState(false);
@@ -77,7 +78,7 @@ export default function Settings({ attendanceList }) {
             setLoading(true);
 
             await axios
-                .post("/store_attendance", useCreateForm.data)
+                .post("/store_attendance/settings", useCreateForm.data)
                 .then(() => {
                     setOpen(false);
                     toast.success("Attendance created successfully");
@@ -135,7 +136,7 @@ export default function Settings({ attendanceList }) {
                             }
                             type="datetime-local"
                             className="w-full block rounded-md p-2"
-                            min={minValue}
+                            // min={minValue}
                         />
                         {useCreateForm.errors.closing_at && (
                             <p className="text-red-500 text-xs">
@@ -232,7 +233,7 @@ export default function Settings({ attendanceList }) {
             }
         }
 
-        if (attendance.closing_at) {
+        if (attendance.closing_at && attendance.closing_at >= now) {
             return true;
         }
 
@@ -244,11 +245,41 @@ export default function Settings({ attendanceList }) {
             <div className="text-lg font-semibold">Attendance Settings</div>
             <div className="mt-2 text-xs">Manage or create new attendance</div>
 
-            <div className="mt-5 flex  sm:flex-row flex-col gap-2 max-[400px]:w-65 max-[500px]:w-[80%]  max-[639px]:w-[90%] md:w-full">
-                <Input type="text" placeholder="Search attendance" size="sm" />
+            <div className="mt-5 flex  sm:flex-row flex-col gap-2 max-[390px]:w-[45%] max-[415px]:w-[50%] max-[462px]:w-[60%] max-[521px]:w-[70%] max-[577px]:w-[80%]  max-[639px]:w-[90%] md:w-full">
+                <Input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search attendance"
+                    size="sm"
+                />
 
-                <Button>Search</Button>
-                <Button variant="outline">Reset</Button>
+                <Button
+                    onClick={() => {
+                        router.get(
+                            "/settings",
+                            { search },
+                            {
+                                preserveState: true,
+                                preserveScroll: true,
+                            }
+                        );
+                    }}
+                >
+                    Search
+                </Button>
+                <Button
+                    variant="outline"
+                    onClick={() => {
+                        setSearch("");
+                        router.visit("/settings", {
+                            preserveState: true,
+                            preserveScroll: true,
+                        });
+                    }}
+                >
+                    Reset
+                </Button>
 
                 <Dialog open={open} onOpenChange={setOpen}>
                     <DialogTrigger asChild>
@@ -283,7 +314,7 @@ export default function Settings({ attendanceList }) {
                     </DialogContent>
                 </Dialog>
             </div>
-            <div className="mt-5 max-[400px]:w-65 max-[500px]:w-[80%]  max-[639px]:w-[90%] md:w-full">
+            <div className="mt-5  max-[390px]:w-[45%] max-[415px]:w-[50%] max-[462px]:w-[60%] max-[521px]:w-[70%] max-[577px]:w-[80%]  max-[639px]:w-[90%] md:w-full">
                 <Table>
                     <TableCaption>List of Attendances</TableCaption>
                     <TableHeader>
@@ -294,9 +325,6 @@ export default function Settings({ attendanceList }) {
                             <TableHead>Status</TableHead>
                             <TableHead>Closing At</TableHead>
 
-                            <TableHead className="text-right">
-                                Created At
-                            </TableHead>
                             <TableHead className="text-right">
                                 Actions
                             </TableHead>
@@ -320,9 +348,7 @@ export default function Settings({ attendanceList }) {
                                         </>
                                     )}{" "}
                                 </TableCell>
-                                <TableCell className="text-right">
-                                    {attendance.created_at}
-                                </TableCell>
+
                                 <TableCell className="text-right">
                                     <div className="flex gap-2">
                                         <Button
@@ -356,8 +382,6 @@ export default function Settings({ attendanceList }) {
                 </Table>
                 <Pagination className="mt-5">
                     <PaginationContent>
-                        {console.log(attendanceList?.meta)}
-
                         {attendanceList?.meta?.links?.map((link, key) => {
                             if (key == 0) {
                                 return (

@@ -44,7 +44,7 @@ const mainNavItems = [
     },
     {
         title: "My Attendances",
-        href: "/attendance-sheet",
+        href: "/my-attendance",
         icon: Clock,
     },
     {

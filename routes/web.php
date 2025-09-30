@@ -12,12 +12,14 @@ Route::middleware([
    Route::controller(AttendanceController::class)->group(function () {
       Route::get("/", "index");
       Route::post("/store_attendance", "store")->name("store_attendance");
+      Route::get("my-attendance", "myAttendance")->name("my-attendance");
    });
 
 
    Route::controller(SettingsController::class)->group(function () {
       Route::get("/settings", "index")->name("index.settings");
       Route::get("/active-configuration", "activeConfiguration")->name("active-configuration");
-      Route::post("/store_attendance", "store")->name("store_attendance");
+      Route::post("/store_attendance/settings", "store")->name("store_attendance.settings");
+      Route::post("/update-active", "updateActive")->name("update-active");
    });
 });

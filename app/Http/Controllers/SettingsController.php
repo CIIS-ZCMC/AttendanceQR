@@ -15,7 +15,14 @@ class SettingsController extends Controller
 {
     public function index()
     {
+
+
         $attendanceList = AttendanceResource::collection(Attendance::orderBy("created_at", "desc")->paginate(5));
+
+        if (request()->has("search") && $search = request("search")) {
+            $attendanceList = AttendanceResource::collection(Attendance::where("title", "like", "%{$search}%")->orderBy("created_at", "desc")->paginate(5));
+        }
+
         return Inertia::render("Settings/Settings", [
             "attendanceList" => $attendanceList,
         ]);
@@ -23,7 +30,12 @@ class SettingsController extends Controller
 
     public function activeConfiguration()
     {
-        return Inertia::render("Settings/ActiveConfiguration");
+
+        $attendance = Attendance::where("is_active", true)->first();
+
+        return Inertia::render("Settings/ActiveConfiguration", [
+            "attendance" => $attendance,
+        ]);
     }
 
     public function store(SettingsAttendanceStoreRequest $request)
@@ -52,5 +64,17 @@ class SettingsController extends Controller
         ]);
 
         return to_route("index.settings");
+    }
+
+    public function updateActive(Request $request)
+    {
+
+
+        Attendance::where("id", $request->id)->update([
+            "is_active" => true,
+            'is_open' => $request->is_open,
+            'closed_at' => $request->closing_at
+        ]);
+        return to_route("active-configuration");
     }
 }

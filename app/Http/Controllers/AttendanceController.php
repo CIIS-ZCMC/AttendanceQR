@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Attendance;
 use App\Models\Attendance_Information;
+use App\Models\EmployeeProfile;
 
 class AttendanceController extends Controller
 {
@@ -61,5 +62,28 @@ class AttendanceController extends Controller
         } catch (\Exception $e) {
             return $e;
         }
+    }
+
+
+    public function myAttendance(Request $request)
+    {
+        $date = $request->date ?? null;
+        $employee_id = $request->employee_id ?? session()->get("employeeID");
+
+        $Employee = EmployeeProfile::where("employee_id", $employee_id)->first();
+        $biometric_id = $Employee->biometric_id;
+
+        $attendance = [];
+
+        if ($date) {
+            $attendance = Attendance_Information::where("biometric_id", $biometric_id)
+                ->whereDate("first_entry", $date)
+                ->with("attendance")
+                ->get();
+        }
+
+        return Inertia::render('MyAttendances/Myattendances', [
+            'attendanceList' => $attendance
+        ]);
     }
 }

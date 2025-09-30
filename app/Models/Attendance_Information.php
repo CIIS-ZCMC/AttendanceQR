@@ -23,4 +23,10 @@ class Attendance_Information extends Model
         'attendances_id',
         'userToken'
     ];
+
+
+    public function attendance()
+    {
+        return $this->belongsTo(Attendance::class, "attendances_id", "id");
+    }
 }
