@@ -9,14 +9,9 @@ import { usePage } from "@inertiajs/react";
 import { Toaster } from "sonner";
 export const NotInLocation = () => {
     const page = usePage();
-    useEffect(() => {
-        toast.warning(
-            "The location is invalid. Please move to the valid area and try again."
-        );
-    }, []);
 
     return (
-        <div>
+        <div className="bg-red-100 p-5 border rounded">
             <div>
                 <div className="">
                     <br />

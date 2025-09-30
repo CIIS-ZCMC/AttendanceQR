@@ -10,6 +10,7 @@ import { Checkbox } from "@/Components/ui/checkbox";
 import { useForm } from "@inertiajs/react";
 import { AlertOctagon, LoaderCircle } from "lucide-react";
 import { AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 export default function ActiveConfiguration({ attendance }) {
     const useCreateForm = useForm({
@@ -34,7 +35,14 @@ export default function ActiveConfiguration({ attendance }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        await useCreateForm.post("/update-active");
+        await useCreateForm.post("/update-active", {
+            onSuccess: () => {
+                toast.success("Attendance updated successfully");
+            },
+            onError: () => {
+                toast.error("Attendance update failed");
+            },
+        });
     };
 
     return (

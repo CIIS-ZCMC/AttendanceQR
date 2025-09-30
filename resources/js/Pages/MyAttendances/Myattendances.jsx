@@ -51,7 +51,7 @@ export default function Myattendances({ attendanceList }) {
             <div className="text-lg font-semibold">MY ATTENDANCES</div>
             <div className="mt-2 text-xs">View your attendance</div>
 
-            <div className="grid grid-cols-12 gap-2 mt-5 ">
+            <div className="grid grid-cols-12 gap-2 mt-5 max-[600px]:w-[400px] max-[520px]:w-[350px] max-[470px]:w-[300px]  max-[412px]:w-[280px] max-[390px]:w-[auto]">
                 <div className="col-span-4 max-[600px]:col-span-12 ">
                     <Input
                         type="number"

@@ -117,14 +117,6 @@ export default function Scan({ invalid_status, attendance }) {
     }, [isInsideGeofence]);
 
     useEffect(() => {
-        if (isInLocation && attendance && invalid_status === null) {
-            toast.success(
-                "You are inside the area. Please log your attendance."
-            );
-        }
-    }, [isInLocation]);
-
-    useEffect(() => {
         if (remainingTime === "0") {
             setTimeout(() => {
                 router.reload();
