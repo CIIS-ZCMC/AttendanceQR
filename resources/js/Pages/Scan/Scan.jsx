@@ -48,8 +48,6 @@ export default function Scan({ invalid_status, attendance }) {
     const [load, setLoad] = useState(true);
     const [isInLocation, setIsInLocation] = useState(false);
 
-    const isInsideGeofence = useGeofence();
-
     useEffect(() => {
         setData({ attendanceId: attendance?.id });
         const interval = setInterval(() => {
@@ -108,13 +106,57 @@ export default function Scan({ invalid_status, attendance }) {
         return () => clearInterval(interval);
     }, []);
 
-    useEffect(() => {
-        setLoad(true);
-        setIsInLocation(isInsideGeofence);
-        setTimeout(() => {
+    const geofenceCenter = { lat: 6.905891, lng: 122.080778 };
+    const geofenceRadius = 50;
+    const checkGeofence = (coords) => {
+        const userLatLng = new window.google.maps.LatLng(
+            coords.lat,
+            coords.lng
+        );
+        // const userLatLng = new window.google.maps.LatLng(
+        //     geofenceCenter.lat,
+        //     geofenceCenter.lng
+        // );
+
+        const geofenceLatLng = new window.google.maps.LatLng(
+            geofenceCenter.lat,
+            geofenceCenter.lng
+        );
+        const distance =
+            window.google.maps.geometry.spherical.computeDistanceBetween(
+                userLatLng,
+                geofenceLatLng
+            );
+
+        if (distance <= geofenceRadius) {
+            setIsInLocation(true);
             setLoad(false);
-        }, 1000);
-    }, [isInsideGeofence]);
+        } else {
+            setIsInLocation(false);
+            setLoad(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!geofenceCenter || !geofenceRadius) return; // prevent errors
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const coords = {
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                    };
+                    checkGeofence(coords);
+                },
+                () => {
+                    alert("❌ Unable to fetch location.");
+                }
+            );
+        } else {
+            alert("❌ Geolocation not supported.");
+        }
+    }, []);
 
     useEffect(() => {
         if (remainingTime === "0") {
@@ -126,7 +168,7 @@ export default function Scan({ invalid_status, attendance }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        //setData({ ...data, attendanceId: attendance?.id });
+
         post("/store_attendance", {
             onSuccess: (response) => {
                 if (response.props?.session?.type == "error") {
@@ -136,13 +178,6 @@ export default function Scan({ invalid_status, attendance }) {
                 }
             },
         });
-
-        // setBtnLoad(true);
-        // console.log("Submitted", employeeId);
-        // setTimeout(() => {
-        //     setIsRecorded(true);
-        //     setBtnLoad(false);
-        // }, 4000);
     };
 
     return (

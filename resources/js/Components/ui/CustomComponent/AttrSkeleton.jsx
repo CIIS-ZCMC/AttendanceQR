@@ -17,10 +17,11 @@ export const AttrSkeleton = () => {
                 <LoaderPinwheel
                     size={50}
                     color="green"
-                    className="animate-spin"
+                    className="animate-spin min-[768px]:ml-43"
                 />
-                <span className="text-xs font-bold mt-2 text-gray-400 min-[768px]:w-80 min-[768px]:ml-43 ">
-                    UMIS-Attendance Logger
+                <span className="text-xs font-bold mt-2 text-gray-400 min-[768px]:w-80 min-[768px]:ml-43 text-center ">
+                    Please wait <br />
+                    While we are validating your location.
                 </span>
             </div>
         </div>

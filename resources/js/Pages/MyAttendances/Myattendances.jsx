@@ -113,12 +113,12 @@ export default function Myattendances({ attendanceList }) {
                 </div>
             </div>
 
-            <div className="mt-5  md:w-full">
+            <div className="mt-5 overflow-y-auto max-[600px]:w-[400px] max-[520px]:w-[350px] max-[470px]:w-[300px]  max-[412px]:w-[280px] max-[390px]:w-[auto]">
                 <Table>
                     <TableCaption>List of Attendances</TableCaption>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-[100px] text-center text-xs">
+                            <TableHead className=" text-center text-xs">
                                 Attendance title
                             </TableHead>
                             <TableHead className="text-center text-xs">

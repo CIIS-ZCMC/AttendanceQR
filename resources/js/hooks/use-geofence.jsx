@@ -27,14 +27,14 @@ export function useGeofence() {
     }, []);
 
     const checkGeofence = (coords) => {
-        // const userLatLng = new window.google.maps.LatLng(
-        //     coords.lat,
-        //     coords.lng
-        // );
         const userLatLng = new window.google.maps.LatLng(
-            geofenceCenter.lat,
-            geofenceCenter.lng
+            coords.lat,
+            coords.lng
         );
+        // const userLatLng = new window.google.maps.LatLng(
+        //     geofenceCenter.lat,
+        //     geofenceCenter.lng
+        // );
 
         const geofenceLatLng = new window.google.maps.LatLng(
             geofenceCenter.lat,

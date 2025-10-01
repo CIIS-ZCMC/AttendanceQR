@@ -245,7 +245,7 @@ export default function Settings({ attendanceList, is_admin }) {
             <div className="text-lg font-semibold">Attendance Settings</div>
             <div className="mt-2 text-xs">Manage or create new attendance</div>
 
-            <div className="mt-5 flex  sm:flex-row flex-col gap-2 max-[390px]:w-[45%] max-[415px]:w-[50%] max-[462px]:w-[60%] max-[521px]:w-[70%] max-[577px]:w-[80%]  max-[639px]:w-[90%] md:w-full">
+            <div className="mt-5 flex  sm:flex-row flex-col gap-2  md:w-full">
                 <Input
                     type="text"
                     value={search}
@@ -314,7 +314,7 @@ export default function Settings({ attendanceList, is_admin }) {
                     </DialogContent>
                 </Dialog>
             </div>
-            <div className="mt-5  max-[390px]:w-[45%] max-[415px]:w-[50%] max-[462px]:w-[60%] max-[521px]:w-[70%] max-[577px]:w-[80%]  max-[639px]:w-[90%] md:w-full">
+            <div className="mt-5  overflow-y-auto max-[600px]:w-[400px] max-[520px]:w-[350px] max-[470px]:w-[300px]  max-[412px]:w-[280px] max-[390px]:w-[auto]">
                 <Table>
                     <TableCaption>List of Attendances</TableCaption>
                     <TableHeader>
