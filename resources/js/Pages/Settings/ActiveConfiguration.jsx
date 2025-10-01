@@ -12,7 +12,7 @@ import { AlertOctagon, LoaderCircle } from "lucide-react";
 import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
-export default function ActiveConfiguration({ attendance }) {
+export default function ActiveConfiguration({ attendance, is_admin }) {
     const useCreateForm = useForm({
         id: "",
         name: "",
@@ -46,7 +46,11 @@ export default function ActiveConfiguration({ attendance }) {
     };
 
     return (
-        <AppLayout title="Active Configuration">
+        <AppLayout
+            title="Active Configuration"
+            is_admin={is_admin}
+            w_admin={true}
+        >
             <div className="mt-4 flex justify-center items-center md:absolute md:top-80 md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2">
                 <div className="flex items-center justify-center min-h-[50vh]">
                     {!attendance ? (

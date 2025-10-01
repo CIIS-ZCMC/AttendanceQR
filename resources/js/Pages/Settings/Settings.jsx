@@ -45,10 +45,10 @@ import { LoaderCircle } from "lucide-react";
 import { router, usePage } from "@inertiajs/react";
 import { useEffect } from "react";
 
-export default function Settings({ attendanceList }) {
+export default function Settings({ attendanceList, is_admin }) {
     const [selectedAttendance, setSelectedAttendance] = React.useState(null);
     const [open, setOpen] = React.useState(false);
-    const { props } = usePage();
+    const page = usePage();
     const [search, setSearch] = React.useState("");
 
     const CreateAttendance = () => {
@@ -241,7 +241,7 @@ export default function Settings({ attendanceList }) {
     };
 
     return (
-        <AppLayout title="Settings">
+        <AppLayout title="Settings" is_admin={is_admin} w_admin={true}>
             <div className="text-lg font-semibold">Attendance Settings</div>
             <div className="mt-2 text-xs">Manage or create new attendance</div>
 

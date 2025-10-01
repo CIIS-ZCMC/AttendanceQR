@@ -3,7 +3,22 @@ import AppSidebar from "../app/app-sidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { LoadScript } from "@react-google-maps/api";
 import { Toaster } from "sonner";
-export default function AppLayout({ children }) {
+import LogAdmin from "../Components/ui/CustomComponent/LogAdmin";
+import { usePage } from "@inertiajs/react";
+import { useEffect } from "react";
+import { toast } from "sonner";
+
+export default function AppLayout({
+    children,
+    is_admin = false,
+    w_admin = false,
+}) {
+    const page = usePage();
+    useEffect(() => {
+        if (page.props.error) {
+            toast.error(page.props.error);
+        }
+    }, [page.props.error]);
     return (
         <SidebarProvider
             style={{
@@ -15,7 +30,7 @@ export default function AppLayout({ children }) {
             <SidebarTrigger className={"ml-2 mt-2 text-2xl"} />
             <AppSidebar />
             <main className="p-10">
-                {children}
+                {w_admin ? is_admin ? children : <LogAdmin /> : children}
                 <LoadScript
                     googleMapsApiKey="AIzaSyDok3Z6YRFk0Oj1f_bMTuWCDwDMOp6u4Sw"
                     libraries={["geometry"]}

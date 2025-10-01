@@ -13,9 +13,30 @@ use App\Http\Requests\SettingsAttendanceStoreRequest;
 
 class SettingsController extends Controller
 {
+
+    public function ValidateLogin($redirect)
+    {
+        $adminAccounts = json_decode(file_get_contents(base_path("Admin_Accounts.json")));
+
+        if (!session()->has("admin_user")) {
+            if (request()->has("employeeId")) {
+
+                if (in_array(request("employeeId"), $adminAccounts->admin_accounts)) {
+                    session()->put("admin_user", true);
+                    session()->forget("error");
+                    return to_route($redirect);
+                }
+                session()->put("error", "Access Denied");
+                return to_route($redirect);
+            }
+        }
+    }
+
+
     public function index()
     {
-
+        //session()->forget("admin_user");
+        $this->ValidateLogin("index.settings");
 
         $attendanceList = AttendanceResource::collection(Attendance::orderBy("created_at", "desc")->paginate(5));
 
@@ -25,16 +46,22 @@ class SettingsController extends Controller
 
         return Inertia::render("Settings/Settings", [
             "attendanceList" => $attendanceList,
+            "is_admin" => session()->has("admin_user"),
+            "error" => session()->get("error") ?? false,
         ]);
     }
 
     public function activeConfiguration()
     {
 
+        $this->ValidateLogin("active-configuration");
+
         $attendance = Attendance::where("is_active", true)->first();
 
         return Inertia::render("Settings/ActiveConfiguration", [
             "attendance" => $attendance,
+            "is_admin" => session()->has("admin_user"),
+            "error" => session()->get("error") ?? false,
         ]);
     }
 
