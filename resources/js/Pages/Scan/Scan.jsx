@@ -46,7 +46,35 @@ export default function Scan({ invalid_status, attendance }) {
     const [closeAt, setCloseAt] = useState(new Date());
     const [remainingTime, setRemainingTime] = useState("");
     const [load, setLoad] = useState(true);
-    const [isInLocation, setIsInLocation] = useState(false);
+    const [isWithinLocation, setIsWithinLocation] = useState(false);
+
+    useEffect(() => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    axios
+                        .get(`validate-location?lat=${lat}&lng=${lng}`)
+                        .then((response) => {
+                            setIsWithinLocation(response.data.isInLocation);
+                            setLoad(false);
+                        })
+                        .catch((error) => {
+                            console.log(error);
+                            alert("❌ Unable to fetch location.");
+                            setLoad(false);
+                        });
+                },
+                () => {
+                    alert("❌ Unable to fetch location.");
+                    setLoad(false);
+                }
+            );
+        } else {
+            alert("❌ Geolocation not supported.");
+        }
+    }, []);
 
     useEffect(() => {
         setData({ attendanceId: attendance?.id });
@@ -106,58 +134,6 @@ export default function Scan({ invalid_status, attendance }) {
         return () => clearInterval(interval);
     }, []);
 
-    const geofenceCenter = { lat: 6.905891, lng: 122.080778 };
-    const geofenceRadius = 50;
-    const checkGeofence = (coords) => {
-        const userLatLng = new window.google.maps.LatLng(
-            coords.lat,
-            coords.lng
-        );
-        // const userLatLng = new window.google.maps.LatLng(
-        //     geofenceCenter.lat,
-        //     geofenceCenter.lng
-        // );
-
-        const geofenceLatLng = new window.google.maps.LatLng(
-            geofenceCenter.lat,
-            geofenceCenter.lng
-        );
-        const distance =
-            window.google.maps.geometry.spherical.computeDistanceBetween(
-                userLatLng,
-                geofenceLatLng
-            );
-
-        if (distance <= geofenceRadius) {
-            setIsInLocation(true);
-            setLoad(false);
-        } else {
-            setIsInLocation(false);
-            setLoad(false);
-        }
-    };
-
-    useEffect(() => {
-        if (!geofenceCenter || !geofenceRadius) return; // prevent errors
-
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    const coords = {
-                        lat: pos.coords.latitude,
-                        lng: pos.coords.longitude,
-                    };
-                    checkGeofence(coords);
-                },
-                () => {
-                    alert("❌ Unable to fetch location.");
-                }
-            );
-        } else {
-            alert("❌ Geolocation not supported.");
-        }
-    }, []);
-
     useEffect(() => {
         if (remainingTime === "0") {
             setTimeout(() => {
@@ -205,18 +181,17 @@ export default function Scan({ invalid_status, attendance }) {
                     </span>
                 </>
             )}
-
             <div className="mt-4 flex justify-center items-center md:absolute md:top-80 md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2">
                 {load ? (
                     <AttrSkeleton />
-                ) : !isInLocation ? (
+                ) : !isWithinLocation ? (
                     <NotInLocation />
                 ) : invalid_status ? (
                     <FailedScan
                         invalid_status={invalid_status}
-                        isInLocation={isInLocation}
+                        isInLocation={isWithinLocation}
                     />
-                ) : isInLocation ? (
+                ) : isWithinLocation ? (
                     <div>
                         <br />
 
@@ -265,7 +240,7 @@ export default function Scan({ invalid_status, attendance }) {
                         </form>
                         <br />
 
-                        {isInLocation &&
+                        {isWithinLocation &&
                             attendance &&
                             invalid_status === null && (
                                 <>

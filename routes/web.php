@@ -13,6 +13,7 @@ Route::middleware([
       Route::get("/", "index");
       Route::post("/store_attendance", "store")->name("store_attendance");
       Route::get("my-attendance", "myAttendance")->name("my-attendance");
+      Route::get("validate-location", "validateLocation")->name("validate-location");
    });
 
 

@@ -11,6 +11,43 @@ use App\Models\EmployeeProfile;
 
 class AttendanceController extends Controller
 {
+    public function validateLocation(Request $request)
+    {
+        $geofenceCenter = ['lat' => 6.905891, 'lng' => 122.080778];
+        $geofenceRadius = 1; // meters
+
+        $userLat = $request->lat;
+        $userLng = $request->lng;
+
+
+        return response()->json([
+            'isInLocation' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius) ?? false
+        ]);
+    }
+
+    public function checkGeofence($userLat, $userLng, $centerLat, $centerLng, $radiusMeters = 50)
+    {
+        $earthRadius = 6371000; // meters
+
+        $latFrom = deg2rad($userLat);
+        $lngFrom = deg2rad($userLng);
+        $latTo   = deg2rad($centerLat);
+        $lngTo   = deg2rad($centerLng);
+
+        $latDelta = $latTo - $latFrom;
+        $lngDelta = $lngTo - $lngFrom;
+
+        $a = sin($latDelta / 2) ** 2 +
+            cos($latFrom) * cos($latTo) *
+            sin($lngDelta / 2) ** 2;
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        $distance = $earthRadius * $c; // distance in meters
+
+        return $distance <= $radiusMeters;
+    }
+
+
     public function index(Request $request)
     {
         $attendance_key = $request->key ?? Attendance::where("is_active", true)->first()?->attendance_key;
@@ -37,10 +74,11 @@ class AttendanceController extends Controller
         }
 
 
+
         return Inertia::render('Scan/Scan', [
             'invalid_status' => $status,
             'attendance' => $attendance,
-            "session" => session()->get('session')
+            "session" => session()->get('session'),
         ]);
     }
 

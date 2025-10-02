@@ -7,6 +7,7 @@ import warning from "../../../src/warning.gif";
 import { toast } from "sonner";
 import { usePage } from "@inertiajs/react";
 import { Toaster } from "sonner";
+import location from "../../../src/location.png";
 export const NotInLocation = () => {
     const page = usePage();
 
@@ -17,11 +18,19 @@ export const NotInLocation = () => {
                     <br />
                     <Alert variant="destructive">
                         <AlertTitle className="flex flex-col items-center gap-2">
+                            <span className="text-xs text-gray-500">
+                                Attendance allowed area
+                            </span>
+                            <img
+                                src={location}
+                                alt="Warning"
+                                className="w-70 h-60 "
+                            />{" "}
                             <img
                                 src={warning}
                                 alt="Warning"
                                 className="w-10 h-10 "
-                            />{" "}
+                            />
                             <span className="text-md">
                                 Unable to log attendance
                             </span>
@@ -39,7 +48,7 @@ export const NotInLocation = () => {
                     </p>
                 </div>
                 <br />
-                <Link href={page.url}>
+                <Link href={"/"}>
                     <Button type="button" className="w-full">
                         Try again
                     </Button>
