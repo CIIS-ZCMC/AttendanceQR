@@ -24,7 +24,7 @@ export const NotInLocation = () => {
                             <img
                                 src={location}
                                 alt="Warning"
-                                className="w-70 h-60 "
+                                className="w-70 h-70 "
                             />{" "}
                             <img
                                 src={warning}
