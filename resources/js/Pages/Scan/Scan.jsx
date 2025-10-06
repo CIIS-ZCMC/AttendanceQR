@@ -14,8 +14,9 @@ import { toast } from "sonner";
 import FailedScan from "./FailedScan";
 import { router, useForm } from "@inertiajs/react";
 import { usePage } from "@inertiajs/react";
-
-export default function Scan({ invalid_status, attendance }) {
+import axios from "axios";
+import FingerprintJS from "@fingerprintjs/fingerprintjs";
+export default function Scan({ invalid_status, attendance, ip }) {
     const {
         data,
         setData,
@@ -47,32 +48,58 @@ export default function Scan({ invalid_status, attendance }) {
     const [remainingTime, setRemainingTime] = useState("");
     const [load, setLoad] = useState(true);
     const [isWithinLocation, setIsWithinLocation] = useState(false);
-
+    const [locationService, setLocationService] = useState(true);
+    const [fingerprint, setFingerprint] = useState(null);
+    const [anomalyState, setAnomalyState] = useState(false);
     useEffect(() => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     const lat = pos.coords.latitude;
                     const lng = pos.coords.longitude;
-                    axios
-                        .get(`validate-location?lat=${lat}&lng=${lng}`)
-                        .then((response) => {
-                            setIsWithinLocation(response.data.isInLocation);
-                            setLoad(false);
-                        })
-                        .catch((error) => {
-                            console.log(error);
-                            alert("❌ Unable to fetch location.");
-                            setLoad(false);
-                        });
+                    const loadFingerprint = async () => {
+                        const fp = await FingerprintJS.load();
+                        const result = await fp.get();
+                        setFingerprint(result.visitorId);
+                        axios
+                            .get(
+                                `validate-location?lat=${lat}&lng=${lng}&fingerprint=${result.visitorId}`
+                            )
+                            .then((response) => {
+                                setIsWithinLocation(response.data.isInLocation);
+                                setLoad(false);
+                                setLocationService(true);
+                            })
+                            .catch((error) => {
+                                console.log(error);
+                                toast.error("❌ Unable to fetch location.");
+                                setLoad(false);
+                                setLocationService(false);
+                            });
+                    };
+
+                    loadFingerprint();
                 },
                 () => {
-                    alert("❌ Unable to fetch location.");
+                    alert(
+                        "❌ Location access is currently disabled.\n\nPlease enable location services to continue — this helps us verify your attendance accurately and provide a better experience.\n\n👉 Go to your device or browser settings and allow location access for this app, then try again!"
+                    );
+                    setLocationService(false);
                     setLoad(false);
+                },
+                {
+                    enableHighAccuracy: false,
+                    timeout: 8000,
+                    maximumAge: 5000,
                 }
             );
         } else {
-            alert("❌ Geolocation not supported.");
+            toast.error(
+                "❌ Geolocation is not supported on this device or browser. Please try using a supported browser or enable location settings to continue."
+            );
+            setLocationService(false);
+
+            setLoad(false);
         }
     }, []);
 
@@ -146,10 +173,15 @@ export default function Scan({ invalid_status, attendance }) {
         e.preventDefault();
 
         post("/store_attendance", {
+            fingerprint: fingerprint,
             onSuccess: (response) => {
                 if (response.props?.session?.type == "error") {
                     toast.error(response.props.session.message);
+                } else if (response.props?.session?.type == "warning-anomaly") {
+                    toast.warning(response.props.session.message);
+                    setAnomalyState(true);
                 } else {
+                    localStorage.setItem("employeeID", data.employeeId);
                     toast.success("Attendance recorded successfully");
                 }
             },
@@ -181,15 +213,17 @@ export default function Scan({ invalid_status, attendance }) {
                     </span>
                 </>
             )}
+
             <div className="mt-4 flex justify-center items-center md:absolute md:top-80 md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2">
                 {load ? (
                     <AttrSkeleton />
                 ) : !isWithinLocation ? (
-                    <NotInLocation />
+                    <NotInLocation locationService={locationService} />
                 ) : invalid_status ? (
                     <FailedScan
                         invalid_status={invalid_status}
                         isInLocation={isWithinLocation}
+                        anomalyState={anomalyState}
                     />
                 ) : isWithinLocation ? (
                     <div>
@@ -197,7 +231,7 @@ export default function Scan({ invalid_status, attendance }) {
 
                         <span className="text-xs text-blue-600  flex items-center">
                             Attendance can be logged — you are inside the
-                            allowed area.{" "}
+                            allowed area.
                             <img
                                 src={mappin}
                                 alt=""
@@ -285,7 +319,7 @@ export default function Scan({ invalid_status, attendance }) {
                             )}
                     </div>
                 ) : (
-                    <NotInLocation />
+                    <NotInLocation locationService={locationService} />
                 )}
             </div>
         </AppLayout>

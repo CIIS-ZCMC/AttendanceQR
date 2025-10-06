@@ -8,20 +8,26 @@ use Inertia\Inertia;
 use App\Models\Attendance;
 use App\Models\Attendance_Information;
 use App\Models\EmployeeProfile;
+use Illuminate\Support\Facades\Log;
 
 class AttendanceController extends Controller
 {
     public function validateLocation(Request $request)
     {
         $geofenceCenter = ['lat' => 6.905891, 'lng' => 122.080778];
-        $geofenceRadius = 1; // meters
+        $geofenceRadius = 40; // meters
 
-        $userLat = $request->lat;
-        $userLng = $request->lng;
+        // $userLat = $request->lat;
+        // $userLng = $request->lng;
 
+        $userLat = 6.905891;
+        $userLng = 122.080778;
+
+        session()->put("userToken", $request->fingerprint);
 
         return response()->json([
-            'isInLocation' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius) ?? false
+            'isInLocation' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius) ?? false,
+            'ip_address' => $request->ip()
         ]);
     }
 
@@ -42,7 +48,7 @@ class AttendanceController extends Controller
             sin($lngDelta / 2) ** 2;
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
 
-        $distance = $earthRadius * $c; // distance in meters
+        $distance = $earthRadius * $c;
 
         return $distance <= $radiusMeters;
     }
@@ -54,6 +60,15 @@ class AttendanceController extends Controller
 
         $attendance = Attendance::where("attendance_key", $attendance_key)->where("is_active", true)->first();
 
+
+        if (!session()->has("firstAccess")) {
+            session()->put('firstAccess', [
+                'value' => true,
+                'expires_at' => now()->addMinutes(1)
+            ]);
+            return Inertia::render("Scan/Welcome");
+        }
+
         $status = null;
         if (!$attendance) {
             $status['notFound'] = true;
@@ -63,7 +78,10 @@ class AttendanceController extends Controller
             $status['isClosed'] = true;
         }
 
-        $userToken = session()->get('userToken') . session()->get("employeeID");
+        $userToken = session()->get('userToken') ?? $request->fingerprint;
+
+
+        $userToken = $userToken . $attendance->id;
         $attendanceInformation = Attendance_Information::where('userToken', $userToken)
             ->where('attendances_id', $attendance->id ?? -1)
             ->first();
@@ -79,6 +97,7 @@ class AttendanceController extends Controller
             'invalid_status' => $status,
             'attendance' => $attendance,
             "session" => session()->get('session'),
+            'ip' => $request->ip()
         ]);
     }
 
@@ -87,7 +106,6 @@ class AttendanceController extends Controller
     {
         try {
             $attendanceInformation = $request->userAttendanceInformation();
-
             if (!$attendanceInformation) {
                 return redirect()->back()->with("session", [
                     "message" => "Employee not found",
@@ -95,7 +113,24 @@ class AttendanceController extends Controller
                 ]);
             }
 
-            Attendance_Information::create($attendanceInformation);
+            $Existing = Attendance_Information::where('userToken', $attendanceInformation['userToken'])
+                ->where('attendances_id', $attendanceInformation['attendances_id'])
+                ->first();
+            if ($Existing) {
+                if ((int)$Existing->biometric_id !== (int)$attendanceInformation['biometric_id']) {
+                    Log::channel('customLog')->warning("Attendance ID : " . $attendanceInformation['attendances_id'] . " | Employee : " . $Existing->name . " with BiometricID : " . $Existing->biometric_id . " is trying to register for " . $attendanceInformation['name'] . " with BiometricID : " . $attendanceInformation['biometric_id']);
+                    return redirect()->back()->with('session', [
+                        'message' => 'Registering for other employee is highly prohibited. This action is recorded — do it again and this ID of yours will be reported to HR.',
+                        'type' => 'warning-anomaly',
+                    ]);
+                }
+            }
+
+
+            Attendance_Information::firstOrCreate([
+                "userToken" => $attendanceInformation['userToken'],
+                "attendances_id" => $attendanceInformation['attendances_id'],
+            ], $attendanceInformation);
             return redirect()->back();
         } catch (\Exception $e) {
             return $e;

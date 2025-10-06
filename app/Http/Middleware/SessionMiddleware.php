@@ -15,11 +15,11 @@ class SessionMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!session()->has('userToken')) {
-            $bytes = random_bytes(16);
-            $token = bin2hex($bytes);
-            session()->put('userToken', $token);
-        }
+        //session()->forget('userToken');
+        // if (!session()->has('userToken')) {
+        //     $token = request()->ip();
+        //     session()->put('userToken', );
+        // }
 
 
         return $next($request);

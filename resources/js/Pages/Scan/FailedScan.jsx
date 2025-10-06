@@ -11,11 +11,34 @@ import { Toaster } from "@/Components/ui/sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import check from "../../src/check.gif";
 
-export default function FailedScan({ invalid_status, isInLocation }) {
+export default function FailedScan({ invalid_status, anomalyState }) {
     const page = usePage();
 
     const Display = () => {
-        if (invalid_status.notFound) {
+        if (anomalyState) {
+            return (
+                <div className="flex items-center justify-center min-h-[50vh]">
+                    <Card className="w-full max-w-md shadow-md border border-gray-200">
+                        <CardContent className="flex flex-col items-center justify-center p-6 space-y-3">
+                            <img
+                                src={warning}
+                                alt=""
+                                width="60px"
+                                height="60px"
+                            />
+                            <h2 className="text-md font-semibold text-red-400">
+                                Registering for other employee is highly
+                                prohibited.
+                            </h2>
+                            <p className="text-sm text-gray-500 text-center">
+                                This action is recorded — do it again and this
+                                ID of yours will be reported to HR.
+                            </p>
+                        </CardContent>
+                    </Card>
+                </div>
+            );
+        } else if (invalid_status.notFound) {
             return (
                 <div className="flex items-center justify-center min-h-[50vh]">
                     <Card className="w-full max-w-md shadow-md border border-gray-200">

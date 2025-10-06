@@ -8,11 +8,11 @@ import { toast } from "sonner";
 import { usePage } from "@inertiajs/react";
 import { Toaster } from "sonner";
 import location from "../../../src/location.png";
-export const NotInLocation = () => {
+export const NotInLocation = ({ locationService }) => {
     const page = usePage();
 
     return (
-        <div className="bg-red-100 p-5 border rounded">
+        <div className="bg-red-50 p-5 border rounded">
             <div>
                 <div className="">
                     <br />
@@ -37,15 +37,35 @@ export const NotInLocation = () => {
                         </AlertTitle>
                         <AlertDescription className="flex justify-center">
                             <span className="text-xs text-center text-red-600">
-                                You are outside the allowed area.
+                                {locationService ? (
+                                    "You are outside the allowed area."
+                                ) : (
+                                    <p className="text-xs text-center text-gray-600">
+                                        <span className="font-semibold">
+                                            Location access is currently
+                                            disabled.
+                                        </span>
+                                        <br /> <br />
+                                        Please enable location services to
+                                        continue — this helps us verify your
+                                        attendance accurately and provide a
+                                        better experience.
+                                        <br /> <br />
+                                        👉 Go to your device or browser settings
+                                        and allow location access for this app,
+                                        then try again!
+                                    </p>
+                                )}
                             </span>
                         </AlertDescription>
                     </Alert>
 
-                    <p className="text-sm mt-2 p-3">
-                        Kindly move to the allowed area and click{" "}
-                        <span className="font-semibold">Try Again</span>.
-                    </p>
+                    {locationService && (
+                        <p className="text-sm mt-2 p-3">
+                            Kindly move to the allowed area and click{" "}
+                            <span className="font-semibold">Try Again</span>.
+                        </p>
+                    )}
                 </div>
                 <br />
                 <Link href={"/"}>
