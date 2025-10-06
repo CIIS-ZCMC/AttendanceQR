@@ -17,17 +17,18 @@ class AttendanceController extends Controller
         $geofenceCenter = ['lat' => 6.905891, 'lng' => 122.080778];
         $geofenceRadius = 40; // meters
 
-        // $userLat = $request->lat;
-        // $userLng = $request->lng;
+        $userLat = $request->lat;
+        $userLng = $request->lng;
 
-        $userLat = 6.905891;
-        $userLng = 122.080778;
+        // $userLat = 6.905835;
+        // $userLng = 122.080778;
 
         session()->put("userToken", $request->fingerprint);
-
         return response()->json([
-            'isInLocation' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius) ?? false,
-            'ip_address' => $request->ip()
+            'isInLocation' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['isInLocation'] ?? false,
+            'ip_address' => $request->ip(),
+            'distance' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['distance'],
+            'radius' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['radius']
         ]);
     }
 
@@ -50,7 +51,11 @@ class AttendanceController extends Controller
 
         $distance = $earthRadius * $c;
 
-        return $distance <= $radiusMeters;
+        return [
+            'isInLocation' => $distance <= $radiusMeters,
+            'distance' => $distance,
+            'radius' => $radiusMeters
+        ];
     }
 
 
@@ -62,10 +67,7 @@ class AttendanceController extends Controller
 
 
         if (!session()->has("firstAccess")) {
-            session()->put('firstAccess', [
-                'value' => true,
-                'expires_at' => now()->addMinutes(1)
-            ]);
+            session()->put('firstAccess', true);
             return Inertia::render("Scan/Welcome");
         }
 

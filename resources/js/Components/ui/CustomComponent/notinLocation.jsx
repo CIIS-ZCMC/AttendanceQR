@@ -8,11 +8,13 @@ import { toast } from "sonner";
 import { usePage } from "@inertiajs/react";
 import { Toaster } from "sonner";
 import location from "../../../src/location.png";
-export const NotInLocation = ({ locationService }) => {
+import { Smartphone, Globe } from "lucide-react";
+
+export const NotInLocation = ({ locationService, distance }) => {
     const page = usePage();
 
     return (
-        <div className="bg-red-50 p-5 border rounded">
+        <div className="bg-red-50 p-5 lg:mt-120 md:mt-130 border rounded">
             <div>
                 <div className="">
                     <br />
@@ -38,22 +40,90 @@ export const NotInLocation = ({ locationService }) => {
                         <AlertDescription className="flex justify-center">
                             <span className="text-xs text-center text-red-600">
                                 {locationService ? (
-                                    "You are outside the allowed area."
+                                    <>
+                                        You are outside the allowed area.
+                                        <br /> <br />
+                                        <span className="font-semibold text-gray-600 text-xs">
+                                            Approximately{" "}
+                                            <span className="font-bold text-red-600 text-lg">
+                                                {distance?.toFixed(2)}
+                                            </span>{" "}
+                                            meters away from the allowed area.
+                                        </span>
+                                    </>
                                 ) : (
                                     <p className="text-xs text-center text-gray-600">
-                                        <span className="font-semibold">
+                                        <span className="font-semibold text-lg">
                                             Location access is currently
                                             disabled.
                                         </span>
-                                        <br /> <br />
-                                        Please enable location services to
-                                        continue — this helps us verify your
-                                        attendance accurately and provide a
-                                        better experience.
-                                        <br /> <br />
-                                        👉 Go to your device or browser settings
-                                        and allow location access for this app,
-                                        then try again!
+                                        <br />
+                                        <div className="flex justify-center max-h-[50vh] overflow-y-auto">
+                                            <div className="border-t p-3 pt-4 mt-4 text-left space-y-3">
+                                                <span className="font-semibold text-sm">
+                                                    To enable location access,
+                                                    follow these steps:
+                                                </span>
+                                                <h3 className="font-medium flex items-center gap-2 text-gray-800">
+                                                    <Smartphone className="w-5 h-5 text-green-500" />{" "}
+                                                    For Android:
+                                                </h3>
+                                                <ul className="list-disc pl-6 text-gray-600 text-sm space-y-1">
+                                                    <li>
+                                                        Open <b>Settings</b> →{" "}
+                                                        <b>Location</b>
+                                                    </li>
+                                                    <li>
+                                                        Turn on{" "}
+                                                        <b>Use location</b>
+                                                    </li>
+                                                    <li>
+                                                        Allow this app or
+                                                        browser to access your
+                                                        location when prompted
+                                                    </li>
+                                                    <li>
+                                                        Try this for Android
+                                                        Users -
+                                                        <a
+                                                            href="intent://#Intent;action=android.settings.LOCATION_SOURCE_SETTINGS;end"
+                                                            className="text-blue-500 underline ml-2"
+                                                        >
+                                                            Open Location
+                                                            Settings
+                                                        </a>
+                                                    </li>
+                                                </ul>
+
+                                                <h3 className="font-medium flex items-center gap-2 text-gray-800">
+                                                    <Globe className="w-5 h-5 text-blue-500" />{" "}
+                                                    For iOS:
+                                                </h3>
+                                                <ul className="list-disc pl-6 text-gray-600 text-sm space-y-1">
+                                                    <li>
+                                                        Open <b>Settings</b> →{" "}
+                                                        <b>
+                                                            Privacy & Security
+                                                        </b>{" "}
+                                                        →{" "}
+                                                        <b>Location Services</b>
+                                                    </li>
+                                                    <li>
+                                                        Ensure{" "}
+                                                        <b>Location Services</b>{" "}
+                                                        is turned on
+                                                    </li>
+                                                    <li>
+                                                        Find your browser (e.g.
+                                                        Safari, Chrome) and set
+                                                        it to{" "}
+                                                        <b>
+                                                            While Using the App
+                                                        </b>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
                                     </p>
                                 )}
                             </span>

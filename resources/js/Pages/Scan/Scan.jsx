@@ -51,6 +51,7 @@ export default function Scan({ invalid_status, attendance, ip }) {
     const [locationService, setLocationService] = useState(true);
     const [fingerprint, setFingerprint] = useState(null);
     const [anomalyState, setAnomalyState] = useState(false);
+    const [distance, setDistance] = useState(null);
     useEffect(() => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -69,6 +70,7 @@ export default function Scan({ invalid_status, attendance, ip }) {
                                 setIsWithinLocation(response.data.isInLocation);
                                 setLoad(false);
                                 setLocationService(true);
+                                setDistance(response.data.distance);
                             })
                             .catch((error) => {
                                 console.log(error);
@@ -218,7 +220,10 @@ export default function Scan({ invalid_status, attendance, ip }) {
                 {load ? (
                     <AttrSkeleton />
                 ) : !isWithinLocation ? (
-                    <NotInLocation locationService={locationService} />
+                    <NotInLocation
+                        locationService={locationService}
+                        distance={distance}
+                    />
                 ) : invalid_status ? (
                     <FailedScan
                         invalid_status={invalid_status}
@@ -319,7 +324,10 @@ export default function Scan({ invalid_status, attendance, ip }) {
                             )}
                     </div>
                 ) : (
-                    <NotInLocation locationService={locationService} />
+                    <NotInLocation
+                        locationService={locationService}
+                        distance={distance}
+                    />
                 )}
             </div>
         </AppLayout>
