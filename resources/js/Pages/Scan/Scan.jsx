@@ -90,8 +90,6 @@ export default function Scan({ invalid_status, attendance, ip }) {
                     setLoad(false);
                 },
                 {
-                    enableHighAccuracy: false,
-                    timeout: 8000,
                     maximumAge: 5000,
                 }
             );

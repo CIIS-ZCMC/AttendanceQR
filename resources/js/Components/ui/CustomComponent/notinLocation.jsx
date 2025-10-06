@@ -82,17 +82,6 @@ export const NotInLocation = ({ locationService, distance }) => {
                                                         browser to access your
                                                         location when prompted
                                                     </li>
-                                                    <li>
-                                                        Try this for Android
-                                                        Users -
-                                                        <a
-                                                            href="intent://#Intent;action=android.settings.LOCATION_SOURCE_SETTINGS;end"
-                                                            className="text-blue-500 underline ml-2"
-                                                        >
-                                                            Open Location
-                                                            Settings
-                                                        </a>
-                                                    </li>
                                                 </ul>
 
                                                 <h3 className="font-medium flex items-center gap-2 text-gray-800">

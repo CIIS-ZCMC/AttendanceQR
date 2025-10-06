@@ -6,7 +6,7 @@ import logo from "../../src/zcmc.jpeg";
 
 export default function Welcome() {
     return (
-        <div className="max-w-md  mx-auto mt-20 p-6 rounded-2xl shadow-md bg-white text-center space-y-4">
+        <div className="max-w-md  mx-auto mt-10 p-6 rounded-2xl shadow-md bg-white text-center space-y-4">
             <div className="flex items-center gap-2 justify-center text-xl font-bold">
                 <img src={logo} alt="" className="w-10 h-12" />
                 UMIS - Geofencing Attendance
@@ -38,15 +38,6 @@ export default function Welcome() {
                     <li>
                         Allow this app or browser to access your location when
                         prompted
-                    </li>
-                    <li>
-                        Try this for Android Users -
-                        <a
-                            href="intent://#Intent;action=android.settings.LOCATION_SOURCE_SETTINGS;end"
-                            className="text-blue-500 underline ml-2"
-                        >
-                            Open Location Settings
-                        </a>
                     </li>
                 </ul>
 
