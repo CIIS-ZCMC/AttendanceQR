@@ -28,6 +28,8 @@ export default function AppLayout({
 }) {
     const page = usePage();
 
+    const [open, setOpen] = useState(false);
+
     useEffect(() => {
         if (page.props.error) {
             toast.error(page.props.error);
@@ -36,8 +38,10 @@ export default function AppLayout({
 
     return (
         <div className="max-w-3xl mx-auto p-6 mb-20">
+
+            {/* header */}
             <div
-                className="flex items-center space-x-2 h-8 bg-teal-50"
+                className="flex items-center space-x-2 h-15 bg-teal-5"
                 style={{
                     position: "fixed",
                     top: 0,
@@ -49,26 +53,14 @@ export default function AppLayout({
                     boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
                 }}
             >
-                <img src={logo} alt="" width="20px" height="20px" />
-                <span className="text-xs font-bold">
-                    UMIS - Geofencing Attendance
-                </span>
-            </div>
-            <main className="p-5">
+
                 <Drawer direction="left">
                     {/* Trigger to open drawer */}
 
                     <DrawerTrigger>
                         <Button
-                            variant="outline"
-                            style={{
-                                position: "fixed",
-                                top: "5%",
-                                left: "11%",
-                                zIndex: 2,
-                            }}
-                        >
-                            <Menu className={"text-2xl"} />
+                            variant="outline" >
+                            <Menu className={"text-3xl"} />
                         </Button>
                     </DrawerTrigger>
 
@@ -107,11 +99,10 @@ export default function AppLayout({
                                 return (
                                     <Link href={href}>
                                         <div
-                                            className={`ml-2 p-2 flex items-center space-x-3  ${
-                                                pageActive
-                                                    ? "text-white"
-                                                    : "text-gray-500"
-                                            }`}
+                                            className={`ml-2 p-2 flex items-center space-x-3  ${pageActive
+                                                ? "text-white"
+                                                : "text-gray-500"
+                                                }`}
                                         >
                                             {Icon && (
                                                 <Icon className="w-5 h-5" />
@@ -125,6 +116,16 @@ export default function AppLayout({
                     </DrawerContent>
                 </Drawer>
 
+                <div className="flex items-center space-x-2">
+                    <img src={logo} alt="" width="20px" height="20px" />
+                    <span className="text-xs font-bold">
+                        UMIS - Geofencing Attendance
+                    </span>
+                </div>
+
+            </div>
+
+            <main className="p-5 mt-5">
                 {w_admin ? is_admin ? children : <LogAdmin /> : children}
                 <LoadScript
                     googleMapsApiKey="AIzaSyDok3Z6YRFk0Oj1f_bMTuWCDwDMOp6u4Sw"
