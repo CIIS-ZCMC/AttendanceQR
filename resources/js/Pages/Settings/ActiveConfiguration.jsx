@@ -70,8 +70,8 @@ export default function ActiveConfiguration({ attendance, is_admin }) {
                         </div>
                     ) : (
                         <>
-                            <div className="flex items-center justify-center min-h-[50vh]">
-                                <Card className="w-full max-w-md shadow-md border border-gray-20 max-[2000px]:w-[500px] min-[1500px]:w-[500px] max-[576px]:w-[400px] max-[526px]:w-[350px] max-[476px]:w-[300px] max-[426px]:w-[260px] max-[376px]:w-[240px]">
+                            <div className="">
+                                <Card className="w-full ">
                                     <CardContent className="flex flex-col items-center justify-center p-6 space-y-3">
                                         <AlertOctagon className="w-10 h-10 text-green-500" />
                                         <h2 className="text-md font-semibold text-gray-800">
@@ -98,7 +98,7 @@ export default function ActiveConfiguration({ attendance, is_admin }) {
                                                 useCreateForm.data.closing_at
                                             }
                                             className="w-full block rounded-md p-2"
-                                            // min={minValue}
+                                        // min={minValue}
                                         />
 
                                         <div className="flex  flex-block  gap-2 mt-5">

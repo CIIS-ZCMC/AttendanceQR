@@ -128,11 +128,9 @@ export default function Scan({ invalid_status, attendance, ip }) {
                     ? `${seconds.toString().padStart(2, "0")}s`
                     : "";
 
-                const remainingTime = `${
-                    formattedHours ? `${formattedHours} : ` : ""
-                }${formattedMinutes ? `${formattedMinutes} :` : ""}${
-                    formattedSeconds ? `  ${formattedSeconds}` : ""
-                }`;
+                const remainingTime = `${formattedHours ? `${formattedHours} : ` : ""
+                    }${formattedMinutes ? `${formattedMinutes} :` : ""}${formattedSeconds ? `  ${formattedSeconds}` : ""
+                    }`;
                 const isValidTime =
                     formattedHours || formattedMinutes || formattedSeconds;
                 setRemainingTime(isValidTime ? remainingTime : "0");
@@ -191,7 +189,7 @@ export default function Scan({ invalid_status, attendance, ip }) {
     return (
         <AppLayout>
             {attendance && invalid_status === null && (
-                <>
+                <div className="my-5">
                     <h3 className="text-lg font-bold">Mark Attendance</h3>
                     <h6 className="text-xs">
                         Enter Employee ID to record attendance
@@ -211,7 +209,7 @@ export default function Scan({ invalid_status, attendance, ip }) {
                             {attendance?.title}
                         </span>
                     </span>
-                </>
+                </div>
             )}
 
             <div className="mt-4 flex justify-center items-center md:absolute md:top-80 md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2">

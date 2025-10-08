@@ -155,7 +155,7 @@ function Sidebar({
   }
 
   // if (isMobile) {
-    
+
   //   return (
   //     <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
   //       <SheetContent
@@ -192,19 +192,19 @@ function Sidebar({
           "--sidebar-width": SIDEBAR_WIDTH_MOBILE
         }
       }
-      
-      >
-    
+
+    >
+
       {/* This is what handles the sidebar gap on desktop */}
       <div
         data-slot="sidebar-gap"
         className={cn(
           "relative w-20 bg-transparent transition-[width] duration-200 ease-linear",
           "group-data-[collapsible=inset]:w-20",
-         "group-data-[collapsible=icon]:w-5"
+          "group-data-[collapsible=icon]:w-5"
         )}
-        
-        />
+
+      />
       <div
         data-slot="sidebar-container"
         className={cn(
@@ -514,13 +514,13 @@ function SidebarMenuButton({
     }
   }
 
-  return (  
+  return (
     <Tooltip>
       <TooltipTrigger asChild>{button}</TooltipTrigger>
       <TooltipContent
         side="right"
         align="center"
-       hidden={false}
+        hidden={false}
         {...tooltip} />
     </Tooltip>
   );
@@ -547,7 +547,7 @@ function SidebarMenuAction({
         "peer-data-[size=lg]/menu-button:top-2.5",
         "group-data-[collapsible=icon]:hidden",
         showOnHover &&
-          "peer-data-[active=true]/menu-button:text-sidebar-accent-foreground group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 md:opacity-0",
+        "peer-data-[active=true]/menu-button:text-sidebar-accent-foreground group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 md:opacity-0",
         className
       )}
       {...props} />
