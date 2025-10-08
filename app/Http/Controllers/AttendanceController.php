@@ -17,11 +17,11 @@ class AttendanceController extends Controller
         $geofenceCenter = ['lat' => 6.905891, 'lng' => 122.080778];
         $geofenceRadius = 40; // meters
 
-        $userLat = $request->lat;
-        $userLng = $request->lng;
+        // $userLat = $request->lat;
+        // $userLng = $request->lng;
 
-        // $userLat = 6.905835;
-        // $userLng = 122.080778;
+         $userLat = 6.905835;
+         $userLng = 122.080778;
 
         session()->put("userToken", $request->fingerprint);
         return response()->json([
@@ -83,7 +83,7 @@ class AttendanceController extends Controller
         $userToken = session()->get('userToken') ?? $request->fingerprint;
 
 
-        $userToken = $userToken . $attendance->id;
+        $userToken = $userToken . ($attendance->id ?? -1);
         $attendanceInformation = Attendance_Information::where('userToken', $userToken)
             ->where('attendances_id', $attendance->id ?? -1)
             ->first();

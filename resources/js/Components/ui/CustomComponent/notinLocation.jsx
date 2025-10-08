@@ -14,14 +14,13 @@ export const NotInLocation = ({ locationService, distance }) => {
     const page = usePage();
 
     return (
-        <div className="bg-red-50 p-5 lg:mt-120 md:mt-130 border rounded">
-            <div>
+        <>
+            <div className="lg:mt-120">
                 <div className="">
-                    <br />
                     <Alert variant="destructive">
                         <AlertTitle className="flex flex-col items-center gap-2">
                             <span className="text-xs text-gray-500">
-                                Attendance allowed area
+                                Attendance Zone
                             </span>
                             <img
                                 src={location}
@@ -134,6 +133,7 @@ export const NotInLocation = ({ locationService, distance }) => {
                 </Link>
             </div>
             <Toaster position="top-right" richColors />
-        </div>
+        </>
+
     );
 };

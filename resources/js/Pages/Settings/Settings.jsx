@@ -51,6 +51,8 @@ export default function Settings({ attendanceList, is_admin }) {
     const page = usePage();
     const [search, setSearch] = React.useState("");
 
+
+
     const CreateAttendance = () => {
         const [loading, setLoading] = React.useState(false);
         const useCreateForm = useForm({
@@ -136,7 +138,7 @@ export default function Settings({ attendanceList, is_admin }) {
                             }
                             type="datetime-local"
                             className="w-full block rounded-md p-2"
-                            // min={minValue}
+                        // min={minValue}
                         />
                         {useCreateForm.errors.closing_at && (
                             <p className="text-red-500 text-xs">
@@ -242,8 +244,11 @@ export default function Settings({ attendanceList, is_admin }) {
 
     return (
         <AppLayout title="Settings" is_admin={is_admin} w_admin={true}>
-            <div className="text-lg font-semibold">Attendance Settings</div>
-            <div className="mt-2 text-xs">Manage or create new attendance</div>
+
+            <div className="flex flex-col items-start my-5">
+                <div className="text-lg font-semibold">Attendance Settings</div>
+                <div className="mt-2 text-xs">Manage or create new attendance</div>
+            </div>
 
             <div className="mt-5 flex  sm:flex-row flex-col gap-2  md:w-full">
                 <Input
@@ -355,11 +360,10 @@ export default function Settings({ attendanceList, is_admin }) {
                                             size="sm"
                                             variant="outline"
                                             //disabled={!isEnabled(attendance)}
-                                            className={`${
-                                                !isEnabled(attendance)
-                                                    ? "hidden"
-                                                    : ""
-                                            }`}
+                                            className={`${!isEnabled(attendance)
+                                                ? "hidden"
+                                                : ""
+                                                }`}
                                             onClick={() => {
                                                 console.log(attendance);
                                                 setSelectedAttendance(

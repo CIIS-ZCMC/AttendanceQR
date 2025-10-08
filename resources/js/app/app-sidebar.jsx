@@ -88,11 +88,10 @@ export default function AppSidebar() {
                                         <SidebarMenuButton
                                             asChild
                                             tooltip={item.title}
-                                            className={`text-white ${
-                                                pageActive
-                                                    ? " rounded-full border border-blue-100 bg-gray-100"
-                                                    : ""
-                                            }`}
+                                            className={`text-white ${pageActive
+                                                ? " rounded-full border border-blue-100 bg-gray-100"
+                                                : ""
+                                                }`}
                                         >
                                             <Link href={item.href}>
                                                 <item.icon

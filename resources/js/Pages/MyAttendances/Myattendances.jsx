@@ -1,43 +1,24 @@
-import React from "react";
+import { useState } from "react";
+
 import AppLayout from "@/layouts/app-layout";
+import { router } from "@inertiajs/react";
+import { CheckCircle, } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/Components/ui/input";
 import { Button } from "@/Components/ui/button";
-import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
-import { Check, CheckCircle, Plus } from "lucide-react";
-import { useState } from "react";
-import {
-    Pagination,
-    PaginationContent,
-    PaginationEllipsis,
-    PaginationItem,
-    PaginationLink,
-    PaginationNext,
-    PaginationPrevious,
-} from "@/components/ui/pagination";
 import {
     Table,
     TableBody,
     TableCaption,
     TableCell,
-    TableFooter,
     TableHead,
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { router } from "@inertiajs/react";
 
 export default function Myattendances({ attendanceList }) {
-    const [open, setOpen] = useState(false);
+
     const [search, setSearch] = useState("");
 
     const setSearchValue = (key, value) => {
@@ -48,11 +29,14 @@ export default function Myattendances({ attendanceList }) {
     };
     return (
         <AppLayout>
-            <div className="text-lg font-semibold">MY ATTENDANCES</div>
-            <div className="mt-2 text-xs">View your attendance</div>
 
-            <div className="grid grid-cols-12 gap-2 mt-5 max-[600px]:w-[400px] max-[520px]:w-[350px] max-[470px]:w-[300px]  max-[412px]:w-[280px] max-[390px]:w-[auto]">
-                <div className="col-span-4 max-[600px]:col-span-12 ">
+            <div className="flex flex-col items-start my-5">
+                <div className="text-lg font-semibold">My Attendances</div>
+                <div className="text-xs">View your attendance</div>
+            </div>
+
+            <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-12 md:col-span-4">
                     <Input
                         type="number"
                         value={search.employee_id}
@@ -65,7 +49,7 @@ export default function Myattendances({ attendanceList }) {
                     />
                 </div>
 
-                <div className="col-span-4 max-[600px]:col-span-12">
+                <div className="col-span-12 md:col-span-4">
                     <Input
                         type="date"
                         value={search.date}
@@ -76,7 +60,7 @@ export default function Myattendances({ attendanceList }) {
                     />
                 </div>
 
-                <div className="col-span-2 max-[600px]:col-span-6">
+                <div className="col-span-12 md:col-span-2">
                     <Button
                         onClick={() => {
                             router.get(
@@ -97,7 +81,7 @@ export default function Myattendances({ attendanceList }) {
                     </Button>
                 </div>
 
-                <div className="col-span-2 max-[600px]:col-span-6">
+                <div className="col-span-12 md:col-span-2">
                     <Button
                         variant="outline"
                         onClick={() => {
@@ -111,9 +95,10 @@ export default function Myattendances({ attendanceList }) {
                         Reset
                     </Button>
                 </div>
+
             </div>
 
-            <div className="mt-5 overflow-y-auto max-[600px]:w-[400px] max-[520px]:w-[350px] max-[470px]:w-[300px]  max-[412px]:w-[280px] max-[390px]:w-[auto]">
+            <div className="mt-5 overflow-y-auto max-[600px]:w-[400px] max-[520px]:w-[350px] max-[470px]:w-[300px] max-[412px]:w-[280px] max-[390px]:w-[auto]">
                 <Table>
                     <TableCaption>List of Attendances</TableCaption>
                     <TableHeader>
