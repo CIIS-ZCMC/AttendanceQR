@@ -35,14 +35,39 @@ export default function AppLayout({
     }, [page.props.error]);
 
     return (
-
-        <div className="max-w-3xl mx-auto p-6">
-
-            <main className="p-5" >
+        <div className="max-w-3xl mx-auto p-6 mb-20">
+            <div
+                className="flex items-center space-x-2 h-8 bg-teal-50"
+                style={{
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    zIndex: 2,
+                    //backgroundColor: "#fff",
+                    padding: "10px",
+                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+                }}
+            >
+                <img src={logo} alt="" width="20px" height="20px" />
+                <span className="text-xs font-bold">
+                    UMIS - Geofencing Attendance
+                </span>
+            </div>
+            <main className="p-5">
                 <Drawer direction="left">
                     {/* Trigger to open drawer */}
+
                     <DrawerTrigger>
-                        <Button variant="outline">
+                        <Button
+                            variant="outline"
+                            style={{
+                                position: "fixed",
+                                top: "5%",
+                                left: "11%",
+                                zIndex: 2,
+                            }}
+                        >
                             <Menu className={"text-2xl"} />
                         </Button>
                     </DrawerTrigger>
@@ -51,7 +76,12 @@ export default function AppLayout({
                         <DrawerHeader>
                             <div className="flex items-center justify-between mb-2">
                                 <div className="flex-none ml-[-3px]">
-                                    <img src={logo} alt="" width="40px" height="40px" />
+                                    <img
+                                        src={logo}
+                                        alt=""
+                                        width="40px"
+                                        height="40px"
+                                    />
                                 </div>
 
                                 <DrawerClose>
@@ -72,21 +102,26 @@ export default function AppLayout({
                         {/* sidebar navigation */}
                         <nav className=" flex flex-col space-y-2">
                             {mainNavItems.map(({ title, href, icon: Icon }) => {
-                                const pageActive = page.url.split("?")[0] === href;
+                                const pageActive =
+                                    page.url.split("?")[0] === href;
                                 return (
-                                    <Link
-                                        href={href}
-                                    >
+                                    <Link href={href}>
                                         <div
-                                            className={`ml-2 p-2 flex items-center space-x-3  ${pageActive ? "text-white" : "text-gray-500"}`}>
-                                            {Icon && <Icon className="w-5 h-5" />}
+                                            className={`ml-2 p-2 flex items-center space-x-3  ${
+                                                pageActive
+                                                    ? "text-white"
+                                                    : "text-gray-500"
+                                            }`}
+                                        >
+                                            {Icon && (
+                                                <Icon className="w-5 h-5" />
+                                            )}
                                             <span>{title}</span>
                                         </div>
                                     </Link>
-                                )
+                                );
                             })}
                         </nav>
-
                     </DrawerContent>
                 </Drawer>
 
@@ -101,7 +136,6 @@ export default function AppLayout({
                     richColors={true}
                 />
             </main>
-
         </div>
     );
 }
