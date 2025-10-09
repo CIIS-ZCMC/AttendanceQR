@@ -14,7 +14,7 @@ class AttendanceController extends Controller
 {
     public function validateLocation(Request $request)
     {
-        $geofenceCenter = ['lat' => 6.905891, 'lng' => 122.080778];
+        $geofenceCenter = ['lat' => 6.905891, 'lng' => 123.080778];
         $geofenceRadius = 40; // meters
 
         $userLat = $request->lat;
