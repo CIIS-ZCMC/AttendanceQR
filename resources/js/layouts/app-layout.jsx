@@ -24,7 +24,7 @@ export default function AppLayout({
     }, [page.props.error]);
 
     return (
-        <div className="max-w-3xl mx-auto p-6 mb-20">
+        <div className="max-w-3xl mx-auto p-6">
 
             {/* header */}
             <Header
