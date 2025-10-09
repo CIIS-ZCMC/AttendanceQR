@@ -213,6 +213,7 @@ export default function Scan({ invalid_status, attendance, ip }) {
             )}
 
             <div className="mt-4 flex justify-center items-center md:absolute md:top-80 md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2">
+
                 {load ? (
                     <AttrSkeleton />
                 ) : !isWithinLocation ? (
