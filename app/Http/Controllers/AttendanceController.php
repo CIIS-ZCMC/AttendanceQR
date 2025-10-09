@@ -20,8 +20,8 @@ class AttendanceController extends Controller
         $userLat = $request->lat;
         $userLng = $request->lng;
 
-        $userLat = 6.905835;
-        $userLng = 122.080778;
+        // $userLat = 8.905835;
+        // $userLng = 122.080778;
 
         /**
          * Add Validation here soon , that active attendance does not need location based.

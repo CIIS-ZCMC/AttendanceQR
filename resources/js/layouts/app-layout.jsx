@@ -1,25 +1,14 @@
-import React, { useState, useEffect } from "react";
-
-import { Button } from "@/Components/ui/button";
-import {
-    Drawer,
-    DrawerTrigger,
-    DrawerTitle,
-    DrawerContent,
-    DrawerHeader,
-    DrawerClose,
-} from "@/components/ui/drawer";
+import React, { useEffect } from "react";
 
 import { LoadScript } from "@react-google-maps/api";
 import { Toaster, toast } from "sonner";
-import { Menu, X } from "lucide-react";
-import { Link, usePage } from "@inertiajs/react";
+import { usePage } from "@inertiajs/react";
 
+//custom component
 import LogAdmin from "../Components/ui/CustomComponent/LogAdmin";
 
-// assets
-import { mainNavItems } from "@/constants/navBarItems";
-import logo from "../src/zcmc.jpeg";
+//layout component
+import Header from "./Header";
 
 export default function AppLayout({
     children,
@@ -27,8 +16,6 @@ export default function AppLayout({
     w_admin = false,
 }) {
     const page = usePage();
-
-    const [open, setOpen] = useState(false);
 
     useEffect(() => {
         if (page.props.error) {
@@ -40,90 +27,9 @@ export default function AppLayout({
         <div className="max-w-3xl mx-auto p-6 mb-20">
 
             {/* header */}
-            <div
-                className="flex items-center space-x-2 h-15 bg-teal-5"
-                style={{
-                    position: "fixed",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    zIndex: 2,
-                    //backgroundColor: "#fff",
-                    padding: "10px",
-                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
-                }}
-            >
-
-                <Drawer direction="left">
-                    {/* Trigger to open drawer */}
-
-                    <DrawerTrigger>
-                        <Button
-                            variant="outline" >
-                            <Menu className={"text-3xl"} />
-                        </Button>
-                    </DrawerTrigger>
-
-                    <DrawerContent className="bg-gray-800">
-                        <DrawerHeader>
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="flex-none ml-[-3px]">
-                                    <img
-                                        src={logo}
-                                        alt=""
-                                        width="40px"
-                                        height="40px"
-                                    />
-                                </div>
-
-                                <DrawerClose>
-                                    <Button className={"text-white"}>
-                                        <X />
-                                    </Button>
-                                </DrawerClose>
-                            </div>
-
-                            <DrawerTitle
-                                className={"my-3 text-white text-xl flex-1"}
-                            >
-                                UMIS-Attendance Application
-                            </DrawerTitle>
-                            {/* <DrawerDescription>This action cannot be undone.</DrawerDescription> */}
-                        </DrawerHeader>
-
-                        {/* sidebar navigation */}
-                        <nav className=" flex flex-col space-y-2">
-                            {mainNavItems.map(({ title, href, icon: Icon }) => {
-                                const pageActive =
-                                    page.url.split("?")[0] === href;
-                                return (
-                                    <Link href={href}>
-                                        <div
-                                            className={`ml-2 p-2 flex items-center space-x-3  ${pageActive
-                                                ? "text-white"
-                                                : "text-gray-500"
-                                                }`}
-                                        >
-                                            {Icon && (
-                                                <Icon className="w-5 h-5" />
-                                            )}
-                                            <span>{title}</span>
-                                        </div>
-                                    </Link>
-                                );
-                            })}
-                        </nav>
-                    </DrawerContent>
-                </Drawer>
-
-                <div className="flex items-center space-x-2">
-                    <img src={logo} alt="" width="20px" height="20px" />
-                    <span className="text-xs font-bold">
-                        UMIS - Geofencing Attendance
-                    </span>
-                </div>
-
-            </div>
+            <Header
+                page={page} // this props is based on page usePage inertia
+            />
 
             <main className="p-5 mt-5">
                 {w_admin ? is_admin ? children : <LogAdmin /> : children}
