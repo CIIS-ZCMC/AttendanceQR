@@ -8,7 +8,7 @@ const RecordedStatus = () => {
     const { header, description } = recordedStatusContants;
 
     return (
-        <div>
+        <div className="flex flex-col items-center justify-center gap-3">
             <img
                 src={check}
                 alt=""
