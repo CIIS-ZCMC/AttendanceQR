@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\GoogleController;
 use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -22,5 +23,10 @@ Route::middleware([
       Route::get("/active-configuration", "activeConfiguration")->name("active-configuration");
       Route::post("/store_attendance/settings", "store")->name("store_attendance.settings");
       Route::post("/update-active", "updateActive")->name("update-active");
+   });
+
+   Route::controller(GoogleController::class)->group(function () {
+      Route::get("/auth/google", "redirectToGoogle")->name("auth.google");
+      Route::get("/auth/google/callback", "handleGoogleCallback")->name("auth.google.callback");
    });
 });

@@ -16,7 +16,16 @@ import { router, useForm } from "@inertiajs/react";
 import { usePage } from "@inertiajs/react";
 import axios from "axios";
 import FingerprintJS from "@fingerprintjs/fingerprintjs";
-export default function Scan({ invalid_status, attendance, ip }) {
+import click from "../../src/click.gif";
+export default function Scan({
+    invalid_status,
+    attendance,
+    ip,
+    employeeID,
+    email,
+    profilePhoto,
+    UserName,
+}) {
     const {
         data,
         setData,
@@ -52,6 +61,7 @@ export default function Scan({ invalid_status, attendance, ip }) {
     const [fingerprint, setFingerprint] = useState(null);
     const [anomalyState, setAnomalyState] = useState(false);
     const [distance, setDistance] = useState(null);
+    const [edited, setEdited] = useState(false);
     useEffect(() => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -62,6 +72,7 @@ export default function Scan({ invalid_status, attendance, ip }) {
                         const fp = await FingerprintJS.load();
                         const result = await fp.get();
                         setFingerprint(result.visitorId);
+
                         axios
                             .get(
                                 `validate-location?lat=${lat}&lng=${lng}&fingerprint=${result.visitorId}`
@@ -128,9 +139,11 @@ export default function Scan({ invalid_status, attendance, ip }) {
                     ? `${seconds.toString().padStart(2, "0")}s`
                     : "";
 
-                const remainingTime = `${formattedHours ? `${formattedHours} : ` : ""
-                    }${formattedMinutes ? `${formattedMinutes} :` : ""}${formattedSeconds ? `  ${formattedSeconds}` : ""
-                    }`;
+                const remainingTime = `${
+                    formattedHours ? `${formattedHours} : ` : ""
+                }${formattedMinutes ? `${formattedMinutes} :` : ""}${
+                    formattedSeconds ? `  ${formattedSeconds}` : ""
+                }`;
                 const isValidTime =
                     formattedHours || formattedMinutes || formattedSeconds;
                 setRemainingTime(isValidTime ? remainingTime : "0");
@@ -139,6 +152,20 @@ export default function Scan({ invalid_status, attendance, ip }) {
 
         return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        setData({
+            ...data,
+            employeeId: employeeID,
+        });
+
+        if (!employeeID) {
+            alert(
+                "❌ We were unable to retrieve an employee ID associated with the email you used to log in. Please enter your employee ID manually to proceed."
+            );
+            setEdited(true);
+        }
+    }, [employeeID]);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -169,7 +196,7 @@ export default function Scan({ invalid_status, attendance, ip }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-
+        setEdited(true);
         post("/store_attendance", {
             fingerprint: fingerprint,
             onSuccess: (response) => {
@@ -190,10 +217,13 @@ export default function Scan({ invalid_status, attendance, ip }) {
         <AppLayout>
             {attendance && invalid_status === null && (
                 <div className="my-5">
-                    <h3 className="text-lg font-bold">Mark Attendance</h3>
-                    <h6 className="text-xs">
-                        Enter Employee ID to record attendance
-                    </h6>
+                    <h2 className="text-xl  text-gray-700">
+                        <span className="text-gray-600">Greetings</span>,{" "}
+                        <span className="font-semibold">{UserName}</span>
+                    </h2>
+                    <h3 className="text-md font-normal font-medium text-gray-600">
+                        Mark your attendance below
+                    </h3>
 
                     <span className="text-xs" data-live="server-time">
                         <span
@@ -213,7 +243,6 @@ export default function Scan({ invalid_status, attendance, ip }) {
             )}
 
             <div className="mt-4 flex justify-center items-center md:absolute md:top-80 md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2">
-
                 {load ? (
                     <AttrSkeleton />
                 ) : !isWithinLocation ? (
@@ -250,19 +279,24 @@ export default function Scan({ invalid_status, attendance, ip }) {
                                 type="number"
                                 name="employeeId"
                                 value={data.employeeId}
-                                onChange={(e) =>
+                                onChange={(e) => {
                                     setData({
                                         ...data,
                                         employeeId: e.target.value,
-                                    })
-                                }
+                                    });
+                                    setEdited(true);
+                                }}
                                 required
                                 placeholder="e.g 2022090251"
                                 autoFocus
                                 className={"mt-4 mb-3 text-center shadow-lg  "}
                             />
 
-                            <Button type="submit" disabled={processing}>
+                            <Button
+                                type="submit"
+                                disabled={processing}
+                                className="z-1 absolute px-6"
+                            >
                                 {" "}
                                 {processing ? (
                                     <>
@@ -273,6 +307,15 @@ export default function Scan({ invalid_status, attendance, ip }) {
                                     "Submit"
                                 )}
                             </Button>
+
+                            {!edited && (
+                                <img
+                                    src={click}
+                                    alt=""
+                                    style={{ marginTop: "-5px" }}
+                                    className="w-10 h-10 left-20 z-0 relative top-7 rotate-320"
+                                />
+                            )}
                         </form>
                         <br />
 
@@ -284,7 +327,10 @@ export default function Scan({ invalid_status, attendance, ip }) {
                                         className="text-xs"
                                         data-live="server-time"
                                     >
-                                        <div className="text-center mt-2">
+                                        <div
+                                            className="text-center mt-4 absolute left-1/2 transform -translate-x-1/2
+                                        "
+                                        >
                                             <span className="text-xs block">
                                                 Closes at:
                                             </span>

@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Attendance;
 use App\Models\Attendance_Information;
+use App\Models\Contact;
 use App\Models\EmployeeProfile;
 use Illuminate\Support\Facades\Log;
 
@@ -20,19 +21,18 @@ class AttendanceController extends Controller
         $userLat = $request->lat;
         $userLng = $request->lng;
 
-        // $userLat = 6.905835;
-        // $userLng = 122.080778;
+        $userLat = 6.905835;
+        $userLng = 122.080778;
 
         /**
          * Add Validation here soon , that active attendance does not need location based.
          * 
          */
 
-        session()->put("userToken", $request->fingerprint);
         return response()->json([
             'isInLocation' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['isInLocation'] ?? false,
             'ip_address' => $request->ip(),
-            'distance' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['distance'],
+            'distance' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['distance'] - $geofenceRadius,
             'radius' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['radius']
         ]);
     }
@@ -70,9 +70,8 @@ class AttendanceController extends Controller
 
         $attendance = Attendance::where("attendance_key", $attendance_key)->where("is_active", true)->first();
 
-
-        if (!session()->has("firstAccess")) {
-            session()->put('firstAccess', true);
+        //session()->forget("userToken");
+        if (!session()->has("userToken")) {
             return Inertia::render("Scan/Welcome");
         }
 
@@ -85,7 +84,25 @@ class AttendanceController extends Controller
             $status['isClosed'] = true;
         }
 
-        $userToken = session()->get('userToken') ?? $request->fingerprint;
+        $userToken = session()->get('userToken')['id'] ?? $request->fingerprint;
+
+        $userInformation = session()->get('userToken');
+
+        $contact = Contact::where("email_address", $userInformation['email'])->first();
+        $UserName = $userInformation['name'];
+        $employeeID = null;
+        $email = $userInformation['email'];
+        $profilePhoto = $userInformation['avatar'];
+        if ($contact) {
+            $personalInformation = $contact->personalInformation;
+            $fullName = $personalInformation->fullName();
+            $employeeProfile = $personalInformation->employeeProfile;
+
+            $employeeID = $employeeProfile->employee_id;
+            $UserName = $personalInformation->fullName();
+        }
+
+
 
 
         $userToken = $userToken . ($attendance->id ?? -1);
@@ -98,13 +115,15 @@ class AttendanceController extends Controller
             $status['isRecorded'] = true;
         }
 
-
-
         return Inertia::render('Scan/Scan', [
             'invalid_status' => $status,
             'attendance' => $attendance,
             "session" => session()->get('session'),
-            'ip' => $request->ip()
+            'ip' => $request->ip(),
+            'employeeID' => $employeeID,
+            'email' => $email,
+            'profilePhoto' => $profilePhoto,
+            'UserName' => $UserName
         ]);
     }
 
@@ -119,6 +138,11 @@ class AttendanceController extends Controller
                     "type" => "error"
                 ]);
             }
+
+
+
+
+            return "arrrooo";
 
             $Existing = Attendance_Information::where('userToken', $attendanceInformation['userToken'])
                 ->where('attendances_id', $attendanceInformation['attendances_id'])
@@ -156,8 +180,6 @@ class AttendanceController extends Controller
         if ($Employee) {
             $biometric_id = $Employee->biometric_id;
         }
-
-
 
         if ($date && $biometric_id) {
             $attendance = Attendance_Information::where("biometric_id", $biometric_id)

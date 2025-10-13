@@ -3,6 +3,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { router } from "@inertiajs/react";
 import logo from "../../src/zcmc.jpeg";
+import googleLogo from "../../src/googleLogin.png";
 
 export default function Welcome() {
     return (
@@ -64,16 +65,21 @@ export default function Welcome() {
                 setup is once only, you won't need to do it again.
             </p>
 
+            <p className="text-xs text-orange-400 mt-2">
+                We need your email address to send a receipt of your attendance
+                after logging in. Please make sure to enter a valid email
+                address as this will be used to send the receipt of your
+                attendance.
+            </p>
+
             <Button
-                className="mt-4 w-full"
+                className="mt-4 text-primary shadow-lg h-15 w-full flex items-center justify-center gap-2 border border-gray-200 rounded-md p-2 bg-white hover:bg-gray-100"
                 onClick={() => {
-                    router.visit("/", {
-                        preserveScroll: true,
-                        preserveState: true,
-                    });
+                    window.location.href = "/auth/google";
                 }}
             >
-                Proceed to Attendance
+                <img src={googleLogo} alt="Google login" className="w-4 h-4" />
+                Login with Google
             </Button>
         </div>
     );
