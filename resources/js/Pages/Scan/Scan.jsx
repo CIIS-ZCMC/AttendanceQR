@@ -159,7 +159,7 @@ export default function Scan({
             employeeId: employeeID,
         });
 
-        if (!employeeID) {
+        if (!employeeID && isWithinLocation) {
             alert(
                 "❌ We were unable to retrieve an employee ID associated with the email you used to log in. Please enter your employee ID manually to proceed."
             );

@@ -87,10 +87,11 @@ class AttendanceController extends Controller
         $userToken = session()->get('userToken')['id'] ?? $request->fingerprint;
 
         $userInformation = session()->get('userToken');
+        $employeeID = null;
 
         $contact = Contact::where("email_address", $userInformation['email'])->first();
         $UserName = $userInformation['name'];
-        $employeeID = null;
+
         $email = $userInformation['email'];
         $profilePhoto = $userInformation['avatar'];
         if ($contact) {
@@ -101,6 +102,7 @@ class AttendanceController extends Controller
             $employeeID = $employeeProfile->employee_id;
             $UserName = $personalInformation->fullName();
         }
+
 
 
 
@@ -139,7 +141,6 @@ class AttendanceController extends Controller
                 ]);
             }
 
-
             $Existing = Attendance_Information::where('userToken', $attendanceInformation['userToken'])
                 ->where('attendances_id', $attendanceInformation['attendances_id'])
                 ->first();
@@ -152,7 +153,6 @@ class AttendanceController extends Controller
                     ]);
                 }
             }
-
             Attendance_Information::firstOrCreate([
                 "userToken" => $attendanceInformation['userToken'],
                 "attendances_id" => $attendanceInformation['attendances_id'],
@@ -167,6 +167,7 @@ class AttendanceController extends Controller
                 'time_in' => date("h:i A", strtotime($attendanceInformation['first_entry'])),
                 'employee_id' => $attendanceInformation['employee_id'],
             ]));
+
             return redirect()->back();
         } catch (\Exception $e) {
             return $e;

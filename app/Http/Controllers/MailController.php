@@ -20,8 +20,10 @@ class MailController extends Controller
 
     public static function SendReceipt(Request $request)
     {
+
+        $userInformation = session()->get('userToken');
         SendEmailJob::dispatch([
-            'to' => $request->input('email'),
+            'to' => $userInformation['email'],
             'name' => $request->input('name'),
             'subject' => $request->input('subject', 'No subject'),
             'body' => view('emails.receipt', [

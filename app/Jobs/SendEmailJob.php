@@ -90,13 +90,11 @@ class SendEmailJob implements ShouldQueue
             $mail->Body = $this->payload['body'];
             $mail->AltBody = 'This is a plain text message body';
             if ($mail->send()) {
-                Log::channel('emailLog')->info('SendEmailJob success', [
-                    'payload' => $this->payload,
-                ]);
+                Log::channel('emailLog')->info("Attendance Receipt Sent to --  " . $this->payload['to'] . " | " . $this->payload['name']);
             } else {
                 Log::channel('emailLog')->error('SendEmailJob failed', [
                     'error' => $mail->ErrorInfo,
-                    'payload' => $this->payload,
+                    'payload' => $this->payload['to'],
                 ]);
             }
         } catch (\Throwable $th) {
