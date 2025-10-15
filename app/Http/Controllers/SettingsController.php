@@ -10,6 +10,8 @@ use App\Exceptions\ValidationHandler;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use App\Http\Requests\SettingsAttendanceStoreRequest;
+use Illuminate\Support\Facades\DB;
+use App\Models\Attendance_Information;
 
 class SettingsController extends Controller
 {
@@ -117,16 +119,18 @@ class SettingsController extends Controller
         $logs = $attendance->logs()->with("employeeProfile")->paginate(50);
 
         if (request()->has('search') && ($search = request('search'))) {
-            $logs = $attendance->logs()
-                ->with('employeeProfile.personalInformation')
-                ->whereHas('employeeProfile.personalInformation', function ($query) use ($search) {
-                    $query->where('last_name', 'like', "%{$search}%")
-                        ->orWhere('first_name', 'like', "%{$search}%")
-                        ->orWhere('middle_name', 'like', "%{$search}%");
-                })
-                ->orWhereHas('employeeProfile', function ($subQuery) use ($search) {
-                    $subQuery->where('employee_id', 'like', "%{$search}%");
-                })
+            $logs = Attendance_Information::where('attendances_id', $attendance->id)
+                ->whereIn('biometric_id', function ($query) use ($search) {
+                    $query->select('biometric_id')
+                        ->from('employee_profiles')
+                        ->where('employee_id', 'like', "%{$search}%")
+                        ->orWhereIn('personal_information_id', function ($subQuery) use ($search) {
+                            $subQuery->select('id')
+                                ->from('personal_informations')
+                                ->where('last_name', 'like', "%{$search}%")
+                                ->orWhere('first_name', 'like', "%{$search}%");
+                        });
+                })->with("employeeProfile")
                 ->paginate(50);
         } else {
             $logs = $attendance->logs()

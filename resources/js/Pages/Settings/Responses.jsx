@@ -28,7 +28,7 @@ export default function Responses({ is_admin, logs }) {
     const [btnLoad, setBtnload] = React.useState(false);
 
     return (
-        <AppLayout is_admin={is_admin}>
+        <AppLayout is_admin={is_admin} w_admin={true}>
             <div className="flex flex-col items-start my-5">
                 <div className="text-lg font-semibold">
                     Attendance Responses
