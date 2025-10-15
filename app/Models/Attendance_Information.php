@@ -29,4 +29,9 @@ class Attendance_Information extends Model
     {
         return $this->belongsTo(Attendance::class, "attendances_id", "id");
     }
+
+    public function employeeProfile()
+    {
+        return $this->belongsTo(EmployeeProfile::class, "biometric_id", "biometric_id");
+    }
 }

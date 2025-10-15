@@ -104,4 +104,41 @@ class SettingsController extends Controller
         ]);
         return to_route("active-configuration");
     }
+
+    public function attendanceResponses()
+    {
+
+        $this->ValidateLogin("responses");
+
+        $attendance = Attendance::where("is_active", true)->first();
+
+
+
+        $logs = $attendance->logs()->with("employeeProfile")->paginate(50);
+
+        if (request()->has('search') && ($search = request('search'))) {
+            $logs = $attendance->logs()
+                ->with('employeeProfile.personalInformation')
+                ->whereHas('employeeProfile.personalInformation', function ($query) use ($search) {
+                    $query->where('last_name', 'like', "%{$search}%")
+                        ->orWhere('first_name', 'like', "%{$search}%")
+                        ->orWhere('middle_name', 'like', "%{$search}%");
+                })
+                ->orWhereHas('employeeProfile', function ($subQuery) use ($search) {
+                    $subQuery->where('employee_id', 'like', "%{$search}%");
+                })
+                ->paginate(50);
+        } else {
+            $logs = $attendance->logs()
+                ->with('employeeProfile.personalInformation')
+                ->paginate(50);
+        }
+
+
+        return Inertia::render("Settings/Responses", [
+            "is_admin" => session()->has("admin_user"),
+            "error" => session()->get("error") ?? false,
+            "logs" => $logs,
+        ]);
+    }
 }

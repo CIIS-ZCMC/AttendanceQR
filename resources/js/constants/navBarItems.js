@@ -21,6 +21,11 @@ export const mainNavItems = [
         href: "/active-configuration",
         icon: CalendarCog,
     },
+     {
+        title: "Responses",
+        href: "/responses",
+        icon: Settings,
+    },
     {
         title: "Settings",
         href: "/settings",

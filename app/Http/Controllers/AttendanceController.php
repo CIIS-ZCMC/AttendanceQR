@@ -15,14 +15,14 @@ class AttendanceController extends Controller
 {
     public function validateLocation(Request $request)
     {
-        $geofenceCenter = ['lat' => 6.905891, 'lng' => 122.080778];
+        $geofenceCenter = ['lat' => 6.907257, 'lng' => 122.080909];
         $geofenceRadius = 40; // meters
 
         $userLat = $request->lat;
         $userLng = $request->lng;
 
-        $userLat = 6.905835;
-        $userLng = 122.080778;
+        $userLat = 6.907257;
+        $userLng = 122.080909;
 
         /**
          * Add Validation here soon , that active attendance does not need location based.
@@ -178,14 +178,40 @@ class AttendanceController extends Controller
     public function myAttendance(Request $request)
     {
         $date = $request->date ?? null;
-        $employee_id = $request->employee_id ?? session()->get("employeeID");
+
         $biometric_id = null;
-        $Employee = EmployeeProfile::where("employee_id", $employee_id)->first();
+        $userInformation = session()->get('userToken');
+        $employeeID = null;
+
+        $contact = Contact::where("email_address", $userInformation['email'])->first();
+        $UserName = $userInformation['name'];
+        $Employee = null;
+        $email = $userInformation['email'];
+        $profilePhoto = $userInformation['avatar'];
+        if ($contact) {
+            $personalInformation = $contact->personalInformation;
+            $fullName = $personalInformation->fullName();
+            $employeeProfile = $personalInformation->employeeProfile;
+
+            $employeeID = $employeeProfile->employee_id;
+            $UserName = $personalInformation->fullName();
+            $Employee = $employeeProfile;
+        }
+
+
         $attendance = [];
 
         if ($Employee) {
             $biometric_id = $Employee->biometric_id;
         }
+
+        $from = date("Y-m-d H:i:s", strtotime("-3 months"));
+        $to = date("Y-m-d H:i:s");
+
+        $attendance = Attendance_Information::where("biometric_id", $biometric_id)
+            ->whereBetween("first_entry", [$from, $to])
+            ->with("attendance")
+            ->get();
 
         if ($date && $biometric_id) {
             $attendance = Attendance_Information::where("biometric_id", $biometric_id)
@@ -195,7 +221,8 @@ class AttendanceController extends Controller
         }
 
         return Inertia::render('MyAttendances/Myattendances', [
-            'attendanceList' => $attendance
+            'attendanceList' => $attendance,
+            'employeeID' => $employeeID
         ]);
     }
 }

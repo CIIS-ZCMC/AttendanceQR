@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import AppLayout from "@/layouts/app-layout";
 import { router } from "@inertiajs/react";
@@ -20,8 +20,7 @@ import {
 // assets & constants
 import { attendanceContants } from "@/constants/contants";
 
-export default function Myattendances({ attendanceList }) {
-
+export default function Myattendances({ attendanceList, employeeID }) {
     const [search, setSearch] = useState("");
 
     const {
@@ -32,7 +31,7 @@ export default function Myattendances({ attendanceList }) {
         tableDateTime,
         tableStatus,
         noAttendances,
-        recorded
+        recorded,
     } = attendanceContants;
 
     const setSearchValue = (key, value) => {
@@ -41,9 +40,15 @@ export default function Myattendances({ attendanceList }) {
             [key]: typeof value === "object" ? { ...value } : value,
         }));
     };
+
+    useEffect(() => {
+        if (employeeID) {
+            setSearchValue("employee_id", employeeID);
+        }
+    }, [employeeID]);
+
     return (
         <AppLayout>
-
             <div className="flex flex-col items-start my-5">
                 <div className="text-lg font-semibold">{header}</div>
                 <div className="text-xs">{description}</div>
@@ -109,7 +114,6 @@ export default function Myattendances({ attendanceList }) {
                         Reset
                     </Button>
                 </div>
-
             </div>
 
             <div className="mt-5 overflow-y-auto max-[600px]:w-[400px] max-[520px]:w-[350px] max-[470px]:w-[300px] max-[412px]:w-[280px] max-[390px]:w-[auto]">
@@ -117,6 +121,9 @@ export default function Myattendances({ attendanceList }) {
                     <TableCaption>{tableCaption}</TableCaption>
                     <TableHeader>
                         <TableRow>
+                            <TableHead className=" text-center text-xs">
+                                Attendance ID
+                            </TableHead>
                             <TableHead className=" text-center text-xs">
                                 {tableTitle}
                             </TableHead>
@@ -141,11 +148,24 @@ export default function Myattendances({ attendanceList }) {
                         ) : (
                             attendanceList?.map((attendance) => (
                                 <TableRow key={attendance.id}>
-                                    <TableCell className="font-medium">
-                                        {attendance.attendance?.title}
+                                    <TableCell className="font-medium text-center">
+                                        {attendance.attendances_id}
                                     </TableCell>
-                                    <TableCell className="text-center">
-                                        {attendance.first_entry}
+                                    <TableCell className="font-medium text-center">
+                                        {new Date(attendance.first_entry)
+                                            .toISOString()
+                                            .slice(0, 10)}
+                                    </TableCell>
+
+                                    <TableCell className="text-center font-semibold">
+                                        {new Date(
+                                            attendance.first_entry
+                                        ).toLocaleTimeString("en-US", {
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+
+                                            hour12: true,
+                                        })}
                                     </TableCell>
                                     <TableCell className="text-center">
                                         <Badge

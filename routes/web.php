@@ -23,6 +23,7 @@ Route::middleware([
       Route::get("/active-configuration", "activeConfiguration")->name("active-configuration");
       Route::post("/store_attendance/settings", "store")->name("store_attendance.settings");
       Route::post("/update-active", "updateActive")->name("update-active");
+      Route::get("/responses", "attendanceResponses")->name("responses");
    });
 
    Route::controller(GoogleController::class)->group(function () {

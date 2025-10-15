@@ -67,9 +67,8 @@ export default function Welcome() {
 
             <p className="text-xs text-orange-400 mt-2">
                 We need your email address to send a receipt of your attendance
-                after logging in. Please make sure to enter a valid email
-                address as this will be used to send the receipt of your
-                attendance.
+                after logging in. Please make sure to use a valid email address
+                as this will be used to send the receipt of your attendance.
             </p>
 
             <Button
