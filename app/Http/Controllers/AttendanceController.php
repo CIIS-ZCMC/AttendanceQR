@@ -21,6 +21,8 @@ class AttendanceController extends Controller
         $userLat = $request->lat;
         $userLng = $request->lng;
 
+        $Saved = false;
+
         $userLat = 6.907257;
         $userLng = 122.080909;
 
@@ -29,11 +31,19 @@ class AttendanceController extends Controller
          * 
          */
 
+        if ($this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['isInLocation']) {
+            $this->store(new AttendanceStoreRequest([
+                "employeeId" => "Finder_Via_Token",
+                "is_finder" => true
+            ]));
+        }
+
         return response()->json([
             'isInLocation' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['isInLocation'] ?? false,
             'ip_address' => $request->ip(),
             'distance' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['distance'] - $geofenceRadius,
-            'radius' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['radius']
+            'radius' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['radius'],
+            'saved' => session('session.type') === 'success'
         ]);
     }
 
@@ -69,8 +79,8 @@ class AttendanceController extends Controller
         $attendance_key = $request->key ?? Attendance::where("is_active", true)->first()?->attendance_key;
 
         $attendance = Attendance::where("attendance_key", $attendance_key)->where("is_active", true)->first();
-
-        //session()->forget("userToken");
+        // session()->forget("isRecorded");
+        // session()->forget("userToken");
         if (!session()->has("userToken")) {
             return Inertia::render("Scan/Welcome");
         }
@@ -116,6 +126,11 @@ class AttendanceController extends Controller
         if ($attendanceInformation) {
             $status['isRecorded'] = true;
         }
+
+        if (session()->has("isRecorded")) {
+            $status['isRecorded'] = true;
+        }
+
 
         return Inertia::render('Scan/Scan', [
             'invalid_status' => $status,
@@ -168,7 +183,10 @@ class AttendanceController extends Controller
                 'employee_id' => $attendanceInformation['employee_id'],
             ]));
 
-            return redirect()->back();
+            return redirect()->back()->with('session', [
+                'message' => 'Attendance recorded successfully.',
+                'type' => 'success',
+            ]);
         } catch (\Exception $e) {
             return $e;
         }

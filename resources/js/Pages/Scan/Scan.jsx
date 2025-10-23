@@ -62,6 +62,7 @@ export default function Scan({
     const [anomalyState, setAnomalyState] = useState(false);
     const [distance, setDistance] = useState(null);
     const [edited, setEdited] = useState(false);
+    const [saved, setSaved] = useState(false);
     useEffect(() => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -82,6 +83,12 @@ export default function Scan({
                                 setLoad(false);
                                 setLocationService(true);
                                 setDistance(response.data.distance);
+
+                                if (response.data.saved) {
+                                    setSaved(true);
+                                }
+
+                                //
                             })
                             .catch((error) => {
                                 console.log(error);
@@ -115,6 +122,12 @@ export default function Scan({
     }, []);
 
     useEffect(() => {
+        if (saved) {
+            router.reload();
+        }
+    }, [saved]);
+
+    useEffect(() => {
         setData({ attendanceId: attendance?.id });
         const interval = setInterval(() => {
             setCloseAt(new Date(attendance?.closed_at));
@@ -139,11 +152,9 @@ export default function Scan({
                     ? `${seconds.toString().padStart(2, "0")}s`
                     : "";
 
-                const remainingTime = `${
-                    formattedHours ? `${formattedHours} : ` : ""
-                }${formattedMinutes ? `${formattedMinutes} :` : ""}${
-                    formattedSeconds ? `  ${formattedSeconds}` : ""
-                }`;
+                const remainingTime = `${formattedHours ? `${formattedHours} : ` : ""
+                    }${formattedMinutes ? `${formattedMinutes} :` : ""}${formattedSeconds ? `  ${formattedSeconds}` : ""
+                    }`;
                 const isValidTime =
                     formattedHours || formattedMinutes || formattedSeconds;
                 setRemainingTime(isValidTime ? remainingTime : "0");
@@ -159,9 +170,9 @@ export default function Scan({
             employeeId: employeeID,
         });
 
-        if (!employeeID && isWithinLocation) {
+        if (!employeeID) {
             alert(
-                "❌ We were unable to retrieve an employee ID associated with the email you used to log in. Please enter your employee ID manually to proceed."
+                " We were unable to retrieve an employee ID associated with the email you used to log in. Please enter your employee ID manually to proceed."
             );
             setEdited(true);
         }
@@ -222,7 +233,7 @@ export default function Scan({
                         <span className="font-semibold">{UserName}</span>
                     </h2>
                     <h3 className="text-md font-normal font-medium text-gray-600">
-                        Mark your attendance below
+                        Please mark your attendance below
                     </h3>
 
                     <span className="text-xs" data-live="server-time">

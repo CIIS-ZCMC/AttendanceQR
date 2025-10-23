@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\EmployeeProfile;
+use App\Models\Contact;
 
 class AttendanceStoreRequest extends FormRequest
 {
@@ -27,11 +28,27 @@ class AttendanceStoreRequest extends FormRequest
         ];
     }
 
+    public function FindEmployeeID()
+    {
+        if (isset($this->is_finder)) {
+            $userInformation = session()->get('userToken');
+            $contact = Contact::where("email_address", $userInformation['email'])->first();
+            if ($contact) {
+                $personalInformation = $contact->personalInformation;
+                $employeeProfile = $personalInformation->employeeProfile;
+                $employeeID = $employeeProfile->employee_id;
+                session()->put("isRecorded", true);
+                return $employeeID;
+            }
+        }
+        return $this->employeeId;
+    }
+
     public function userAttendanceInformation()
     {
         $userToken = session()->get('userToken')['id'] . $this->attendanceId;
         //session()->put('employeeID', $this->employeeId);
-        $employee = EmployeeProfile::where('employee_id', $this->employeeId)->first();
+        $employee = EmployeeProfile::where('employee_id', $this->FindEmployeeID())->first();
         if (!$employee) {
             return [];
         }
