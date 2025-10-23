@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\EmployeeProfile;
 use App\Models\Contact;
+use App\Models\Attendance;
 
 class AttendanceStoreRequest extends FormRequest
 {
@@ -44,9 +45,17 @@ class AttendanceStoreRequest extends FormRequest
         return $this->employeeId;
     }
 
+
+    public function ActiveAttendance()
+    {
+        $active = Attendance::where("is_active", true)->first();
+    }
+
     public function userAttendanceInformation()
     {
-        $userToken = session()->get('userToken')['id'] . $this->attendanceId;
+
+        $attendanceID = $this->attendanceId ?? session()->get("activeAttendanceID");
+        $userToken = session()->get('userToken')['id'] . $attendanceID;
         //session()->put('employeeID', $this->employeeId);
         $employee = EmployeeProfile::where('employee_id', $this->FindEmployeeID())->first();
         if (!$employee) {
@@ -64,7 +73,7 @@ class AttendanceStoreRequest extends FormRequest
             'sector' => $sector,
             'first_entry' => date("Y-m-d H:i:s"),
             'last_entry' => null,
-            'attendances_id' => $this->attendanceId,
+            'attendances_id' => $attendanceID,
             'userToken' => $userToken,
             'email' => $email,
             'employee_id' => $employee->employee_id,

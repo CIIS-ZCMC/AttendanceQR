@@ -94,8 +94,9 @@ class AttendanceController extends Controller
             $status['isClosed'] = true;
         }
 
-        $userToken = session()->get('userToken')['id'] ?? $request->fingerprint;
 
+        $userToken = session()->get('userToken')['id'] ?? $request->fingerprint;
+        session()->put("activeAttendanceID", $attendance->id);
         $userInformation = session()->get('userToken');
         $employeeID = null;
 
