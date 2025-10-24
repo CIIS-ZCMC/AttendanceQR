@@ -23,8 +23,8 @@ class AttendanceController extends Controller
 
         $Saved = false;
 
-        $userLat = 6.907257;
-        $userLng = 122.080909;
+        // $userLat = 6.907257;
+        // $userLng = 122.080909;
 
         /**
          * Add Validation here soon , that active attendance does not need location based.
@@ -72,6 +72,21 @@ class AttendanceController extends Controller
             'radius' => $radiusMeters
         ];
     }
+
+    public function isActiveAttendance($attendanceID)
+    {
+
+        if (empty($attendanceID)) {
+            return false;
+        }
+
+        return Attendance::where("id", $attendanceID)
+            ->where("is_active", 1)
+            ->where("is_open", 1)
+            ->where("closed_at", ">", now())
+            ->exists();
+    }
+
 
 
     public function index(Request $request)
@@ -156,6 +171,17 @@ class AttendanceController extends Controller
                     "type" => "error"
                 ]);
             }
+
+
+            if (!$this->isActiveAttendance($attendanceInformation['attendances_id'])) {
+                return redirect()->back()->with("session", [
+                    "message" => "Attendance record failed",
+                    "type" => "error"
+                ]);
+            }
+
+
+
 
             $Existing = Attendance_Information::where('userToken', $attendanceInformation['userToken'])
                 ->where('attendances_id', $attendanceInformation['attendances_id'])
