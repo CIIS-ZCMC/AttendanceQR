@@ -15,25 +15,35 @@ class AttendanceController extends Controller
 {
     public function validateLocation(Request $request)
     {
-        $geofenceCenter = ['lat' => 6.905891, 'lng' => 122.080778];
+        $geofenceCenter = ['lat' => 6.907257, 'lng' => 122.080909];
         $geofenceRadius = 40; // meters
 
         $userLat = $request->lat;
         $userLng = $request->lng;
 
-        $userLat = 6.905835;
-        $userLng = 122.080778;
+        $Saved = false;
+
+        // $userLat = 6.907257;
+        // $userLng = 122.080909;
 
         /**
          * Add Validation here soon , that active attendance does not need location based.
          * 
          */
 
+        if ($this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['isInLocation']) {
+            $this->store(new AttendanceStoreRequest([
+                "employeeId" => "Finder_Via_Token",
+                "is_finder" => true
+            ]));
+        }
+
         return response()->json([
             'isInLocation' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['isInLocation'] ?? false,
             'ip_address' => $request->ip(),
             'distance' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['distance'] - $geofenceRadius,
-            'radius' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['radius']
+            'radius' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['radius'],
+            'saved' => session('session.type') === 'success'
         ]);
     }
 
@@ -63,14 +73,28 @@ class AttendanceController extends Controller
         ];
     }
 
+    public function isActiveAttendance($attendanceID){
+        
+    if (empty($attendanceID)) {
+        return false;
+    }
+
+       return Attendance::where("id",$attendanceID)
+                ->where("is_active",1)
+                ->where("is_open",1)
+                ->where("closed_at",">",now())
+                ->exists();
+    }
+    
+
 
     public function index(Request $request)
     {
         $attendance_key = $request->key ?? Attendance::where("is_active", true)->first()?->attendance_key;
 
         $attendance = Attendance::where("attendance_key", $attendance_key)->where("is_active", true)->first();
-
-        //session()->forget("userToken");
+        // session()->forget("isRecorded");
+        // session()->forget("userToken");
         if (!session()->has("userToken")) {
             return Inertia::render("Scan/Welcome");
         }
@@ -84,13 +108,15 @@ class AttendanceController extends Controller
             $status['isClosed'] = true;
         }
 
+        
         $userToken = session()->get('userToken')['id'] ?? $request->fingerprint;
-
+        session()->put("activeAttendanceID", $attendance->id);
         $userInformation = session()->get('userToken');
+        $employeeID = null;
 
         $contact = Contact::where("email_address", $userInformation['email'])->first();
         $UserName = $userInformation['name'];
-        $employeeID = null;
+
         $email = $userInformation['email'];
         $profilePhoto = $userInformation['avatar'];
         if ($contact) {
@@ -105,6 +131,7 @@ class AttendanceController extends Controller
 
 
 
+
         $userToken = $userToken . ($attendance->id ?? -1);
         $attendanceInformation = Attendance_Information::where('userToken', $userToken)
             ->where('attendances_id', $attendance->id ?? -1)
@@ -114,6 +141,11 @@ class AttendanceController extends Controller
         if ($attendanceInformation) {
             $status['isRecorded'] = true;
         }
+
+        if (session()->has("isRecorded")) {
+            $status['isRecorded'] = true;
+        }
+
 
         return Inertia::render('Scan/Scan', [
             'invalid_status' => $status,
@@ -140,9 +172,15 @@ class AttendanceController extends Controller
             }
 
 
+            if(!$this->isActiveAttendance($attendanceInformation['attendances_id'])){
+                return redirect()->back()->with("session", [
+                    "message" => "Attendance record failed",
+                    "type" => "error"
+                ]);
+            }
 
 
-            return "arrrooo";
+
 
             $Existing = Attendance_Information::where('userToken', $attendanceInformation['userToken'])
                 ->where('attendances_id', $attendanceInformation['attendances_id'])
@@ -156,13 +194,36 @@ class AttendanceController extends Controller
                     ]);
                 }
             }
-
-
             Attendance_Information::firstOrCreate([
                 "userToken" => $attendanceInformation['userToken'],
                 "attendances_id" => $attendanceInformation['attendances_id'],
             ], $attendanceInformation);
-            return redirect()->back();
+
+
+            $currentId = $attendanceInformation['attendances_id'];
+            $emailedId = session('emailed');
+
+            if ($emailedId !== $currentId) {
+                MailController::SendReceipt(new Request([
+                    'email' => $attendanceInformation['email'],
+                    'name' => $attendanceInformation['name'],
+                    'subject' => 'UMIS - Geofencing Attendance Acknowledgement Receipt',
+                    'attendance_id' => $currentId,
+                    'date' => date('F d, Y', strtotime($attendanceInformation['first_entry'])),
+                    'time_in' => date('h:i A', strtotime($attendanceInformation['first_entry'])),
+                    'employee_id' => $attendanceInformation['employee_id'],
+                ]));
+
+                session(['emailed' => $currentId]);
+            }
+
+
+        
+
+            return redirect()->back()->with('session', [
+                'message' => 'Attendance recorded successfully.',
+                'type' => 'success',
+            ]);
         } catch (\Exception $e) {
             return $e;
         }
@@ -172,14 +233,40 @@ class AttendanceController extends Controller
     public function myAttendance(Request $request)
     {
         $date = $request->date ?? null;
-        $employee_id = $request->employee_id ?? session()->get("employeeID");
+
         $biometric_id = null;
-        $Employee = EmployeeProfile::where("employee_id", $employee_id)->first();
+        $userInformation = session()->get('userToken');
+        $employeeID = null;
+
+        $contact = Contact::where("email_address", $userInformation['email'])->first();
+        $UserName = $userInformation['name'];
+        $Employee = null;
+        $email = $userInformation['email'];
+        $profilePhoto = $userInformation['avatar'];
+        if ($contact) {
+            $personalInformation = $contact->personalInformation;
+            $fullName = $personalInformation->fullName();
+            $employeeProfile = $personalInformation->employeeProfile;
+
+            $employeeID = $employeeProfile->employee_id;
+            $UserName = $personalInformation->fullName();
+            $Employee = $employeeProfile;
+        }
+
+
         $attendance = [];
 
         if ($Employee) {
             $biometric_id = $Employee->biometric_id;
         }
+
+        $from = date("Y-m-d H:i:s", strtotime("-3 months"));
+        $to = date("Y-m-d H:i:s");
+
+        $attendance = Attendance_Information::where("biometric_id", $biometric_id)
+            ->whereBetween("first_entry", [$from, $to])
+            ->with("attendance")
+            ->get();
 
         if ($date && $biometric_id) {
             $attendance = Attendance_Information::where("biometric_id", $biometric_id)
@@ -189,7 +276,8 @@ class AttendanceController extends Controller
         }
 
         return Inertia::render('MyAttendances/Myattendances', [
-            'attendanceList' => $attendance
+            'attendanceList' => $attendance,
+            'employeeID' => $employeeID
         ]);
     }
 }
