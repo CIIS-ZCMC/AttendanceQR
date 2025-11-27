@@ -77,6 +77,7 @@ class AttendanceStoreRequest extends FormRequest
             'userToken' => $userToken,
             'email' => $email,
             'employee_id' => $employee->employee_id,
+            'profile_id' => $employee->id,
         ];
     }
 }

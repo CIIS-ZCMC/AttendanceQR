@@ -9,6 +9,9 @@ use App\Models\Attendance;
 use App\Models\Attendance_Information;
 use App\Models\Contact;
 use App\Models\EmployeeProfile;
+use App\Models\Notifications;
+use App\Models\UserNotifications;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class AttendanceController extends Controller
@@ -199,6 +202,25 @@ class AttendanceController extends Controller
                 "userToken" => $attendanceInformation['userToken'],
                 "attendances_id" => $attendanceInformation['attendances_id'],
             ], $attendanceInformation);
+
+
+            $attendanceDate = Carbon::parse($attendanceInformation['first_entry'])->format("M j,Y");
+
+            $notification =  Notifications::firstOrCreate([
+                'title' => "Attendance Receipt",
+                'description' => "Your flag ceremony attendance made at " . $attendanceDate . " has been successfully recorded. Click here to view your attendance record.",
+                'module_path' => "/attendance/notification",
+            ]);
+
+            UserNotifications::firstOrCreate(
+                [
+                    'notification_id' => $notification->id,
+                    'employee_profile_id' => $attendanceInformation['profile_id'],
+                ],
+                [
+                    'seen' => 0,
+                ]
+            );
 
             // MailController::SendReceipt(new Request([
             //     'email' => $attendanceInformation['email'],
