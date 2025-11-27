@@ -200,15 +200,15 @@ class AttendanceController extends Controller
                 "attendances_id" => $attendanceInformation['attendances_id'],
             ], $attendanceInformation);
 
-            MailController::SendReceipt(new Request([
-                'email' => $attendanceInformation['email'],
-                'name' => $attendanceInformation['name'],
-                'subject' => 'UMIS - Geofencing Attendance Acknowledgement Receipt',
-                'attendance_id' => $attendanceInformation['attendances_id'],
-                'date' => date("F d, Y", strtotime($attendanceInformation['first_entry'])),
-                'time_in' => date("h:i A", strtotime($attendanceInformation['first_entry'])),
-                'employee_id' => $attendanceInformation['employee_id'],
-            ]));
+            // MailController::SendReceipt(new Request([
+            //     'email' => $attendanceInformation['email'],
+            //     'name' => $attendanceInformation['name'],
+            //     'subject' => 'UMIS - Geofencing Attendance Acknowledgement Receipt',
+            //     'attendance_id' => $attendanceInformation['attendances_id'],
+            //     'date' => date("F d, Y", strtotime($attendanceInformation['first_entry'])),
+            //     'time_in' => date("h:i A", strtotime($attendanceInformation['first_entry'])),
+            //     'employee_id' => $attendanceInformation['employee_id'],
+            // ]));
 
             return redirect()->back()->with('session', [
                 'message' => 'Attendance recorded successfully.',
