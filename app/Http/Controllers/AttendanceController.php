@@ -31,7 +31,7 @@ class AttendanceController extends Controller
 
         /**
          * Add Validation here soon , that active attendance does not need location based.
-         * 
+         *
          */
 
         if ($this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['isInLocation']) {
@@ -183,9 +183,6 @@ class AttendanceController extends Controller
                 ]);
             }
 
-
-
-
             $Existing = Attendance_Information::where('userToken', $attendanceInformation['userToken'])
                 ->where('attendances_id', $attendanceInformation['attendances_id'])
                 ->first();
@@ -237,6 +234,8 @@ class AttendanceController extends Controller
                 'type' => 'success',
             ]);
         } catch (\Exception $e) {
+
+
             return $e;
         }
     }
@@ -291,5 +290,48 @@ class AttendanceController extends Controller
             'attendanceList' => $attendance,
             'employeeID' => $employeeID
         ]);
+    }
+
+    public function scannedSave($employee_id)
+    {
+        $employee = EmployeeProfile::where('employee_id', $employee_id)->first();
+
+        if (!$employee) {
+            return response()->json([
+                "message" => "Employee not found",
+            ], 404);
+        }
+
+        $email = $employee->GetPersonalInfo()->contact->email_address;
+        $areaDetails = $employee->assignedArea->findDetails()['details'];
+        $sector = $employee->assignedArea->findDetails()['sector'] ?? null;
+
+        $activeAttendance = Attendance::where("is_active", true)->first();
+
+
+        if (!$this->isActiveAttendance($activeAttendance->id)) {
+            return response()->json([
+                "message" => "Attendance session is not currently active.",
+            ], 403);
+        }
+
+        Attendance_Information::firstOrCreate([
+            'attendances_id' => $activeAttendance->id,
+            'biometric_id' => $employee->biometric_id,
+        ], [
+            'name' => $employee->name,
+            'area' => $areaDetails->name,
+            'areacode' => $areaDetails->code,
+            'sector' => $sector,
+            'first_entry' => date("Y-m-d H:i:s"),
+            'last_entry' => null,
+            'userToken' => null,
+            'email' => $email,
+            'profile_id' => $employee->id,
+        ]);
+
+        return response()->json([
+            "message" => "Attendance recorded successfully!",
+        ], 202);
     }
 }
