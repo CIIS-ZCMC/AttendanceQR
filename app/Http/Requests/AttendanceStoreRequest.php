@@ -24,9 +24,7 @@ class AttendanceStoreRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'employeeId' => 'required',
-        ];
+        return [];
     }
 
     public function FindEmployeeID()
@@ -53,6 +51,10 @@ class AttendanceStoreRequest extends FormRequest
 
     public function userAttendanceInformation()
     {
+        //dd(request()->all());
+        if (isset($this->is_no_employee_id)) {
+            return $this->UserNoEmployeeID($this->name, $this->area);
+        }
 
         $attendanceID = $this->attendanceId ?? session()->get("activeAttendanceID");
         $userToken = session()->get('userToken')['id'] . $attendanceID;
@@ -78,6 +80,27 @@ class AttendanceStoreRequest extends FormRequest
             'email' => $email,
             'employee_id' => $employee->employee_id,
             'profile_id' => $employee->id,
+        ];
+    }
+
+    public function UserNoEmployeeID($name, $area)
+    {
+        $attendanceID = $this->attendanceId ?? session()->get("activeAttendanceID");
+        $userToken = session()->get('userToken')['id'] . $attendanceID;
+
+        return [
+            'biometric_id' => null,
+            'name' => $name,
+            'area' => $area,
+            'areacode' => null,
+            'sector' => null,
+            'first_entry' => date("Y-m-d H:i:s"),
+            'last_entry' => null,
+            'attendances_id' => $attendanceID,
+            'userToken' => $userToken,
+            'email' => null,
+            'employee_id' => null,
+            'profile_id' => null,
         ];
     }
 }

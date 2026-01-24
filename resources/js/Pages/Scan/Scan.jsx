@@ -17,6 +17,7 @@ import { usePage } from "@inertiajs/react";
 import axios from "axios";
 import FingerprintJS from "@fingerprintjs/fingerprintjs";
 import click from "../../src/click.gif";
+import NoEmployeeID from "./NoEmployeeID";
 export default function Scan({
     invalid_status,
     attendance,
@@ -25,6 +26,7 @@ export default function Scan({
     email,
     profilePhoto,
     UserName,
+    isRecorded
 }) {
     const {
         data,
@@ -37,6 +39,9 @@ export default function Scan({
     } = useForm({
         employeeId: "",
         attendanceId: attendance?.id,
+        name: null,
+        area: null,
+        is_no_employee_id: false,
     });
 
     const [serverTime, setServerTime] = useState(
@@ -52,6 +57,8 @@ export default function Scan({
             day: "numeric",
         })
     );
+
+
     const page = usePage();
     const [closeAt, setCloseAt] = useState(new Date());
     const [remainingTime, setRemainingTime] = useState("");
@@ -62,7 +69,8 @@ export default function Scan({
     const [anomalyState, setAnomalyState] = useState(false);
     const [distance, setDistance] = useState(null);
     const [edited, setEdited] = useState(false);
-    const [saved, setSaved] = useState(false);
+
+    const [noEmployeeID, setNoEmployeeID] = useState(false);
     useEffect(() => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -83,12 +91,6 @@ export default function Scan({
                                 setLoad(false);
                                 setLocationService(true);
                                 setDistance(response.data.distance);
-
-                                if (response.data.saved) {
-                                    setSaved(true);
-                                }
-
-                                //
                             })
                             .catch((error) => {
                                 console.log(error);
@@ -120,12 +122,6 @@ export default function Scan({
             setLoad(false);
         }
     }, []);
-
-    useEffect(() => {
-        if (saved) {
-            router.reload();
-        }
-    }, [saved]);
 
     useEffect(() => {
         setData({ attendanceId: attendance?.id });
@@ -170,9 +166,9 @@ export default function Scan({
             employeeId: employeeID,
         });
 
-        if (!employeeID) {
+        if (!employeeID && !isRecorded) {
             alert(
-                " We were unable to retrieve an employee ID associated with the email you used to log in. Please enter your employee ID manually to proceed."
+                "❌ We were unable to retrieve an employee ID associated with the email you used to log in. Please enter your employee ID manually to proceed."
             );
             setEdited(true);
         }
@@ -224,6 +220,36 @@ export default function Scan({
         });
     };
 
+    const handleSaveNoEmployeeID = (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(e.currentTarget);
+        const name = formData.get("name");
+        const area = formData.get("area");
+
+        post("/store_attendance", {
+            name: name,
+            area: area,
+            is_no_employee_id: true,
+            onSuccess: (response) => {
+                if (response.props?.session?.type == "error") {
+                    toast.error(response.props.session.message);
+                } else if (response.props?.session?.type == "warning-anomaly") {
+                    toast.warning(response.props.session.message);
+                    setAnomalyState(true);
+                } else {
+                    localStorage.setItem("employeeID", data.employeeId);
+                    toast.success("Attendance recorded successfully");
+                }
+
+
+            },
+        });
+
+
+        setNoEmployeeID(false);
+    };
+
     return (
         <AppLayout>
             {attendance && invalid_status === null && (
@@ -233,7 +259,7 @@ export default function Scan({
                         <span className="font-semibold">{UserName}</span>
                     </h2>
                     <h3 className="text-md font-normal font-medium text-gray-600">
-                        Please mark your attendance below
+                        Mark your attendance below
                     </h3>
 
                     <span className="text-xs" data-live="server-time">
@@ -271,63 +297,89 @@ export default function Scan({
                     <div>
                         <br />
 
-                        <span className="text-xs text-blue-600  flex items-center">
-                            Attendance can be logged — you are inside the
-                            allowed area.
-                            <img
-                                src={mappin}
-                                alt=""
-                                width="40px"
-                                height="40px"
-                            />
-                        </span>
-                        <span className="text-sm">
-                            Enter employee ID : <br />{" "}
-                            <span className="text-gray-500"></span>
-                        </span>
-                        <form onSubmit={handleSubmit}>
-                            <Input
-                                type="number"
-                                name="employeeId"
-                                value={data.employeeId}
-                                onChange={(e) => {
-                                    setData({
-                                        ...data,
-                                        employeeId: e.target.value,
-                                    });
-                                    setEdited(true);
-                                }}
-                                required
-                                placeholder="e.g 2022090251"
-                                autoFocus
-                                className={"mt-4 mb-3 text-center shadow-lg  "}
-                            />
-
-                            <Button
-                                type="submit"
-                                disabled={processing}
-                                className="z-1 absolute px-6"
-                            >
-                                {" "}
-                                {processing ? (
-                                    <>
-                                        <LoaderCircle className="h-4 w-4 animate-spin" />{" "}
-                                        Submitting
-                                    </>
-                                ) : (
-                                    "Submit"
-                                )}
-                            </Button>
-
-                            {!edited && (
+                        {noEmployeeID ? <>
+                            <div className="w-[300px]">
+                                <NoEmployeeID setData={setData} data={data} setNoEmployeeID={setNoEmployeeID} handleSaveNoEmployeeID={handleSaveNoEmployeeID} />
+                            </div>
+                        </> : <>
+                            <span className="text-xs text-blue-600  flex items-center">
+                                Attendance can be logged — you are inside the
+                                allowed area.
                                 <img
-                                    src={click}
+                                    src={mappin}
                                     alt=""
-                                    style={{ marginTop: "-5px" }}
-                                    className="w-10 h-10 left-20 z-0 relative top-7 rotate-320"
+                                    width="40px"
+                                    height="40px"
                                 />
-                            )}
-                        </form>
+                            </span>
+                            <span className="text-sm">
+                                Enter employee ID : <br />{" "}
+                                <span className="text-gray-500"></span>
+                            </span>
+                            <form onSubmit={handleSubmit}>
+                                <Input
+                                    type="number"
+                                    name="employeeId"
+                                    value={data.employeeId}
+                                    onChange={(e) => {
+                                        setData({
+                                            ...data,
+                                            employeeId: e.target.value,
+                                        });
+                                        setEdited(true);
+                                    }}
+                                    required
+                                    placeholder="e.g 2022090251"
+                                    autoFocus
+                                    className={"mt-4 mb-3 text-center shadow-lg  "}
+                                />
+
+
+
+                                <Button
+                                    type="submit"
+                                    disabled={processing}
+                                    className="z-1 absolute px-6"
+                                >
+                                    {" "}
+                                    {processing ? (
+                                        <>
+                                            <LoaderCircle className="h-4 w-4 animate-spin" />{" "}
+                                            Submitting
+                                        </>
+                                    ) : (
+                                        "Submit"
+                                    )}
+                                </Button>
+
+
+
+
+                                {!edited && (
+                                    <img
+                                        src={click}
+                                        alt=""
+                                        style={{ marginTop: "-5px" }}
+                                        className="w-10 h-10 left-20 z-0 relative top-7 rotate-320"
+                                    />
+                                )}
+                            </form>
+
+                            <div className="relative p-8 border">
+                                {/* Ensure parent has 'relative' class */}
+
+                                <div className="absolute left-2 bottom-2 flex items-center gap-1 text-xs text-slate-500">
+                                    <span>Don't have employee ID yet?</span>
+                                    <button
+                                        onClick={() => setNoEmployeeID(true)}
+                                        className="text-blue-600 hover:underline font-medium"
+                                    >
+                                        Click here
+                                    </button>
+                                </div>
+                            </div>
+                        </>}
+
                         <br />
 
                         {isWithinLocation &&
@@ -376,6 +428,7 @@ export default function Scan({
                                     </span>
                                 </>
                             )}
+
                     </div>
                 ) : (
                     <NotInLocation

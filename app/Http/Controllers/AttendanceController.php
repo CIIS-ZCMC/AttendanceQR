@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\AttendanceStoreRequest;
+use App\Models\AssignArea;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Attendance;
@@ -26,8 +27,8 @@ class AttendanceController extends Controller
 
         $Saved = false;
 
-        // $userLat = 6.907257;
-        // $userLng = 122.080909;
+        $userLat = 6.907257;
+        $userLng = 122.080909;
 
         /**
          * Add Validation here soon , that active attendance does not need location based.
@@ -94,9 +95,12 @@ class AttendanceController extends Controller
 
     public function index(Request $request)
     {
+
+        //session()->forget("isRecorded");
         $attendance_key = $request->key ?? Attendance::where("is_active", true)->first()?->attendance_key;
 
         $attendance = Attendance::where("attendance_key", $attendance_key)->where("is_active", true)->first();
+
         // session()->forget("isRecorded");
         // session()->forget("userToken");
         if (!session()->has("userToken")) {
@@ -156,6 +160,7 @@ class AttendanceController extends Controller
             'attendance' => $attendance,
             "session" => session()->get('session'),
             'ip' => $request->ip(),
+            'isRecorded' => $status['isRecorded'] ?? session()->get('isRecorded'),
             'employeeID' => $employeeID,
             'email' => $email,
             'profilePhoto' => $profilePhoto,
@@ -167,6 +172,10 @@ class AttendanceController extends Controller
     public function store(AttendanceStoreRequest $request)
     {
         try {
+
+            if (isset($request->is_no_employee_id)) {
+                return $this->SaveNoEmployeeID($request->UserNoEmployeeID($request->name, $request->area));
+            }
             $attendanceInformation = $request->userAttendanceInformation();
             if (!$attendanceInformation) {
                 return redirect()->back()->with("session", [
@@ -238,6 +247,25 @@ class AttendanceController extends Controller
 
             return $e;
         }
+    }
+
+
+    public function SaveNoEmployeeID($data)
+    {
+
+        $attendanceInformation = $data;
+
+        Attendance_Information::firstOrCreate([
+            "userToken" => $attendanceInformation['userToken'],
+            "attendances_id" => $attendanceInformation['attendances_id'],
+        ], $attendanceInformation);
+
+        session()->put("isRecorded", true);
+
+        return redirect()->back()->with('success', [
+            'message' => 'Attendance recorded successfully.',
+            'type' => 'success',
+        ]);
     }
 
 
