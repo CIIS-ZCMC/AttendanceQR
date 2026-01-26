@@ -224,8 +224,13 @@ export default function Scan({
         e.preventDefault();
 
         const formData = new FormData(e.currentTarget);
-        const name = formData.get("name");
-        const area = formData.get("area");
+        const name = formData.get("name").trim();
+        const area = formData.get("area").trim();
+
+        if (!name || !area) {
+            alert("❌ Please fill in all fields");
+            return;
+        }
 
         post("/store_attendance", {
             name: name,

@@ -96,7 +96,7 @@ class AttendanceController extends Controller
     public function index(Request $request)
     {
 
-        //session()->forget("isRecorded");
+
         $attendance_key = $request->key ?? Attendance::where("is_active", true)->first()?->attendance_key;
 
         $attendance = Attendance::where("attendance_key", $attendance_key)->where("is_active", true)->first();
@@ -148,6 +148,8 @@ class AttendanceController extends Controller
 
         if ($attendanceInformation) {
             $status['isRecorded'] = true;
+        } else {
+            session()->forget("isRecorded");
         }
 
         if (session()->has("isRecorded")) {
@@ -174,6 +176,12 @@ class AttendanceController extends Controller
         try {
 
             if (isset($request->is_no_employee_id)) {
+
+                $request->validate([
+                    "name" => "required",
+                    "area" => "required",
+                ]);
+
                 return $this->SaveNoEmployeeID($request->UserNoEmployeeID($request->name, $request->area));
             }
             $attendanceInformation = $request->userAttendanceInformation();
