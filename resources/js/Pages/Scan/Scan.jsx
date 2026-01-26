@@ -26,7 +26,8 @@ export default function Scan({
     email,
     profilePhoto,
     UserName,
-    isRecorded
+    isRecorded,
+    googleName
 }) {
     const {
         data,
@@ -304,7 +305,7 @@ export default function Scan({
 
                         {noEmployeeID ? <>
                             <div className="w-[300px]">
-                                <NoEmployeeID setData={setData} data={data} setNoEmployeeID={setNoEmployeeID} handleSaveNoEmployeeID={handleSaveNoEmployeeID} />
+                                <NoEmployeeID googleName={googleName} setData={setData} data={data} setNoEmployeeID={setNoEmployeeID} handleSaveNoEmployeeID={handleSaveNoEmployeeID} />
                             </div>
                         </> : <>
                             <span className="text-xs text-blue-600  flex items-center">

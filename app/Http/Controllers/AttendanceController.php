@@ -166,7 +166,8 @@ class AttendanceController extends Controller
             'employeeID' => $employeeID,
             'email' => $email,
             'profilePhoto' => $profilePhoto,
-            'UserName' => $UserName
+            'UserName' => $UserName,
+            'googleName' => session()->get('userToken')['name'] ?? null,
         ]);
     }
 

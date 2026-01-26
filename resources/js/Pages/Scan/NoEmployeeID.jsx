@@ -1,6 +1,6 @@
 import { Input } from '@/Components/ui/input'
 import { Label } from '@/Components/ui/label'
-import React from 'react'
+import React, { useEffect } from 'react'
 
 import {
     Select,
@@ -13,9 +13,10 @@ import {
 } from "@/components/ui/select"
 import { Button } from '@/Components/ui/button'
 
-export default function NoEmployeeID({ setNoEmployeeID, handleSaveNoEmployeeID, setData, data }) {
-
-
+export default function NoEmployeeID({ googleName, setNoEmployeeID, handleSaveNoEmployeeID, setData, data }) {
+    useEffect(() => {
+        setData({ ...data, name: googleName })
+    }, [googleName])
     return (
         <div>
             <form onSubmit={handleSaveNoEmployeeID}>
