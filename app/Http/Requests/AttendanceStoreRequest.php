@@ -51,8 +51,8 @@ class AttendanceStoreRequest extends FormRequest
 
     public function userAttendanceInformation()
     {
-        //dd(request()->all());
-        if (isset($this->is_no_employee_id)) {
+        //dd($this->all());
+        if (isset($this->is_no_employee_id) && $this->is_no_employee_id) {
             return $this->UserNoEmployeeID($this->name, $this->area);
         }
 

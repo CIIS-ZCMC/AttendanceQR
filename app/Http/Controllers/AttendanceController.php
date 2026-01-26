@@ -36,10 +36,10 @@ class AttendanceController extends Controller
          */
 
         if ($this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['isInLocation']) {
-            $this->store(new AttendanceStoreRequest([
-                "employeeId" => "Finder_Via_Token",
-                "is_finder" => true
-            ]));
+            // $this->store(new AttendanceStoreRequest([
+            //     "employeeId" => "Finder_Via_Token",
+            //     "is_finder" => true
+            // ]));
         }
 
         return response()->json([
@@ -157,6 +157,16 @@ class AttendanceController extends Controller
         }
 
 
+        if ($employeeID) {
+
+            if (session()->has("reloaded")) {
+                session()->forget("reloaded");
+            } else {
+                session()->put("reloaded", true);
+            }
+        }
+
+
         return Inertia::render('Scan/Scan', [
             'invalid_status' => $status,
             'attendance' => $attendance,
@@ -164,6 +174,7 @@ class AttendanceController extends Controller
             'ip' => $request->ip(),
             'isRecorded' => $status['isRecorded'] ?? session()->get('isRecorded'),
             'employeeID' => $employeeID,
+            'reload' => session()->get('reloaded')  ?? false,
             'email' => $email,
             'profilePhoto' => $profilePhoto,
             'UserName' => $UserName,
@@ -176,22 +187,26 @@ class AttendanceController extends Controller
     {
         try {
 
-            if (isset($request->is_no_employee_id)) {
+
+            if (isset($request->is_no_employee_id) && $request->is_no_employee_id) {
 
                 $request->validate([
                     "name" => "required",
                     "area" => "required",
                 ]);
-
                 return $this->SaveNoEmployeeID($request->UserNoEmployeeID($request->name, $request->area));
             }
+
             $attendanceInformation = $request->userAttendanceInformation();
-            if (!$attendanceInformation) {
+
+
+            if (empty($attendanceInformation)  || empty($attendanceInformation['name'])) {
                 return redirect()->back()->with("session", [
                     "message" => "Employee not found",
                     "type" => "error"
                 ]);
             }
+
 
 
             if (!$this->isActiveAttendance($attendanceInformation['attendances_id'])) {
@@ -200,6 +215,10 @@ class AttendanceController extends Controller
                     "type" => "error"
                 ]);
             }
+
+
+
+
 
             $Existing = Attendance_Information::where('userToken', $attendanceInformation['userToken'])
                 ->where('attendances_id', $attendanceInformation['attendances_id'])
@@ -256,6 +275,34 @@ class AttendanceController extends Controller
 
             return $e;
         }
+    }
+
+    public function getSummary(AttendanceStoreRequest $request)
+    {
+
+        if (isset($request->employeeId) && empty($request->employeeId)) {
+            return redirect()->back()->with("session", [
+                "message" => "Employee ID is required",
+                "type" => "error"
+            ]);
+        }
+
+        $attendanceInformation = $request->userAttendanceInformation();
+
+        if (empty($attendanceInformation)  || empty($attendanceInformation['name'])) {
+            return redirect()->back()->with("session", [
+                "message" => "Employee not found",
+                "type" => "error"
+            ]);
+        }
+
+        // Process the attendance information here
+        // For now, just return a success response
+        return redirect()->back()->with("session", [
+            "message" => "Attendance summary retrieved successfully",
+            "type" => "success",
+            "data" => $attendanceInformation
+        ]);
     }
 
 

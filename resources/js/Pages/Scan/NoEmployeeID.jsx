@@ -15,12 +15,15 @@ import { Button } from '@/Components/ui/button'
 
 export default function NoEmployeeID({ googleName, setNoEmployeeID, handleSaveNoEmployeeID, setData, data }) {
     useEffect(() => {
-        setData({ ...data, name: googleName })
+        setData({ ...data, name: googleName, is_no_employee_id: true })
     }, [googleName])
     return (
         <div>
             <form onSubmit={handleSaveNoEmployeeID}>
-                <Button type="button" variant={"outline"} className="mb-4" onClick={() => setNoEmployeeID(false)}>
+                <Button type="button" variant={"outline"} className="mb-4" onClick={() => {
+                    setNoEmployeeID(false);
+                    setData({ ...data, name: null, area: null, is_no_employee_id: false })
+                }}>
                     Back
                 </Button>
                 <Label>

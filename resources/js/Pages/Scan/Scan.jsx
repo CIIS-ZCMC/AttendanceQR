@@ -18,6 +18,7 @@ import axios from "axios";
 import FingerprintJS from "@fingerprintjs/fingerprintjs";
 import click from "../../src/click.gif";
 import NoEmployeeID from "./NoEmployeeID";
+import Summary from "./Summary";
 export default function Scan({
     invalid_status,
     attendance,
@@ -27,7 +28,8 @@ export default function Scan({
     profilePhoto,
     UserName,
     isRecorded,
-    googleName
+    googleName,
+    reload
 }) {
     const {
         data,
@@ -70,6 +72,7 @@ export default function Scan({
     const [anomalyState, setAnomalyState] = useState(false);
     const [distance, setDistance] = useState(null);
     const [edited, setEdited] = useState(false);
+    const [showSummary, setShowSummary] = useState(null);
 
     const [noEmployeeID, setNoEmployeeID] = useState(false);
     useEffect(() => {
@@ -173,7 +176,13 @@ export default function Scan({
             );
             setEdited(true);
         }
+
+
     }, [employeeID]);
+
+
+
+
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -205,6 +214,21 @@ export default function Scan({
     const handleSubmit = (e) => {
         e.preventDefault();
         setEdited(true);
+
+        post("get-summary", {
+            onSuccess: (response) => {
+                if (response.props?.session?.type == "error") {
+                    toast.error(response.props.session.message);
+                } else if (response.props?.session?.type == "success") {
+                    setShowSummary(response.props.session.data);
+                }
+            }
+        });
+
+    };
+
+
+    const handleSubmitAttendance = () => {
         post("/store_attendance", {
             fingerprint: fingerprint,
             onSuccess: (response) => {
@@ -219,7 +243,7 @@ export default function Scan({
                 }
             },
         });
-    };
+    }
 
     const handleSaveNoEmployeeID = (e) => {
         e.preventDefault();
@@ -258,7 +282,7 @@ export default function Scan({
 
     return (
         <AppLayout>
-            {attendance && invalid_status === null && (
+            {attendance && invalid_status === null && !showSummary && (
                 <div className="my-5">
                     <h2 className="text-xl  text-gray-700">
                         <span className="text-gray-600">Greetings</span>,{" "}
@@ -307,88 +331,103 @@ export default function Scan({
                             <div className="w-[300px]">
                                 <NoEmployeeID googleName={googleName} setData={setData} data={data} setNoEmployeeID={setNoEmployeeID} handleSaveNoEmployeeID={handleSaveNoEmployeeID} />
                             </div>
-                        </> : <>
-                            <span className="text-xs text-blue-600  flex items-center">
-                                Attendance can be logged — you are inside the
-                                allowed area.
-                                <img
-                                    src={mappin}
-                                    alt=""
-                                    width="40px"
-                                    height="40px"
-                                />
-                            </span>
-                            <span className="text-sm">
-                                Enter employee ID : <br />{" "}
-                                <span className="text-gray-500"></span>
-                            </span>
-                            <form onSubmit={handleSubmit}>
-                                <Input
-                                    type="number"
-                                    name="employeeId"
-                                    value={data.employeeId}
-                                    onChange={(e) => {
-                                        setData({
-                                            ...data,
-                                            employeeId: e.target.value,
-                                        });
-                                        setEdited(true);
-                                    }}
-                                    required
-                                    placeholder="e.g 2022090251"
-                                    autoFocus
-                                    className={"mt-4 mb-3 text-center shadow-lg  "}
-                                />
+                        </> :
+
+                            !showSummary ?
+                                <>
+                                    <span className="text-xs text-blue-600  flex items-center">
+                                        Attendance can be logged — you are inside the
+                                        allowed area.
+                                        <img
+                                            src={mappin}
+                                            alt=""
+                                            width="40px"
+                                            height="40px"
+                                        />
+                                    </span>
+                                    <span className="text-sm">
+                                        Enter employee ID : <br />{" "}
+                                        <span className="text-gray-500"></span>
+                                    </span>
+                                    <form onSubmit={handleSubmit}>
+                                        <Input
+                                            type="number"
+                                            name="employeeId"
+                                            value={data.employeeId}
+
+                                            onChange={(e) => {
+                                                setData({
+                                                    ...data,
+                                                    employeeId: e.target.value,
+                                                    name: null,
+                                                    area: null,
+                                                    is_no_employee_id: false,
+                                                });
+                                                setEdited(true);
+                                            }}
+                                            required
+                                            placeholder="e.g 2022090251"
+                                            autoFocus
+                                            className={`mt-4 mb-3 text-center shadow-lg  ${employeeID ? 'bg-green-100 font-bold text-green-700' : ''}`}
+                                        />
 
 
 
-                                <Button
-                                    type="submit"
-                                    disabled={processing}
-                                    className="z-1 absolute px-6"
-                                >
-                                    {" "}
-                                    {processing ? (
-                                        <>
-                                            <LoaderCircle className="h-4 w-4 animate-spin" />{" "}
-                                            Submitting
-                                        </>
-                                    ) : (
-                                        "Submit"
-                                    )}
-                                </Button>
+                                        <Button
+                                            type="submit"
+                                            disabled={processing}
+                                            className="z-1 absolute px-6"
+                                        >
+                                            {" "}
+                                            {processing ? (
+                                                <>
+                                                    <LoaderCircle className="h-4 w-4 animate-spin" />{" "}
+                                                    Verifying
+                                                </>
+                                            ) : (
+                                                "Confirm"
+                                            )}
+                                        </Button>
 
 
 
 
-                                {!edited && (
-                                    <img
-                                        src={click}
-                                        alt=""
-                                        style={{ marginTop: "-5px" }}
-                                        className="w-10 h-10 left-20 z-0 relative top-7 rotate-320"
-                                    />
-                                )}
-                            </form>
+                                        {!edited && (
+                                            <img
+                                                src={click}
+                                                alt=""
+                                                style={{ marginTop: "-5px" }}
+                                                className="w-10 h-10 left-20 z-0 relative top-7 rotate-320"
+                                            />
+                                        )}
+                                    </form>
 
-                            <div className="relative p-8 border">
-                                {/* Ensure parent has 'relative' class */}
+                                    <div className={`relative p-8 border ${employeeID ? 'hidden' : ''}`}>
+                                        {/* Ensure parent has 'relative' class */}
 
-                                <div className="absolute left-2 bottom-2 flex items-center gap-1 text-xs text-slate-500">
-                                    <span>Don't have employee ID yet?</span>
-                                    <button
-                                        onClick={() => setNoEmployeeID(true)}
-                                        className="text-blue-600 hover:underline font-medium"
-                                    >
-                                        Click here
-                                    </button>
-                                </div>
-                            </div>
-                        </>}
+                                        <div className="absolute left-2 bottom-2 flex items-center gap-1 text-xs text-slate-500">
+                                            <span>Don't have employee ID yet?</span>
+                                            <button
+                                                onClick={() => {
+                                                    setNoEmployeeID(true);
+                                                    setData({
+                                                        ...data,
+                                                        employeeId: null,
+                                                        area: null,
+                                                        is_no_employee_id: true,
+                                                    });
+                                                }}
+                                                className="text-blue-600 hover:underline font-medium"
+                                            >
+                                                Click here
+                                            </button>
+                                        </div>
+                                    </div>
+                                </> : <div className=""><Summary employeeID={employeeID} processing={processing} data={data} setData={setData} handleSubmitAttendance={handleSubmitAttendance} showSummary={showSummary} setShowSummary={setShowSummary} /></div>}
 
                         <br />
 
-                        {isWithinLocation &&
+                        {isWithinLocation && !showSummary &&
                             attendance &&
                             invalid_status === null && (
                                 <>
