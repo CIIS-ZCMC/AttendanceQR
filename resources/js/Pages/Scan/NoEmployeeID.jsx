@@ -26,11 +26,11 @@ export default function NoEmployeeID({ googleName, setNoEmployeeID, handleSaveNo
                 <Label>
                     Enter Full Name
                 </Label>
-                <Input name="name" autoFocus required value={data.name} onChange={(e) => setData({ ...data, name: e.target.value })} className={"mt-4 mb-3 shadow-lg  "} />
+                <Input name="name" required value={data.name} onChange={(e) => setData({ ...data, name: e.target.value })} className={"mt-4 mb-3 shadow-lg  "} />
                 <Label className={"mb-2"}>
                     Assigned Area
                 </Label>
-                <Input name="area" required value={data.area} onChange={(e) => setData({ ...data, area: e.target.value })} className={"mt-4 mb-3 shadow-lg  "} />
+                <Input name="area" required autoFocus value={data.area} onChange={(e) => setData({ ...data, area: e.target.value })} className={"mt-4 mb-3 shadow-lg  "} />
                 <Button type="submit" className="mb-4 w-full">
                     Submit
                 </Button>
