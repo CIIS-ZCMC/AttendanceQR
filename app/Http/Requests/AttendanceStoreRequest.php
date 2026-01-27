@@ -98,7 +98,7 @@ class AttendanceStoreRequest extends FormRequest
             'last_entry' => null,
             'attendances_id' => $attendanceID,
             'userToken' => $userToken,
-            'email' => null,
+            'email' => session()->get('userToken')['email'],
             'employee_id' => null,
             'profile_id' => null,
         ];

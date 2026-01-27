@@ -21,7 +21,8 @@ class Attendance_Information extends Model
         'first_entry',
         'last_entry',
         'attendances_id',
-        'userToken'
+        'userToken',
+        'email'
     ];
 
 
