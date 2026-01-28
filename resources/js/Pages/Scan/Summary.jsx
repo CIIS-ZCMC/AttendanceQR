@@ -1,11 +1,11 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
 
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { User, Mail, Building2, Fingerprint, Clock, ArrowLeft, LoaderCircle } from 'lucide-react'
-
+import { toast } from "sonner";
 export default function Summary({ employeeID, processing, data, setData, showSummary, setShowSummary, handleSubmitAttendance }) {
     // Fallback for initials
     const initials = showSummary?.name
@@ -25,6 +25,12 @@ export default function Summary({ employeeID, processing, data, setData, showSum
     };
 
     if (!showSummary) return null;
+
+    useEffect(() => {
+        if (showSummary) {
+            toast.info("Please review your information carefully, then tap Submit to record your attendance.");
+        }
+    }, [showSummary]);
 
 
 

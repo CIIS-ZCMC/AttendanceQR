@@ -117,8 +117,6 @@ export default function Scan({
                                     //         }
                                     //     });
 
-                                    toast.info("Please review your information carefully, then tap Submit to record your attendance.");
-
 
 
                                     router.post("get-summary", {
