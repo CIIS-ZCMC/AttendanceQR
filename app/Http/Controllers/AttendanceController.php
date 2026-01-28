@@ -40,6 +40,9 @@ class AttendanceController extends Controller
             //     "employeeId" => "Finder_Via_Token",
             //     "is_finder" => true
             // ]));
+
+            $Saved = true;
+            session()->put("reloaded", true);
         }
 
         return response()->json([
@@ -47,7 +50,8 @@ class AttendanceController extends Controller
             'ip_address' => $request->ip(),
             'distance' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['distance'] - $geofenceRadius,
             'radius' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['radius'],
-            'saved' => session('session.type') === 'success'
+            'saved' => session('session.type') === 'success',
+            'saved_direct' => $Saved
         ]);
     }
 
@@ -100,7 +104,7 @@ class AttendanceController extends Controller
         $attendance_key = $request->key ?? Attendance::where("is_active", true)->first()?->attendance_key;
 
         $attendance = Attendance::where("attendance_key", $attendance_key)->where("is_active", true)->first();
-
+        // session()->forget("reloaded");
         // session()->forget("isRecorded");
         // session()->forget("userToken");
         if (!session()->has("userToken")) {
@@ -157,14 +161,6 @@ class AttendanceController extends Controller
         }
 
 
-        if ($employeeID) {
-
-            if (session()->has("reloaded")) {
-                session()->forget("reloaded");
-            } else {
-                session()->put("reloaded", true);
-            }
-        }
 
 
         return Inertia::render('Scan/Scan', [

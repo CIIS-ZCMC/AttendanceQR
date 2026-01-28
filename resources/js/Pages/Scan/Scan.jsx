@@ -74,6 +74,7 @@ export default function Scan({
     const [edited, setEdited] = useState(false);
     const [showSummary, setShowSummary] = useState(null);
 
+
     const [noEmployeeID, setNoEmployeeID] = useState(false);
     useEffect(() => {
         if (navigator.geolocation) {
@@ -91,10 +92,47 @@ export default function Scan({
                                 `validate-location?lat=${lat}&lng=${lng}&fingerprint=${result.visitorId}`
                             )
                             .then((response) => {
+
+                                console.log(response.data);
                                 setIsWithinLocation(response.data.isInLocation);
                                 setLoad(false);
                                 setLocationService(true);
                                 setDistance(response.data.distance);
+
+                                if (response.data.saved_direct && !reload) {
+                                    // 
+                                    // setTimeout(() => {
+                                    //     window.location.href = "/";
+                                    // }, 1000);
+
+
+                                    // post("get-summary",
+                                    //     {
+                                    //         onSuccess: (response) => {
+                                    //             if (response.props?.session?.type == "error") {
+                                    //                 toast.error(response.props.session.message);
+                                    //             } else if (response.props?.session?.type == "success") {
+                                    //                 setShowSummary(response.props.session.data);
+                                    //             }
+                                    //         }
+                                    //     });
+
+                                    toast.info("Please review your information carefully, then tap Submit to record your attendance.");
+
+
+
+                                    router.post("get-summary", {
+                                        employeeId: employeeID,
+                                    }, {
+                                        onSuccess: (response) => {
+                                            if (response.props?.session?.type == "error") {
+                                                toast.error(response.props.session.message);
+                                            } else if (response.props?.session?.type == "success") {
+                                                setShowSummary(response.props.session.data);
+                                            }
+                                        }
+                                    });
+                                }
                             })
                             .catch((error) => {
                                 console.log(error);

@@ -51,7 +51,7 @@ class AttendanceStoreRequest extends FormRequest
 
     public function userAttendanceInformation()
     {
-        //dd($this->all());
+
         if (isset($this->is_no_employee_id) && $this->is_no_employee_id) {
             return $this->UserNoEmployeeID($this->name, $this->area);
         }
@@ -65,8 +65,8 @@ class AttendanceStoreRequest extends FormRequest
         }
 
         $email = $employee->GetPersonalInfo()->contact->email_address;
-        $areaDetails = $employee->assignedArea->findDetails()['details'];
-        $sector = $employee->assignedArea->findDetails()['sector'] ?? null;
+        $areaDetails = $employee->assignedArea?->findDetails()['details'];
+        $sector = $employee->assignedArea?->findDetails()['sector'] ?? null;
         return [
             'biometric_id' => $employee->biometric_id,
             'name' => $employee->name,

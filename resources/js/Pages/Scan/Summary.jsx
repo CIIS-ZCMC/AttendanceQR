@@ -26,10 +26,13 @@ export default function Summary({ employeeID, processing, data, setData, showSum
 
     if (!showSummary) return null;
 
+
+
     return (
-        <div className="max-w-1xl mt-15 mx-auto p-4">
+        <div className="max-w-1xl mt-2 mx-auto p-4">
+
             <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 className="mb-4 gap-2 text-muted-foreground hover:text-foreground"
                 onClick={handleBack}
@@ -38,14 +41,16 @@ export default function Summary({ employeeID, processing, data, setData, showSum
                 Back
             </Button>
 
-            <Card className="overflow-hidden border-t-4 border-t-primary">
+            <p className="text-xs text-muted-foreground uppercase font-semibold mt-4 text-red-500">Please confirm the details below :</p>
+
+            <Card className=" border-t-primary w-[330px] mx-auto mt-4">
                 <CardHeader className="flex flex-row items-center gap-4 space-y-0">
 
                     <div className="flex flex-col">
                         <CardTitle className="text-2xl font-bold mt-2">{showSummary.name}</CardTitle>
                         <CardDescription className="flex items-center gap-1">
                             <Badge variant="secondary" className="font-mono mt-2">
-                                ID: {showSummary.employee_id}
+                                Employee ID: {showSummary.employee_id}
                             </Badge>
                             <Badge variant="outline" className="mt-2">{showSummary.sector}</Badge>
                         </CardDescription>
@@ -54,7 +59,7 @@ export default function Summary({ employeeID, processing, data, setData, showSum
 
                 <Separator />
 
-                <CardContent className="grid gap-6 p-6">
+                <CardContent className="grid gap-2 p-5">
 
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -84,7 +89,7 @@ export default function Summary({ employeeID, processing, data, setData, showSum
                         </div>
 
                         {/* Biometric Info */}
-                        <div className="flex items-center gap-3">
+                        {/* <div className="flex items-center gap-3">
                             <div className="p-2 bg-primary/10 rounded-full">
                                 <Fingerprint className="w-4 h-4 text-primary" />
                             </div>
@@ -92,7 +97,7 @@ export default function Summary({ employeeID, processing, data, setData, showSum
                                 <p className="text-xs text-muted-foreground uppercase font-semibold">Biometric ID</p>
                                 <p className="text-sm font-medium">#{showSummary.biometric_id}</p>
                             </div>
-                        </div>
+                        </div> */}
 
                         {/* Entry Info */}
                         <div className="flex items-center gap-3">
@@ -100,19 +105,19 @@ export default function Summary({ employeeID, processing, data, setData, showSum
                                 <Clock className="w-4 h-4 text-primary" />
                             </div>
                             <div>
-                                <p className="text-xs text-muted-foreground uppercase font-semibold">Time</p>
+                                <p className="text-xs text-muted-foreground uppercase font-semibold">TIME</p>
                                 <p className="text-sm font-medium">
-                                    {new Date(showSummary.first_entry).toLocaleString()}
+                                    {new Date(showSummary.first_entry).toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric', year: 'numeric' })}
                                 </p>
                             </div>
                         </div>
                     </div>
                 </CardContent>
 
-                <CardFooter className="bg-muted/30 flex justify-between items-center py-3 px-6">
+                {/*  <CardFooter className="bg-muted/30 flex justify-between items-center py-3 px-6">
                     <span className="text-xs text-muted-foreground">Profile ID: {showSummary.profile_id}</span>
                     <span className="text-xs text-muted-foreground">Attendance ID: {showSummary.attendances_id}</span>
-                </CardFooter>
+                </CardFooter> */}
 
                 <Button className={"p-6"} onClick={() => {
                     handleSubmitAttendance();
@@ -123,7 +128,7 @@ export default function Summary({ employeeID, processing, data, setData, showSum
                             Submitting
                         </>
                     ) : (
-                        "SUBMIT ATTENDANCE"
+                        "Confirm & Submit Attendance"
                     )}
                 </Button>
             </Card>
