@@ -27,8 +27,8 @@ class AttendanceController extends Controller
 
         $Saved = false;
 
-        $userLat = 6.907257;
-        $userLng = 122.080909;
+        // $userLat = 6.907257;
+        // $userLng = 122.080909;
 
         /**
          * Add Validation here soon , that active attendance does not need location based.
@@ -324,10 +324,10 @@ class AttendanceController extends Controller
     public function myAttendance(Request $request)
     {
         $date = $request->date ?? null;
-
+        
         $biometric_id = null;
         $userInformation = session()->get('userToken');
-        $employeeID = null;
+        $employeeID = $request->employee_id ?? null;
 
         $contact = Contact::where("email_address", $userInformation['email'])->first();
         $UserName = $userInformation['name'];
@@ -345,11 +345,22 @@ class AttendanceController extends Controller
         }
 
 
+       
+
+    
+
+
         $attendance = [];
 
         if ($Employee) {
             $biometric_id = $Employee->biometric_id;
         }
+
+        if(!$Employee && !empty($request->employee_id)){
+            $biometric_id = EmployeeProfile::firstWhere("employee_id",$request->employee_id)->biometric_id;
+           
+        }
+
 
         $from = date("Y-m-d H:i:s", strtotime("-3 months"));
         $to = date("Y-m-d H:i:s");
@@ -367,7 +378,7 @@ class AttendanceController extends Controller
         }
 
         return Inertia::render('MyAttendances/Myattendances', [
-            'attendanceList' => $attendance,
+            'attendanceList' =>!$employeeID? []: $attendance,
             'employeeID' => $employeeID
         ]);
     }
