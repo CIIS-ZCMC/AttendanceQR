@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { User, Mail, Building2, Fingerprint, Clock, ArrowLeft, LoaderCircle } from 'lucide-react'
 import { toast } from "sonner";
-export default function Summary({ employeeID, processing, data, setData, showSummary, setShowSummary, handleSubmitAttendance }) {
+export default function Summary({ anomaly, employeeID, processing, data, setData, showSummary, setShowSummary, handleSubmitAttendance }) {
     // Fallback for initials
     const initials = showSummary?.name
         ?.split(' ')

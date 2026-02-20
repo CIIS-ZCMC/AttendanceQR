@@ -43,6 +43,11 @@ class AttendanceStoreRequest extends FormRequest
         return $this->employeeId;
     }
 
+    public function isSuspicious()
+    {
+        return isset($this->anomaly) && $this->anomaly;
+    }
+
 
     public function ActiveAttendance()
     {

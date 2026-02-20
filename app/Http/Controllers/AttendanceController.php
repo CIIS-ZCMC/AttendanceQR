@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Attendance;
 use App\Models\Attendance_Information;
+use App\Models\AttendanceAnomaly;
 use App\Models\Contact;
 use App\Models\EmployeeProfile;
 use App\Models\Notifications;
@@ -25,17 +26,20 @@ class AttendanceController extends Controller
         $userLat = $request->lat;
         $userLng = $request->lng;
 
+        $accuracy = $request->accuracy ?? 0;
+
         $Saved = false;
 
-        // $userLat = 6.907257;
-        // $userLng = 122.080909;
+        $userLat = 6.907257;
+        $userLng = 122.080909;
 
         /**
          * Add Validation here soon , that active attendance does not need location based.
          *
          */
 
-        if ($this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['isInLocation']) {
+        $results = $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $accuracy, $geofenceRadius);
+        if ($results['isInLocation']) {
             // $this->store(new AttendanceStoreRequest([
             //     "employeeId" => "Finder_Via_Token",
             //     "is_finder" => true
@@ -46,18 +50,27 @@ class AttendanceController extends Controller
         }
 
         return response()->json([
-            'isInLocation' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['isInLocation'] ?? false,
+            'isInLocation' => $results['isInLocation'] ?? false,
             'ip_address' => $request->ip(),
-            'distance' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['distance'] - $geofenceRadius,
-            'radius' => $this->checkGeofence($userLat, $userLng, $geofenceCenter['lat'], $geofenceCenter['lng'], $geofenceRadius)['radius'],
+            'distance' =>  $results['distance'] - $geofenceRadius,
+            'radius' => $results['radius'],
             'saved' => session('session.type') === 'success',
-            'saved_direct' => $Saved
+            'saved_direct' => $Saved,
+            'isSuspicious' => $results['isSuspicious'] ?? false,
         ]);
     }
 
-    public function checkGeofence($userLat, $userLng, $centerLat, $centerLng, $radiusMeters = 50)
+    public function checkGeofence($userLat, $userLng, $centerLat, $centerLng, $accuracy, $radiusMeters = 50)
     {
         $earthRadius = 6371000; // meters
+
+        $isSuspicious = false;
+
+        // Red Flag: If accuracy is reported as 0 or exactly 1, 
+        // it's almost certainly a mock location.
+        if ($accuracy <= 1) {
+            $isSuspicious = true;
+        }
 
         $latFrom = deg2rad($userLat);
         $lngFrom = deg2rad($userLng);
@@ -77,9 +90,11 @@ class AttendanceController extends Controller
         return [
             'isInLocation' => $distance <= $radiusMeters,
             'distance' => $distance,
-            'radius' => $radiusMeters
+            'radius' => $radiusMeters,
+            'isSuspicious' => true  //$isSuspicious
         ];
     }
+
 
     public function isActiveAttendance($attendanceID)
     {
@@ -228,11 +243,24 @@ class AttendanceController extends Controller
                     ]);
                 }
             }
+
+
+
             Attendance_Information::firstOrCreate([
                 "userToken" => $attendanceInformation['userToken'],
                 "attendances_id" => $attendanceInformation['attendances_id'],
             ], $attendanceInformation);
 
+
+            if ($request->isSuspicious()) {
+                AttendanceAnomaly::firstOrCreate([
+                    "name" => $attendanceInformation['name'],
+                    "employee_id" => $attendanceInformation['employee_id'],
+                    "attendance_id" => $attendanceInformation['attendances_id']
+                ], [
+                    "date_time" => now(),
+                ]);
+            }
 
             $attendanceDate = Carbon::parse($attendanceInformation['first_entry'])->format("M j,Y");
 
@@ -324,7 +352,7 @@ class AttendanceController extends Controller
     public function myAttendance(Request $request)
     {
         $date = $request->date ?? null;
-        
+
         $biometric_id = null;
         $userInformation = session()->get('userToken');
         $employeeID = $request->employee_id ?? null;
@@ -345,9 +373,9 @@ class AttendanceController extends Controller
         }
 
 
-       
 
-    
+
+
 
 
         $attendance = [];
@@ -356,9 +384,8 @@ class AttendanceController extends Controller
             $biometric_id = $Employee->biometric_id;
         }
 
-        if(!$Employee && !empty($request->employee_id)){
-            $biometric_id = EmployeeProfile::firstWhere("employee_id",$request->employee_id)->biometric_id;
-           
+        if (!$Employee && !empty($request->employee_id)) {
+            $biometric_id = EmployeeProfile::firstWhere("employee_id", $request->employee_id)->biometric_id;
         }
 
 
@@ -378,7 +405,7 @@ class AttendanceController extends Controller
         }
 
         return Inertia::render('MyAttendances/Myattendances', [
-            'attendanceList' =>!$employeeID? []: $attendance,
+            'attendanceList' => !$employeeID ? [] : $attendance,
             'employeeID' => $employeeID
         ]);
     }

@@ -31,6 +31,7 @@ export default function Scan({
     googleName,
     reload
 }) {
+    const [anomaly, setAnomaly] = useState(null);
     const {
         data,
         setData,
@@ -45,6 +46,7 @@ export default function Scan({
         name: null,
         area: null,
         is_no_employee_id: false,
+        anomaly: anomaly,
     });
 
     const [serverTime, setServerTime] = useState(
@@ -75,6 +77,7 @@ export default function Scan({
     const [showSummary, setShowSummary] = useState(null);
 
 
+
     const [noEmployeeID, setNoEmployeeID] = useState(false);
     useEffect(() => {
         if (navigator.geolocation) {
@@ -82,6 +85,7 @@ export default function Scan({
                 (pos) => {
                     const lat = pos.coords.latitude;
                     const lng = pos.coords.longitude;
+                    const posAccuracy = pos.coords.accuracy;
                     const loadFingerprint = async () => {
                         const fp = await FingerprintJS.load();
                         const result = await fp.get();
@@ -89,11 +93,18 @@ export default function Scan({
 
                         axios
                             .get(
-                                `validate-location?lat=${lat}&lng=${lng}&fingerprint=${result.visitorId}`
+                                `validate-location?lat=${lat}&lng=${lng}&fingerprint=${result.visitorId}&accuracy=${posAccuracy}`
                             )
                             .then((response) => {
 
                                 console.log(response.data);
+
+                                const isSuspicious = response.data.isSuspicious;
+
+                                if (isSuspicious) {
+                                    setAnomaly(true);
+                                }
+
                                 setIsWithinLocation(response.data.isInLocation);
                                 setLoad(false);
                                 setLocationService(true);
@@ -150,6 +161,7 @@ export default function Scan({
                     setLoad(false);
                 },
                 {
+                    enableHighAccuracy: true,
                     maximumAge: 5000,
                 }
             );
@@ -164,7 +176,7 @@ export default function Scan({
     }, []);
 
     useEffect(() => {
-        setData({ attendanceId: attendance?.id });
+        setData({ attendanceId: attendance?.id, anomaly: anomaly });
         const interval = setInterval(() => {
             setCloseAt(new Date(attendance?.closed_at));
             const closeTime = new Date(attendance?.closed_at);
@@ -204,6 +216,7 @@ export default function Scan({
         setData({
             ...data,
             employeeId: employeeID,
+            anomaly: anomaly
         });
 
         if (!employeeID && !isRecorded) {
@@ -251,6 +264,8 @@ export default function Scan({
         e.preventDefault();
         setEdited(true);
 
+        setData({ ...data, anomaly: anomaly });
+
         post("get-summary", {
             onSuccess: (response) => {
                 if (response.props?.session?.type == "error") {
@@ -265,6 +280,8 @@ export default function Scan({
 
 
     const handleSubmitAttendance = () => {
+
+        console.log(data)
         post("/store_attendance", {
             fingerprint: fingerprint,
             onSuccess: (response) => {
@@ -459,7 +476,7 @@ export default function Scan({
                                             </button>
                                         </div>
                                     </div>
-                                </> : <div className=""><Summary employeeID={employeeID} processing={processing} data={data} setData={setData} handleSubmitAttendance={handleSubmitAttendance} showSummary={showSummary} setShowSummary={setShowSummary} /></div>}
+                                </> : <div className=""><Summary anomaly={anomaly} employeeID={employeeID} processing={processing} data={data} setData={setData} handleSubmitAttendance={handleSubmitAttendance} showSummary={showSummary} setShowSummary={setShowSummary} /></div>}
 
                         <br />
 
