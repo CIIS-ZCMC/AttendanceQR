@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Laravel\Socialite\Facades\Socialite;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Stevebauman\Location\Facades\Location;
 
 class GoogleController extends Controller
 {
@@ -16,6 +17,11 @@ class GoogleController extends Controller
     public function handleGoogleCallback()
     {
         $googleUser = Socialite::driver('google')->user();
+
+        // $userIp = request()->ip();
+
+        // $location = Location::get($userIp);
+        // dd($location);
 
         session()->put("userToken", [
             'email' => $googleUser->getEmail(),

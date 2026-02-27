@@ -19,6 +19,7 @@ import FingerprintJS from "@fingerprintjs/fingerprintjs";
 import click from "../../src/click.gif";
 import NoEmployeeID from "./NoEmployeeID";
 import Summary from "./Summary";
+import AdvisoryModal from "./AdvisoryModal";
 export default function Scan({
     invalid_status,
     attendance,
@@ -29,9 +30,11 @@ export default function Scan({
     UserName,
     isRecorded,
     googleName,
-    reload
+    reload,
+    warningSession,
 }) {
     const [anomaly, setAnomaly] = useState(null);
+    const [warning, setWarning] = useState(warningSession);
     const {
         data,
         setData,
@@ -335,6 +338,14 @@ export default function Scan({
 
     return (
         <AppLayout>
+
+            <AdvisoryModal
+                open={warning}
+                setOpen={setWarning}
+            />
+
+
+
             {attendance && invalid_status === null && !showSummary && (
                 <div className="my-5">
                     <h2 className="text-xl  text-gray-700">

@@ -30,8 +30,8 @@ class AttendanceController extends Controller
 
         $Saved = false;
 
-        $userLat = 6.907257;
-        $userLng = 122.080909;
+        // $userLat = 6.907257;
+        // $userLng = 122.080909;
 
         /**
          * Add Validation here soon , that active attendance does not need location based.
@@ -174,8 +174,14 @@ class AttendanceController extends Controller
         if (session()->has("isRecorded")) {
             $status['isRecorded'] = true;
         }
+        //session()->forget('warning_seen');
 
+        $showWarning = !session()->has('warning_seen');
 
+        if ($showWarning) {
+            // Mark as seen so next refresh it won't show
+            session()->put('warning_seen', true);
+        }
 
 
         return Inertia::render('Scan/Scan', [
@@ -190,6 +196,7 @@ class AttendanceController extends Controller
             'profilePhoto' => $profilePhoto,
             'UserName' => $UserName,
             'googleName' => session()->get('userToken')['name'] ?? null,
+            'warningSession' => $showWarning,
         ]);
     }
 
