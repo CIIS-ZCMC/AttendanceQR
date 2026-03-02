@@ -91,7 +91,7 @@ class AttendanceController extends Controller
             'isInLocation' => $distance <= $radiusMeters,
             'distance' => $distance,
             'radius' => $radiusMeters,
-            'isSuspicious' => true  //$isSuspicious
+            'isSuspicious' => $isSuspicious
         ];
     }
 

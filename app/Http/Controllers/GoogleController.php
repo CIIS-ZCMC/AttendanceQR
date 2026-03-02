@@ -6,6 +6,7 @@ use Laravel\Socialite\Facades\Socialite;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Stevebauman\Location\Facades\Location;
+use Illuminate\Support\Facades\Log;
 
 class GoogleController extends Controller
 {
@@ -16,19 +17,17 @@ class GoogleController extends Controller
 
     public function handleGoogleCallback()
     {
-        $googleUser = Socialite::driver('google')->user();
-
-        // $userIp = request()->ip();
-
-        // $location = Location::get($userIp);
-        // dd($location);
-
-        session()->put("userToken", [
-            'email' => $googleUser->getEmail(),
-            'name' => $googleUser->getName(),
-            'avatar' => $googleUser->getAvatar(),
-            'id' => $googleUser->getId()
-        ]);
+        try {
+            $googleUser = Socialite::driver('google')->user();
+            session()->put("userToken", [
+                'email' => $googleUser->getEmail(),
+                'name' => $googleUser->getName(),
+                'avatar' => $googleUser->getAvatar(),
+                'id' => $googleUser->getId()
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Google Login Error: ' . $e->getMessage());
+        }
         return redirect('/');
     }
 }
