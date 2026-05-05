@@ -18,9 +18,56 @@ use Illuminate\Support\Facades\Log;
 
 class AttendanceController extends Controller
 {
+
+    public function saveMapCoordinates(Request $request)
+    {
+        $coordinates = $request->all();
+
+        // Save to JSON file
+        $file = storage_path('app/map_coordinates.json');
+        $data = [];
+
+        if (file_exists($file)) {
+            $data = json_decode(file_get_contents($file), true);
+        }
+
+        // Update the first coordinate entry or create new one
+        if (!empty($data)) {
+            // Update existing coordinates (replace first entry)
+            $data[0] = $coordinates;
+        } else {
+            // Add new coordinates
+            $data[] = $coordinates;
+        }
+
+        file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT));
+
+        return response()->json([
+            'message' => 'Map coordinates saved successfully!'
+        ], 200);
+    }
     public function validateLocation(Request $request)
     {
-        $geofenceCenter = ['lat' => 6.907257, 'lng' => 122.080909];
+
+
+        $file = storage_path('app/map_coordinates.json');
+        if (!file_exists($file)) {
+            return response()->json([
+                'message' => 'File not found.'
+            ], 404);
+        }
+
+        $data = json_decode(file_get_contents($file), true);
+
+        $map_coordinates = [
+            'lat' => 6.907257,
+            'lng' => 122.080909,
+        ];
+        if (isset($data[0])) {
+            $map_coordinates = $data[0];
+        }
+        // $geofenceCenter = ['lat' => 6.907257, 'lng' => 122.080909];
+        $geofenceCenter = ['lat' => $map_coordinates['lat'], 'lng' => $map_coordinates['lng']];
         $geofenceRadius = 40; // meters
 
         $userLat = $request->lat;

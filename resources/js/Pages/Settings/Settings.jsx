@@ -45,9 +45,10 @@ import { LoaderCircle } from "lucide-react";
 import { router, usePage } from "@inertiajs/react";
 import { useEffect } from "react";
 
-export default function Settings({ attendanceList, is_admin }) {
+export default function Settings({ attendanceList, is_admin, map_coordinates }) {
     const [selectedAttendance, setSelectedAttendance] = React.useState(null);
     const [open, setOpen] = React.useState(false);
+    const [mapModalOpen, setMapModalOpen] = React.useState(false);
     const page = usePage();
     const [search, setSearch] = React.useState("");
 
@@ -83,11 +84,7 @@ export default function Settings({ attendanceList, is_admin }) {
                 .post("/store_attendance/settings", useCreateForm.data)
                 .then(() => {
                     setOpen(false);
-                    toast.success("Attendance created successfully");
-                    router.reload({
-                        preserveState: true,
-                        preserveScroll: true,
-                    });
+                    window.location.reload();
                 })
                 .catch((error) => {
                     useCreateForm.setError(error.response.data.errors);
@@ -198,6 +195,97 @@ export default function Settings({ attendanceList, is_admin }) {
         );
     };
 
+    const MapCoordinatesModal = ({ map_coordinates }) => {
+        const [loading, setLoading] = React.useState(false);
+        const [latitude, setLatitude] = React.useState(map_coordinates?.latitude || "");
+        const [longitude, setLongitude] = React.useState(map_coordinates?.longitude || "");
+
+        const handleSave = async (e) => {
+            e.preventDefault();
+            setLoading(true);
+
+            try {
+                const coordinates = {
+                    latitude: parseFloat(latitude),
+                    longitude: parseFloat(longitude),
+                    saved_at: new Date().toISOString()
+                };
+
+                // Save to JSON file via API endpoint
+                await axios.post('/api/save-map-coordinates', coordinates)
+                    .then(() => {
+                        toast.success("Map coordinates saved successfully!");
+                        setMapModalOpen(false);
+                        setLatitude("");
+                        setLongitude("");
+                    })
+                    .catch((error) => {
+                        console.error('Error saving coordinates:', error);
+                        toast.error("Failed to save coordinates");
+                    });
+            } catch (error) {
+                console.error('Error:', error);
+                toast.error("Failed to save coordinates");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        return (
+            <form onSubmit={handleSave}>
+                <div className="grid gap-4 mb-4">
+                    <div className="grid gap-3">
+                        <Label htmlFor="latitude">Latitude</Label>
+                        <Input
+                            required
+                            id="latitude"
+                            name="latitude"
+                            value={latitude}
+                            onChange={(e) => setLatitude(e.target.value)}
+                            placeholder="Enter latitude"
+                            type="number"
+                            step="any"
+                        />
+                    </div>
+                    <div className="grid gap-3">
+                        <Label htmlFor="longitude">Longitude</Label>
+                        <Input
+                            required
+                            id="longitude"
+                            name="longitude"
+                            value={longitude}
+                            onChange={(e) => setLongitude(e.target.value)}
+                            placeholder="Enter longitude"
+                            type="number"
+                            step="any"
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button type="button" variant="outline">
+                            Cancel
+                        </Button>
+                    </DialogClose>
+                    <Button disabled={loading} type="submit">
+                        {loading ? (
+                            <div className="flex items-center">
+                                <LoaderCircle
+                                    size="sm"
+                                    color="green"
+                                    className="mr-2 animate-spin"
+                                />
+                                Saving...
+                            </div>
+                        ) : (
+                            "Save Coordinates"
+                        )}
+                    </Button>
+                </DialogFooter>
+            </form>
+        );
+    };
+
     const displayStatus = (attendance) => {
         const closingAt = new Date(attendance.closing_at);
         const now = new Date();
@@ -285,6 +373,31 @@ export default function Settings({ attendanceList, is_admin }) {
                 >
                     Reset
                 </Button>
+
+                <Dialog open={mapModalOpen} onOpenChange={setMapModalOpen}>
+                    <DialogTrigger asChild>
+                        <Button
+                            variant="outline"
+                            onClick={() => setMapModalOpen(true)}
+                        >
+                            Set Map Coordinates
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent
+                        className="sm:max-w-[425px]"
+                        onInteractOutside={(e) => {
+                            e.preventDefault();
+                        }}
+                    >
+                        <DialogHeader>
+                            <DialogTitle>Set Map Coordinates</DialogTitle>
+                            <DialogDescription>
+                                Enter the latitude and longitude coordinates for the map location.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <MapCoordinatesModal map_coordinates={map_coordinates} />
+                    </DialogContent>
+                </Dialog>
 
                 <Dialog open={open} onOpenChange={setOpen}>
                     <DialogTrigger asChild>

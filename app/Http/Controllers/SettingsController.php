@@ -10,7 +10,6 @@ use App\Exceptions\ValidationHandler;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use App\Http\Requests\SettingsAttendanceStoreRequest;
-use Illuminate\Support\Facades\DB;
 use App\Models\Attendance_Information;
 
 class SettingsController extends Controller
@@ -46,10 +45,29 @@ class SettingsController extends Controller
             $attendanceList = AttendanceResource::collection(Attendance::where("title", "like", "%{$search}%")->orderBy("created_at", "desc")->paginate(5));
         }
 
+        $map_coordinates = [];
+        $data  = [];
+
+        $file = storage_path('app/map_coordinates.json');
+        if (!file_exists($file)) {
+            $map_coordinates = [
+                'lat' => 6.907257,
+                'lng' => 122.080909,
+            ];
+        }
+
+
+        $data =  json_decode(file_get_contents($file), true);
+        if (isset($data[0])) {
+            $map_coordinates = $data[0];
+        }
+
+
         return Inertia::render("Settings/Settings", [
             "attendanceList" => $attendanceList,
             "is_admin" => session()->has("admin_user"),
             "error" => session()->get("error") ?? false,
+            "map_coordinates" => $map_coordinates,
         ]);
     }
 
@@ -114,11 +132,10 @@ class SettingsController extends Controller
 
         $attendance = Attendance::where("is_active", true)->first();
 
-
-
         $logs = $attendance->logs()->with("employeeProfile")->paginate(50);
 
         if (request()->has('search') && ($search = request('search'))) {
+
             $logs = Attendance_Information::where('attendances_id', $attendance->id)
                 ->whereIn('biometric_id', function ($query) use ($search) {
                     $query->select('biometric_id')

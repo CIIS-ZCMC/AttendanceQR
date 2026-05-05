@@ -9,3 +9,6 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::post('saveAttendance/{employee_id}', [AttendanceController::class, 'scannedSave']);
+
+
+Route::post('save-map-coordinates', [AttendanceController::class, 'saveMapCoordinates']);

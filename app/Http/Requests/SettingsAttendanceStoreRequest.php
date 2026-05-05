@@ -25,10 +25,10 @@ class SettingsAttendanceStoreRequest extends FormRequest
     {
         return [
             "name" => "required",
-            "closing_at" => [
-                "required",
-                "after:" . now()->addHour()->addMinutes(10)->format("Y-m-d h:i a"),
-            ],
+            // "closing_at" => [
+            //     "required",
+            //     "after:" . now()->addHour()->addMinutes(10)->format("Y-m-d h:i a"),
+            // ],
         ];
     }
 
