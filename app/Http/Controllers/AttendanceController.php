@@ -68,7 +68,7 @@ class AttendanceController extends Controller
         }
         // $geofenceCenter = ['lat' => 6.907257, 'lng' => 122.080909];
         $geofenceCenter = ['lat' => $map_coordinates['latitude'], 'lng' => $map_coordinates['longitude']];
-        $geofenceRadius = 40; // meters
+        $geofenceRadius = 30; // meters
 
         $userLat = $request->lat;
         $userLng = $request->lng;
