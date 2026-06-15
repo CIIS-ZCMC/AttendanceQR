@@ -7,7 +7,7 @@
       <title >{{ config('app.name', 'Laravel') }}</title>
       @viteReactRefresh
       @vite('resources/js/app.jsx')
-      @vite('resources/css/app.css')
+    
       @inertiaHead
   </head>
   <body class="font-sans antialiased "  >

@@ -543,7 +543,7 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
         <AppLayout title="Settings" is_admin={is_admin} w_admin={true}>
 
             <div className="flex flex-col items-start my-5">
-                <div className="text-lg font-semibold">Attendance Settingssss</div>
+                <div className="text-lg font-semibold">Attendance Setting</div>
                 <div className="mt-2 text-xs">Manage or create new attendance</div>
             </div>
 
