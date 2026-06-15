@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\MapLocationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -12,3 +13,10 @@ Route::post('saveAttendance/{employee_id}', [AttendanceController::class, 'scann
 
 
 Route::post('save-map-coordinates', [AttendanceController::class, 'saveMapCoordinates']);
+
+// Map Locations CRUD routes
+Route::get('/map-locations', [MapLocationController::class, 'index']);
+Route::post('/map-locations', [MapLocationController::class, 'store']);
+Route::put('/map-locations/{id}', [MapLocationController::class, 'update']);
+Route::delete('/map-locations/{id}', [MapLocationController::class, 'destroy']);
+Route::post('/map-locations/{id}/set-active', [MapLocationController::class, 'setActive']);

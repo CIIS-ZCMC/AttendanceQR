@@ -32,6 +32,7 @@ export default function Scan({
     googleName,
     reload,
     warningSession,
+    activeMapLocation,
 }) {
     const [anomaly, setAnomaly] = useState(null);
     const [warning, setWarning] = useState(warningSession);
@@ -79,7 +80,16 @@ export default function Scan({
     const [edited, setEdited] = useState(false);
     const [showSummary, setShowSummary] = useState(null);
 
-
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour >= 5 && hour < 12) {
+            return "Good morning";
+        } else if (hour >= 12 && hour < 17) {
+            return "Good afternoon";
+        } else {
+            return "Good evening";
+        }
+    };
 
     const [noEmployeeID, setNoEmployeeID] = useState(false);
     useEffect(() => {
@@ -349,7 +359,7 @@ export default function Scan({
             {attendance && invalid_status === null && !showSummary && (
                 <div className="my-5">
                     <h2 className="text-xl  text-gray-700">
-                        <span className="text-gray-600">Greetings</span>,{" "}
+                        <span className="text-gray-600"> {getGreeting()}!</span>,{" "}
                         <span className="font-semibold">{UserName}</span>
                     </h2>
                     <h3 className="text-md font-normal font-medium text-gray-600">
@@ -380,6 +390,7 @@ export default function Scan({
                     <NotInLocation
                         locationService={locationService}
                         distance={distance}
+                        activeMapLocation={activeMapLocation}
                     />
                 ) : invalid_status ? (
                     <FailedScan
@@ -399,16 +410,25 @@ export default function Scan({
 
                             !showSummary ?
                                 <>
-                                    <span className="text-xs text-blue-600  flex items-center">
-                                        Attendance can be logged — you are inside the
-                                        allowed area.
-                                        <img
-                                            src={mappin}
-                                            alt=""
-                                            width="40px"
-                                            height="40px"
-                                        />
-                                    </span>
+                                    <div className="text-center mb-4">
+                                    
+                                        {activeMapLocation && (
+                                            <>
+                                                <div className="text-sm text-gray-600 mt-2">
+                                                 <span className="font-semibold">{activeMapLocation.location}</span>
+                                                </div>
+                                                {activeMapLocation.description && (
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                        {activeMapLocation.description}
+                                                    </div>
+                                                )}
+                                            
+                                            </>
+                                        )}
+                                        <span className="text-xs text-blue-600 flex items-center justify-center mt-2">
+                                            Attendance can be logged — you are inside the allowed area.
+                                        </span>
+                                    </div>
                                     <span className="text-sm">
                                         Enter employee ID : <br />{" "}
                                         <span className="text-gray-500"></span>
@@ -543,6 +563,7 @@ export default function Scan({
                     <NotInLocation
                         locationService={locationService}
                         distance={distance}
+                        activeMapLocation={activeMapLocation}
                     />
                 )}
             </div>

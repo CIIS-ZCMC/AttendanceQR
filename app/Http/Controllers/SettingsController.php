@@ -54,20 +54,21 @@ class SettingsController extends Controller
                 'lat' => 6.907257,
                 'lng' => 122.080909,
             ];
+        } else {
+            $data = json_decode(file_get_contents($file), true);
+            if (isset($data[0])) {
+                $map_coordinates = $data[0];
+            }
         }
 
-
-        $data =  json_decode(file_get_contents($file), true);
-        if (isset($data[0])) {
-            $map_coordinates = $data[0];
-        }
-
+        $mapLocations = \App\Models\MapLocation::orderBy('created_at', 'desc')->get();
 
         return Inertia::render("Settings/Settings", [
             "attendanceList" => $attendanceList,
             "is_admin" => session()->has("admin_user"),
             "error" => session()->get("error") ?? false,
             "map_coordinates" => $map_coordinates,
+            "mapLocations" => $mapLocations,
         ]);
     }
 

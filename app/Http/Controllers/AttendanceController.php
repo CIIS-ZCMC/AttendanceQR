@@ -66,7 +66,7 @@ class AttendanceController extends Controller
         if (isset($data[0])) {
             $map_coordinates = $data[0];
         }
-        // $geofenceCenter = ['lat' => 6.907257, 'lng' => 122.080909];
+      //   $geofenceCenter = ['lat' => 6.907257, 'lng' => 122.080909];
         $geofenceCenter = ['lat' => $map_coordinates['latitude'], 'lng' => $map_coordinates['longitude']];
         $geofenceRadius = 30; // meters
 
@@ -77,8 +77,8 @@ class AttendanceController extends Controller
 
         $Saved = false;
 
-        // $userLat = 6.907257;
-        // $userLng = 122.080909;
+        $userLat = 6.907257;
+        $userLng = 122.080909;
 
         /**
          * Add Validation here soon , that active attendance does not need location based.
@@ -230,6 +230,7 @@ class AttendanceController extends Controller
             session()->put('warning_seen', true);
         }
 
+        $activeMapLocation = \App\Models\MapLocation::where('is_active', true)->first();
 
         return Inertia::render('Scan/Scan', [
             'invalid_status' => $status,
@@ -244,6 +245,7 @@ class AttendanceController extends Controller
             'UserName' => $UserName,
             'googleName' => session()->get('userToken')['name'] ?? null,
             'warningSession' => $showWarning,
+            'activeMapLocation' => $activeMapLocation,
         ]);
     }
 

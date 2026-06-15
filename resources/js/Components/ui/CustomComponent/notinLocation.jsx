@@ -10,23 +10,42 @@ import { Toaster } from "sonner";
 import location from "../../../src/location.png";
 import { Smartphone, Globe } from "lucide-react";
 
-export const NotInLocation = ({ locationService, distance }) => {
+export const NotInLocation = ({ locationService, distance, activeMapLocation }) => {
 
     const page = usePage();
+
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour >= 5 && hour < 12) {
+            return "Good morning";
+        } else if (hour >= 12 && hour < 17) {
+            return "Good afternoon";
+        } else {
+            return "Good evening";
+        }
+    };
 
     return (
         <>
             <div className="lg:mt-120">
 
                 <div className="flex flex-col items-center justify-center gap-2">
-                    <span className="text-xs text-gray-500">
-                        Attendance Zone
-                    </span>
-                    <img
-                        src={location}
-                        alt="Warning"
-                        className="w-70 h-70 shadow-lg rounded-xl"
-                    />
+                    <div className="text-center mb-2">
+                        
+                        {activeMapLocation && (
+                            <>
+                                <div className="text-sm text-gray-600 mt-2">
+                                  <span className="font-semibold">{activeMapLocation.location}</span>
+                                </div>
+                                {activeMapLocation.description && (
+                                    <div className="text-xs text-gray-500 mt-1">
+                                        {activeMapLocation.description}
+                                    </div>
+                                )}
+                              
+                            </>
+                        )}
+                    </div>
                     <img
                         src={warning}
                         alt="Warning"
