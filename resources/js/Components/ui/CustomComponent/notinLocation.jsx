@@ -30,36 +30,44 @@ export const NotInLocation = ({ locationService, distance, activeMapLocation }) 
             <div className="lg:mt-120">
 
                 <div className="flex flex-col items-center justify-center gap-2">
-                    <div className="text-center mb-2">
-                        
+                    <div className="text-center mb-4">
+                        <div className="text-2xl font-bold uppercase text-blue-700 mb-4">
+                            {getGreeting()}!
+                        </div>
+
                         {activeMapLocation && (
-                            <>
-                                <div className="text-sm text-gray-600 mt-2">
-                                  <span className="font-semibold">{activeMapLocation.location}</span>
+                            <div className="bg-white border border-blue-200 rounded-xl shadow-sm p-4 mb-4 max-w-xs mx-auto">
+                                <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                                    Attendance Location
+                                </div>
+                                <div className="text-lg font-semibold text-gray-800">
+                                    {activeMapLocation.location}
                                 </div>
                                 {activeMapLocation.description && (
-                                    <div className="text-xs text-gray-500 mt-1">
+                                    <div className="text-sm text-gray-600 mt-1">
                                         {activeMapLocation.description}
                                     </div>
                                 )}
-                              
-                            </>
+                            </div>
                         )}
-                    </div>
-                    <img
+
+                        <div className="inline-flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 rounded-lg text-xs font-medium">
+                           
+                             <img
                         src={warning}
                         alt="Warning"
                         className="w-10 h-10 "
                     />
-                    <span className="text-md">
-                        Unable to log attendance
-                    </span>
+                  
 
+                            Unable to log attendance — you are outside the allowed area.
+                        </div>
+                    </div>
+                   
                     <span className="text-xs text-center text-red-600">
                         {locationService ? (
                             <>
-                                You are outside the allowed area.
-                                <br /> <br />
+                              
                                 <span className="font-semibold text-gray-600 text-xs">
                                     Approximately{" "}
                                     <span className="font-bold text-red-600 text-lg">

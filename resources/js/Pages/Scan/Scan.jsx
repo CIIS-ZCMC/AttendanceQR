@@ -233,8 +233,8 @@ export default function Scan({
         });
 
         if (!employeeID && !isRecorded) {
-            alert(
-                "❌ We were unable to retrieve an employee ID associated with the email you used to log in. Please enter your employee ID manually to proceed."
+            toast.warning(
+                "We couldn't find an employee ID linked to your email address."
             );
             setEdited(true);
         }
@@ -282,7 +282,7 @@ export default function Scan({
         post("get-summary", {
             onSuccess: (response) => {
                 if (response.props?.session?.type == "error") {
-                    toast.error(response.props.session.message);
+                   // toast.error(response.props.session.message);
                 } else if (response.props?.session?.type == "success") {
                     setShowSummary(response.props.session.data);
                 }
@@ -294,7 +294,6 @@ export default function Scan({
 
     const handleSubmitAttendance = () => {
 
-        console.log(data)
         post("/store_attendance", {
             fingerprint: fingerprint,
             onSuccess: (response) => {
@@ -356,7 +355,7 @@ export default function Scan({
 
 
 
-            {attendance && invalid_status === null && !showSummary && (
+            {/* {attendance && invalid_status === null && !showSummary && (
                 <div className="my-5">
                     <h2 className="text-xl  text-gray-700">
                         <span className="text-gray-600"> {getGreeting()}!</span>,{" "}
@@ -381,7 +380,7 @@ export default function Scan({
                         </span>
                     </span>
                 </div>
-            )}
+            )} */}
 
             <div className="mt-4 flex justify-center items-center md:absolute md:top-80 md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2">
                 {load ? (
@@ -410,24 +409,31 @@ export default function Scan({
 
                             !showSummary ?
                                 <>
-                                    <div className="text-center mb-4">
-                                    
+                                    <div className="text-center mb-6">
+                                        <div className="text-2xl font-bold uppercase text-blue-700 mb-4">
+                                            {getGreeting()}!
+                                        </div>
+
                                         {activeMapLocation && (
-                                            <>
-                                                <div className="text-sm text-gray-600 mt-2">
-                                                 <span className="font-semibold">{activeMapLocation.location}</span>
+                                            <div className="bg-white border border-blue-200 rounded-xl shadow-sm p-4 mb-4 max-w-xs mx-auto">
+                                                <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                                                    Attendance Location
+                                                </div>
+                                                <div className="text-lg font-semibold text-gray-800">
+                                                    {activeMapLocation.location}
                                                 </div>
                                                 {activeMapLocation.description && (
-                                                    <div className="text-xs text-gray-500 mt-1">
+                                                    <div className="text-sm text-gray-600 mt-1">
                                                         {activeMapLocation.description}
                                                     </div>
                                                 )}
-                                            
-                                            </>
+                                            </div>
                                         )}
-                                        <span className="text-xs text-blue-600 flex items-center justify-center mt-2">
+
+                                        <div className="inline-flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 rounded-lg text-xs font-medium">
+                                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                                             Attendance can be logged — you are inside the allowed area.
-                                        </span>
+                                        </div>
                                     </div>
                                     <span className="text-sm">
                                         Enter employee ID : <br />{" "}
@@ -514,48 +520,19 @@ export default function Scan({
                         {isWithinLocation && !showSummary &&
                             attendance &&
                             invalid_status === null && (
-                                <>
-                                    <span
-                                        className="text-xs"
-                                        data-live="server-time"
-                                    >
-                                        <div
-                                            className="text-center mt-4 absolute left-1/2 transform -translate-x-1/2
-                                        "
-                                        >
-                                            <span className="text-xs block">
-                                                Closes at:
-                                            </span>
-
-                                            <div className="mt-1 text-lg text-red-600 font-semibold">
-                                                {remainingTime}
-                                            </div>
-
-                                            {/* Current live date & time */}
-                                            <div className="mt-1 text-xs text-gray-400">
-                                                Closing Time:{" "}
-                                                <span className="font-medium">
-                                                    {closeAt.toLocaleDateString(
-                                                        [],
-                                                        {
-                                                            year: "numeric",
-                                                            month: "short",
-                                                            day: "numeric",
-                                                        }
-                                                    )}{" "}
-                                                    {closeAt.toLocaleTimeString(
-                                                        [],
-                                                        {
-                                                            hour: "2-digit",
-                                                            minute: "2-digit",
-                                                            second: "2-digit",
-                                                        }
-                                                    )}
-                                                </span>
-                                            </div>
+                                <div className="mt-6 text-center">
+                                    <div className="inline-flex items-center gap-3 bg-red-600 text-white rounded-full px-5 py-3 shadow-lg">
+                                        <div className="text-xs text-red-100 uppercase tracking-wide">
+                                            Closes In
                                         </div>
-                                    </span>
-                                </>
+                                        <div className="text-xl font-bold font-mono">
+                                            {remainingTime}
+                                        </div>
+                                    </div>
+                                    <div className="text-xs text-gray-500 mt-2">
+                                        Closing: {closeAt.toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" })} {closeAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                    </div>
+                                </div>
                             )}
 
                     </div>

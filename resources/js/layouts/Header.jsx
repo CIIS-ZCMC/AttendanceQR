@@ -23,7 +23,7 @@ const Header = ({ page }) => {
     const { sidebarHeader, header } = drawerContants;
 
     return (
-        <header className="flex items-center space-x-2 h-15 p-2 fixed top-0 left-0 bg-gray-800 text-white right-0 shadow-md">
+        <header className="flex items-center space-x-2 h-15 p-2 fixed top-0 left-0 bg-gray-800 text-white right-0 shadow-md z-50">
 
             <Drawer direction="left">
 

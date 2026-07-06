@@ -122,9 +122,6 @@ export default function Myattendances({ attendanceList, employeeID }) {
                     <TableHeader>
                         <TableRow>
                             <TableHead className=" text-center text-xs">
-                                Attendance ID
-                            </TableHead>
-                            <TableHead className=" text-center text-xs">
                                 {tableTitle}
                             </TableHead>
                             <TableHead className="text-center text-xs">
@@ -139,7 +136,7 @@ export default function Myattendances({ attendanceList, employeeID }) {
                         {attendanceList?.length == 0 ? (
                             <TableRow>
                                 <TableCell
-                                    colSpan={3}
+                                    colSpan={2}
                                     className=" h-20 text-xs font-semibold text-red-400 uppercase text-center"
                                 >
                                     {noAttendances}
@@ -149,12 +146,11 @@ export default function Myattendances({ attendanceList, employeeID }) {
                             attendanceList?.map((attendance) => (
                                 <TableRow key={attendance.id}>
                                     <TableCell className="font-medium text-center">
-                                        {attendance.attendances_id}
-                                    </TableCell>
-                                    <TableCell className="font-medium text-center">
-                                        {new Date(attendance.first_entry)
-                                            .toISOString()
-                                            .slice(0, 10)}
+                                        {new Date(attendance.first_entry).toLocaleDateString("en-US", {
+                                            year: "numeric",
+                                            month: "long",
+                                            day: "numeric"
+                                        })}
                                     </TableCell>
 
                                     <TableCell className="text-center font-semibold">
@@ -163,8 +159,8 @@ export default function Myattendances({ attendanceList, employeeID }) {
                                         ).toLocaleTimeString("en-US", {
                                             hour: "2-digit",
                                             minute: "2-digit",
-
                                             hour12: true,
+                                            timeZone: "UTC"
                                         })}
                                     </TableCell>
                                     <TableCell className="text-center">

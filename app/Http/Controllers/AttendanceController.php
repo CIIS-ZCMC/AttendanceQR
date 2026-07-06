@@ -77,8 +77,8 @@ class AttendanceController extends Controller
 
         $Saved = false;
 
-        // $userLat = 6.907257;
-        // $userLng = 122.080909;
+        $userLat =6.906935;
+        $userLng = 122.081535;
 
         /**
          * Add Validation here soon , that active attendance does not need location based.
@@ -189,7 +189,10 @@ class AttendanceController extends Controller
         $employeeID = null;
 
         $contact = Contact::where("email_address", $userInformation['email'])->first();
+
+      
         $UserName = $userInformation['name'];
+        $fullName = null;
 
         $email = $userInformation['email'];
         $profilePhoto = $userInformation['avatar'];
@@ -199,18 +202,14 @@ class AttendanceController extends Controller
             $employeeProfile = $personalInformation->employeeProfile;
 
             $employeeID = $employeeProfile->employee_id;
-            $UserName = $personalInformation->fullName();
+           
         }
-
-
-
 
 
         $userToken = $userToken . ($attendance->id ?? -1);
         $attendanceInformation = Attendance_Information::where('userToken', $userToken)
             ->where('attendances_id', $attendance->id ?? -1)
             ->first();
-
 
         if ($attendanceInformation) {
             $status['isRecorded'] = true;
@@ -230,7 +229,11 @@ class AttendanceController extends Controller
             session()->put('warning_seen', true);
         }
 
+
         $activeMapLocation = \App\Models\MapLocation::where('is_active', true)->first();
+
+        
+      
 
         return Inertia::render('Scan/Scan', [
             'invalid_status' => $status,

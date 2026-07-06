@@ -18,7 +18,29 @@ export default function NoEmployeeID({ googleName, setNoEmployeeID, handleSaveNo
         setData({ ...data, name: googleName, is_no_employee_id: true })
     }, [googleName])
     return (
-        <div>
+        <div className="text-center">
+            <Button type="button" variant={"outline"} className="mb-4" onClick={() => {
+                setNoEmployeeID(false);
+                setData({ ...data, name: null, area: null, is_no_employee_id: false })
+            }}>
+                Back
+            </Button>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 max-w-sm mx-auto">
+                {/* <h2 className="text-lg font-semibold text-yellow-800 mb-3">
+                    This feature is currently unavailable.
+                </h2> */}
+            <p className="text-sm font-medium text-yellow-700">
+                You must register a UMIS account to use the Attendance QR. <br /><br />
+                Please visit the IMISS office located at:<br />
+              <br />
+                <span className="text-yellow-900">Tower 1 Building, Ground Floor</span><br />
+                <span className="text-yellow-600">(Near the main entrance)</span><br /><br />
+                Our staff will assist you with biometric registration and account setup.<br /><br />
+                As soon as registration is done, we'll log your attendance for the day.
+            </p>
+            </div>
+
+            {/* Previous form design - currently disabled
             <form onSubmit={handleSaveNoEmployeeID}>
                 <Button type="button" variant={"outline"} className="mb-4" onClick={() => {
                     setNoEmployeeID(false);
@@ -38,7 +60,7 @@ export default function NoEmployeeID({ googleName, setNoEmployeeID, handleSaveNo
                     Submit
                 </Button>
             </form>
-
+            */}
         </div>
     )
 }

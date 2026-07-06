@@ -7,7 +7,7 @@ import googleLogo from "../../src/googleLogin.png";
 
 export default function Welcome() {
     return (
-        <div className="max-w-md  mx-auto mt-10 p-6 rounded-2xl shadow-md bg-white text-center space-y-4">
+        <div className="max-w-md  mx-auto mt-10 p-6 text-center space-y-4">
             <div className="flex items-center gap-2 justify-center text-xl font-bold">
                 <img src={logo} alt="" className="w-10 h-12" />
                 UMIS - Geofencing Attendance
@@ -57,6 +57,9 @@ export default function Welcome() {
                         Find your browser (e.g. Safari, Chrome) and set it to{" "}
                         <b>While Using the App</b>
                     </li>
+                    <li>
+                        Ensure all location permissions are enabled
+                    </li>
                 </ul>
             </div>
 
@@ -65,14 +68,9 @@ export default function Welcome() {
                 setup is once only, you won't need to do it again.
             </p>
 
-            <p className="text-xs text-orange-400 mt-2">
-                We need your email address to send a receipt of your attendance
-                after logging in. Please make sure to use a valid email address
-                as this will be used to send the receipt of your attendance.
-            </p>
-
+          
             <Button
-                className="mt-4 text-primary shadow-lg h-15 w-full flex items-center justify-center gap-2 border border-gray-200 rounded-md p-2 bg-white hover:bg-gray-100"
+                className="mt-6 text-primary shadow-lg h-15 w-full flex items-center justify-center gap-2 border border-gray-200 rounded-md p-2 bg-white hover:bg-gray-100"
                 onClick={() => {
                     window.location.href = "/auth/google";
                 }}

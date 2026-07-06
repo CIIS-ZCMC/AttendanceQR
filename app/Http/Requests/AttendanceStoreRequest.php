@@ -69,7 +69,15 @@ class AttendanceStoreRequest extends FormRequest
             return [];
         }
 
-        $email = $employee->GetPersonalInfo()->contact->email_address;
+        $employeeEmail = $employee->GetPersonalInfo()->contact->email_address;
+        $userEmail = session()->get('userToken')['email'] ?? null;
+        
+        // Check if the logged-in user's email matches the employee's email
+        if (!$userEmail || $employeeEmail !== $userEmail) {
+            return [];
+        }
+
+        $email = $employeeEmail;
         $areaDetails = $employee->assignedArea?->findDetails()['details'] ?? null;
         $sector = $employee->assignedArea?->findDetails()['sector'] ?? null;
         return [
