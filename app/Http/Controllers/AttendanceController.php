@@ -413,6 +413,10 @@ class AttendanceController extends Controller
         $userInformation = session()->get('userToken');
         $employeeID = $request->employee_id ?? null;
 
+        if (!$userInformation) {
+            return redirect()->route('login');
+        }
+
         $contact = Contact::where("email_address", $userInformation['email'])->first();
         $UserName = $userInformation['name'];
         $Employee = null;

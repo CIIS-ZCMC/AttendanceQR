@@ -70,13 +70,13 @@ class AttendanceStoreRequest extends FormRequest
         }
 
         $email = $employee->GetPersonalInfo()->contact->email_address;
-        $areaDetails = $employee->assignedArea?->findDetails()['details'];
+        $areaDetails = $employee->assignedArea?->findDetails()['details'] ?? null;
         $sector = $employee->assignedArea?->findDetails()['sector'] ?? null;
         return [
             'biometric_id' => $employee->biometric_id,
             'name' => $employee->name,
-            'area' => $areaDetails->name,
-            'areacode' => $areaDetails->code,
+            'area' => $areaDetails?->name,
+            'areacode' => $areaDetails?->code,
             'sector' => $sector,
             'first_entry' => date("Y-m-d H:i:s"),
             'last_entry' => null,
