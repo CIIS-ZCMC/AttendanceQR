@@ -276,17 +276,24 @@ export default function Scan({
     const handleSubmit = (e) => {
         e.preventDefault();
         setEdited(true);
+        setShowSummary(null);
 
         setData({ ...data, anomaly: anomaly });
 
         post("get-summary", {
             onSuccess: (response) => {
                 if (response.props?.session?.type == "error") {
-                   // toast.error(response.props.session.message);
+                    toast.error(response.props.session.message);
                 } else if (response.props?.session?.type == "success") {
                     setShowSummary(response.props.session.data);
                 }
-            }
+            },
+            onError: (errors) => {
+                toast.error("Unable to verify employee ID. Please try again.");
+            },
+            onFinish: () => {
+                setEdited(true);
+            },
         });
 
     };

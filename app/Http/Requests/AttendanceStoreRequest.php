@@ -31,11 +31,9 @@ class AttendanceStoreRequest extends FormRequest
     {
         if (isset($this->is_finder)) {
             $userInformation = session()->get('userToken');
-            $contact = Contact::where("email_address", $userInformation['email'])->first();
-            if ($contact) {
-                $personalInformation = $contact->personalInformation;
-                $employeeProfile = $personalInformation->employeeProfile;
-                $employeeID = $employeeProfile->employee_id;
+            $contact = Contact::where("email_address", $userInformation['email'] ?? null)->first();
+            if ($contact && $contact->personalInformation && $contact->personalInformation->employeeProfile) {
+                $employeeID = $contact->personalInformation->employeeProfile->employee_id;
                 session()->put("isRecorded", true);
                 return $employeeID;
             }
@@ -62,22 +60,19 @@ class AttendanceStoreRequest extends FormRequest
         }
 
         $attendanceID = $this->attendanceId ?? session()->get("activeAttendanceID");
-        $userToken = session()->get('userToken')['id'] . $attendanceID;
+        $userToken = (session()->get('userToken')['id'] ?? '') . $attendanceID;
         //session()->put('employeeID', $this->employeeId);
         $employee = EmployeeProfile::where('employee_id', $this->FindEmployeeID())->first();
         if (!$employee) {
             return [];
         }
 
-        $employeeEmail = $employee->GetPersonalInfo()->contact->email_address;
-        $userEmail = session()->get('userToken')['email'] ?? null;
-        
-        // Check if the logged-in user's email matches the employee's email
-        if (!$userEmail || $employeeEmail !== $userEmail) {
+        $personalInfo = $employee->GetPersonalInfo();
+        if (!$personalInfo || !$personalInfo->contact) {
             return [];
         }
 
-        $email = $employeeEmail;
+        $email = $personalInfo->contact->email_address;
         $areaDetails = $employee->assignedArea?->findDetails()['details'] ?? null;
         $sector = $employee->assignedArea?->findDetails()['sector'] ?? null;
         return [

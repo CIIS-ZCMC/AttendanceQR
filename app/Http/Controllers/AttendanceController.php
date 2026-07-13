@@ -362,30 +362,36 @@ class AttendanceController extends Controller
 
     public function getSummary(AttendanceStoreRequest $request)
     {
+        try {
+            if (!isset($request->employeeId) || empty($request->employeeId)) {
+                return redirect()->back()->with("session", [
+                    "message" => "Employee ID is required",
+                    "type" => "error"
+                ]);
+            }
 
-        if (isset($request->employeeId) && empty($request->employeeId)) {
+            $attendanceInformation = $request->userAttendanceInformation();
+
+            if (empty($attendanceInformation) || empty($attendanceInformation['name'])) {
+                return redirect()->back()->with("session", [
+                    "message" => "Employee not found. Please check your employee ID and try again.",
+                    "type" => "error"
+                ]);
+            }
+
+            // Process the attendance information here
+            // For now, just return a success response
             return redirect()->back()->with("session", [
-                "message" => "Employee ID is required",
+                "message" => "Attendance summary retrieved successfully",
+                "type" => "success",
+                "data" => $attendanceInformation
+            ]);
+        } catch (\Exception $e) {
+            return redirect()->back()->with("session", [
+                "message" => "Unable to verify employee ID. Please try again.",
                 "type" => "error"
             ]);
         }
-
-        $attendanceInformation = $request->userAttendanceInformation();
-
-        if (empty($attendanceInformation)  || empty($attendanceInformation['name'])) {
-            return redirect()->back()->with("session", [
-                "message" => "Employee not found",
-                "type" => "error"
-            ]);
-        }
-
-        // Process the attendance information here
-        // For now, just return a success response
-        return redirect()->back()->with("session", [
-            "message" => "Attendance summary retrieved successfully",
-            "type" => "success",
-            "data" => $attendanceInformation
-        ]);
     }
 
 
