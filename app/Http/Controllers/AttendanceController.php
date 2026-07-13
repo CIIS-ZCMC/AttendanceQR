@@ -77,8 +77,8 @@ class AttendanceController extends Controller
 
         $Saved = false;
 
-        $userLat =6.906935;
-        $userLng = 122.081535;
+        // $userLat =6.906935;
+        // $userLng = 122.081535;
 
         /**
          * Add Validation here soon , that active attendance does not need location based.
