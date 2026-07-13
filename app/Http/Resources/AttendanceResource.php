@@ -22,6 +22,22 @@ class AttendanceResource extends JsonResource
             "is_open" => $this->is_open,
             "closed_at" => $this->closed_at ? date("h:ia | M j, Y", strtotime($this->closed_at)) : null,
             "closing_at" => $this->closed_at,
+            "open_date" => $this->open_date,
+            "closing_date" => $this->closing_date,
+            "map_locations" => $this->whenLoaded('mapLocations', function () {
+                return $this->mapLocations->map(function ($loc) {
+                    return [
+                        "id" => $loc->id,
+                        "location" => $loc->location,
+                        "description" => $loc->description,
+                        "lat" => $loc->lat,
+                        "lng" => $loc->lng,
+                        "token" => $loc->token,
+                        "open_time" => $loc->open_time,
+                        "closing_time" => $loc->closing_time,
+                    ];
+                });
+            }),
             "created_at" => date("F j, Y", strtotime($this->created_at)),
             "updated_at" => date("F j, Y", strtotime($this->updated_at)),
         ];

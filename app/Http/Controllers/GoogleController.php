@@ -4,14 +4,18 @@ namespace App\Http\Controllers;
 
 use Laravel\Socialite\Facades\Socialite;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Stevebauman\Location\Facades\Location;
 use Illuminate\Support\Facades\Log;
 
 class GoogleController extends Controller
 {
-    public function redirectToGoogle()
+    public function redirectToGoogle(Request $request)
     {
+        if ($request->has('token')) {
+            session()->put('attendanceToken', $request->query('token'));
+        }
         return Socialite::driver('google')->redirect();
     }
 
@@ -28,6 +32,7 @@ class GoogleController extends Controller
         } catch (\Exception $e) {
             Log::error('Google Login Error: ' . $e->getMessage());
         }
-        return redirect('/');
+        $token = session()->pull('attendanceToken');
+        return redirect($token ? "/?token={$token}" : '/');
     }
 }

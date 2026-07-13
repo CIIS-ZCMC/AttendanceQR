@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/Components/ui/input";
 import { Button } from "@/Components/ui/button";
-import { Edit, Plus } from "lucide-react";
+import { Edit, Plus, Calendar, MapPin } from "lucide-react";
 import {
     Pagination,
     PaginationContent,
@@ -33,6 +33,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { BadgeCheckIcon } from "lucide-react";
 import { Label } from "@/components/ui/label";
@@ -53,6 +54,7 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
     const [selectedMapLocation, setSelectedMapLocation] = React.useState(null);
     const [mapLocations, setMapLocations] = React.useState(initialMapLocations || []);
     const [mapLocationSearch, setMapLocationSearch] = React.useState("");
+    const [activeTab, setActiveTab] = React.useState("attendance");
     const page = usePage();
     const [search, setSearch] = React.useState("");
 
@@ -70,9 +72,10 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
         const useCreateForm = useForm({
             id: "",
             name: "",
-            closing_at: "",
             is_active: false,
-            is_open: false,
+            map_location_ids: [],
+            open_date: "",
+            closing_date: "",
         });
 
         useEffect(() => {
@@ -80,9 +83,10 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                 useCreateForm.setData({
                     id: selectedAttendance.id,
                     name: selectedAttendance.title,
-                    closing_at: selectedAttendance.closing_at,
                     is_active: selectedAttendance.is_active,
-                    is_open: selectedAttendance.is_open,
+                    map_location_ids: (selectedAttendance.map_locations || []).map((loc) => loc.id),
+                    open_date: selectedAttendance.open_date || "",
+                    closing_date: selectedAttendance.closing_date || "",
                 });
             }
         }, [selectedAttendance]);
@@ -132,25 +136,69 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                         )}
                     </div>
                     <div className="grid gap-3">
-                        <Label htmlFor="username-1">Closing At</Label>
+                        <Label htmlFor="map_location_ids">Map Locations</Label>
+                        <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2 space-y-2">
+                            {mapLocations.map((loc) => (
+                                <div key={loc.id} className="flex items-center gap-2">
+                                    <Checkbox
+                                        id={`loc-${loc.id}`}
+                                        checked={useCreateForm.data.map_location_ids?.includes(loc.id) || false}
+                                        onCheckedChange={(checked) => {
+                                            const current = useCreateForm.data.map_location_ids || [];
+                                            if (checked) {
+                                                useCreateForm.setData("map_location_ids", [...current, loc.id]);
+                                            } else {
+                                                useCreateForm.setData("map_location_ids", current.filter((id) => id !== loc.id));
+                                            }
+                                        }}
+                                    />
+                                    <Label htmlFor={`loc-${loc.id}`} className="text-sm font-normal cursor-pointer">
+                                        {loc.location}{loc.description ? ` - ${loc.description}` : ""}
+                                    </Label>
+                                </div>
+                            ))}
+                        </div>
+                        {useCreateForm.errors.map_location_ids && (
+                            <p className="text-red-500 text-xs">
+                                {useCreateForm.errors.map_location_ids}
+                            </p>
+                        )}
+                    </div>
+                    <div className="grid gap-3">
+                        <Label htmlFor="open_date">Open Date</Label>
                         <Input
                             required
-                            id="closing-at-1"
-                            name="closing_at"
-                            value={useCreateForm.data.closing_at}
+                            id="open_date"
+                            name="open_date"
+                            value={useCreateForm.data.open_date}
                             onChange={(e) =>
-                                useCreateForm.setData(
-                                    "closing_at",
-                                    e.target.value
-                                )
+                                useCreateForm.setData("open_date", e.target.value)
                             }
-                            type="datetime-local"
+                            type="date"
                             className="w-full block rounded-md p-2"
-                        // min={minValue}
                         />
-                        {useCreateForm.errors.closing_at && (
+                        {useCreateForm.errors.open_date && (
                             <p className="text-red-500 text-xs">
-                                {useCreateForm.errors.closing_at}
+                                {useCreateForm.errors.open_date}
+                            </p>
+                        )}
+                    </div>
+                    <div className="grid gap-3">
+                        <Label htmlFor="closing_date">Closing Date</Label>
+                        <Input
+                            required
+                            id="closing_date"
+                            name="closing_date"
+                            value={useCreateForm.data.closing_date}
+                            onChange={(e) =>
+                                useCreateForm.setData("closing_date", e.target.value)
+                            }
+                            type="date"
+                            className="w-full block rounded-md p-2"
+                        />
+                        {useCreateForm.errors.closing_date && (
+                            <p className="text-red-500 text-xs">
+                                {useCreateForm.errors.closing_date}
                             </p>
                         )}
                     </div>
@@ -166,18 +214,6 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                                 }
                             />
                             <Label htmlFor="is_active">Set active</Label>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                            <Checkbox
-                                id="is_open"
-                                name="is_open"
-                                checked={useCreateForm.data.is_open}
-                                onCheckedChange={(checked) =>
-                                    useCreateForm.setData("is_open", checked)
-                                }
-                            />
-                            <Label htmlFor="is_open">Set open</Label>
                         </div>
                     </div>
                 </div>
@@ -305,7 +341,8 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
             description: "",
             lat: "",
             lng: "",
-            is_active: false,
+            open_time: "",
+            closing_time: "",
         });
 
         useEffect(() => {
@@ -316,7 +353,8 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                     description: selectedMapLocation.description || "",
                     lat: selectedMapLocation.lat,
                     lng: selectedMapLocation.lng,
-                    is_active: selectedMapLocation.is_active,
+                    open_time: selectedMapLocation.open_time ? selectedMapLocation.open_time.slice(0, 5) : "",
+                    closing_time: selectedMapLocation.closing_time ? selectedMapLocation.closing_time.slice(0, 5) : "",
                 });
             }
         }, [selectedMapLocation]);
@@ -331,7 +369,8 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                     description: useMapLocationForm.data.description,
                     lat: parseFloat(useMapLocationForm.data.lat),
                     lng: parseFloat(useMapLocationForm.data.lng),
-                    is_active: useMapLocationForm.data.is_active,
+                    open_time: useMapLocationForm.data.open_time || null,
+                    closing_time: useMapLocationForm.data.closing_time || null,
                 };
 
                 if (useMapLocationForm.data.id) {
@@ -416,17 +455,31 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                             <p className="text-red-500 text-xs">{useMapLocationForm.errors.lng}</p>
                         )}
                     </div>
-                    <div className="flex flex-col gap-2">
-                        <Label htmlFor="is_active">Status</Label>
-                        <div className="flex items-center gap-3">
-                            <Checkbox
-                                id="is_active"
-                                name="is_active"
-                                checked={useMapLocationForm.data.is_active}
-                                onCheckedChange={(checked) => useMapLocationForm.setData("is_active", checked)}
-                            />
-                            <Label htmlFor="is_active">Set as active location for attendance</Label>
-                        </div>
+                    <div className="grid gap-3">
+                        <Label htmlFor="open_time">Open Time *</Label>
+                        <Input
+                            id="open_time"
+                            name="open_time"
+                            value={useMapLocationForm.data.open_time}
+                            onChange={(e) => useMapLocationForm.setData("open_time", e.target.value)}
+                            type="time"
+                            className="w-full block rounded-md p-2"
+                            required
+                        />
+                        <p className="text-xs text-gray-500">Time when the location becomes active daily.</p>
+                    </div>
+                    <div className="grid gap-3">
+                        <Label htmlFor="closing_time">Closing Time *</Label>
+                        <Input
+                            id="closing_time"
+                            name="closing_time"
+                            value={useMapLocationForm.data.closing_time}
+                            onChange={(e) => useMapLocationForm.setData("closing_time", e.target.value)}
+                            type="time"
+                            className="w-full block rounded-md p-2"
+                            required
+                        />
+                        <p className="text-xs text-gray-500">Time when the location becomes inactive daily.</p>
                     </div>
                 </div>
                 <DialogFooter>
@@ -455,42 +508,89 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
     };
 
     const displayStatus = (attendance) => {
-        const closingAt = new Date(attendance.closing_at);
-        const now = new Date();
-        if (attendance.is_active) {
-            //check if its open
-            if (attendance.is_open) {
-                if (now < closingAt) {
-                    return (
-                        <Badge
-                            variant="secondary"
-                            className="bg-green-500 text-white dark:bg-green-600"
-                        >
-                            <BadgeCheckIcon />
-                            Active
-                        </Badge>
-                    );
-                }
-            } else {
-                return <Badge className="bg-gray-500 text-white">Locked</Badge>;
-            }
+        if (!attendance.is_active) {
+            return <Badge variant="secondary">Inactive</Badge>;
         }
-        return <Badge variant="secondary">Closed</Badge>;
+
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+        const currentTime = now.toTimeString().slice(0, 8);
+        const openDate = attendance.open_date;
+        const closingDate = attendance.closing_date;
+        const mapLocations = attendance.map_locations || [];
+
+        if (!openDate || !closingDate || mapLocations.length === 0) {
+            return <Badge variant="secondary" className="bg-gray-400 text-white">No Schedule</Badge>;
+        }
+
+        if (today < openDate) {
+            return <Badge variant="secondary" className="bg-blue-500 text-white">Scheduled</Badge>;
+        }
+        if (today > closingDate) {
+            return <Badge variant="secondary" className="bg-gray-500 text-white">Closed</Badge>;
+        }
+
+        const hasActiveLocation = mapLocations.some((loc) => {
+            return loc.open_time && loc.closing_time &&
+                currentTime >= loc.open_time && currentTime < loc.closing_time;
+        });
+
+        if (!hasActiveLocation) {
+            const hasNotOpenYet = mapLocations.some((loc) =>
+                loc.open_time && currentTime < loc.open_time
+            );
+            if (hasNotOpenYet) {
+                return <Badge variant="secondary" className="bg-blue-500 text-white">Not Open Yet</Badge>;
+            }
+            return <Badge variant="secondary" className="bg-gray-500 text-white">Closed</Badge>;
+        }
+
+        return (
+            <Badge
+                variant="secondary"
+                className="bg-green-500 text-white dark:bg-green-600"
+            >
+                <BadgeCheckIcon />
+                Active
+            </Badge>
+        );
     };
 
     const displayMapLocationStatus = (mapLocation) => {
-        if (mapLocation.is_active) {
+        const now = new Date();
+        const currentTime = now.toTimeString().slice(0, 8);
+        const openTime = mapLocation.open_time;
+        const closingTime = mapLocation.closing_time;
+
+        if (!openTime || !closingTime) {
+            return <Badge variant="secondary" className="bg-gray-400 text-white">No Schedule</Badge>;
+        }
+
+        if (currentTime < openTime) {
             return (
-                <Badge
-                    variant="secondary"
-                    className="bg-green-500 text-white dark:bg-green-600"
-                >
-                    <BadgeCheckIcon />
-                    Active
+                <Badge variant="secondary" className="bg-blue-500 text-white">
+                    Not Open Yet
                 </Badge>
             );
         }
-        return <Badge variant="secondary">Inactive</Badge>;
+
+        if (currentTime >= closingTime) {
+            return (
+                <Badge variant="secondary" className="bg-gray-500 text-white">
+                    Closed
+                </Badge>
+            );
+        }
+
+        return (
+            <Badge
+                variant="secondary"
+                className="bg-green-500 text-white dark:bg-green-600"
+            >
+                <BadgeCheckIcon />
+                Active
+            </Badge>
+        );
     };
 
     const handleDeleteMapLocation = async (id) => {
@@ -508,35 +608,30 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
         }
     };
 
-    const handleSetActiveMapLocation = async (id) => {
-        try {
-            await axios.post(`/api/map-locations/${id}/set-active`);
-            toast.success("Map location set as active!");
-            fetchMapLocations();
-        } catch (error) {
-            console.error('Error setting active map location:', error);
-            toast.error("Failed to set active map location");
-        }
-    };
     const isEnabled = (attendance) => {
-        const closingAt = new Date(attendance.closing_at);
+        if (!attendance.is_active) {
+            return false;
+        }
+
         const now = new Date();
-        if (attendance.is_active) {
-            //check if its open
-            if (attendance.is_open) {
-                if (now < closingAt) {
-                    return true;
-                }
-            } else {
-                return true;
-            }
+        const today = now.toISOString().split('T')[0];
+        const currentTime = now.toTimeString().slice(0, 8);
+        const openDate = attendance.open_date;
+        const closingDate = attendance.closing_date;
+        const mapLocations = attendance.map_locations || [];
+
+        if (!openDate || !closingDate || mapLocations.length === 0) {
+            return false;
         }
 
-        if (attendance.closing_at && attendance.closing_at >= now) {
-            return true;
+        if (today < openDate || today > closingDate) {
+            return false;
         }
 
-        return false;
+        return mapLocations.some((loc) =>
+            loc.open_time && loc.closing_time &&
+            currentTime >= loc.open_time && currentTime < loc.closing_time
+        );
     };
 
     return (
@@ -544,334 +639,378 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
 
             <div className="flex flex-col items-start my-5">
                 <div className="text-lg font-semibold">Attendance Setting</div>
-                <div className="mt-2 text-xs">Manage or create new attendance</div>
+                <div className="mt-2 text-xs">Manage or create new attendance and map locations</div>
             </div>
 
-            <div className="mt-5 flex  sm:flex-row flex-col gap-2  md:w-full">
-                <Input
-                    type="text"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search attendance"
-                    size="sm"
-                />
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+                    <TabsTrigger value="attendance">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        Attendance
+                    </TabsTrigger>
+                    <TabsTrigger value="map-location">
+                        <MapPin className="w-4 h-4 mr-2" />
+                        Map Location
+                    </TabsTrigger>
+                </TabsList>
 
-                <Button
-                    onClick={() => {
-                        router.get(
-                            "/settings",
-                            { search },
-                            {
-                                preserveState: true,
-                                preserveScroll: true,
-                            }
-                        );
-                    }}
-                >
-                    Search
-                </Button>
-                <Button
-                    variant="outline"
-                    onClick={() => {
-                        setSearch("");
-                        router.visit("/settings", {
-                            preserveState: true,
-                            preserveScroll: true,
-                        });
-                    }}
-                >
-                    Reset
-                </Button>
+                <TabsContent value="attendance" className="space-y-4">
+                    <div className="mt-5 flex  sm:flex-row flex-col gap-2  md:w-full">
+                        <Input
+                            type="text"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Search attendance"
+                            size="sm"
+                        />
 
-                <Dialog open={mapModalOpen} onOpenChange={setMapModalOpen}>
-                    <DialogTrigger asChild>
-                        {/* <Button
+                        <Button
+                            onClick={() => {
+                                router.get(
+                                    "/settings",
+                                    { search },
+                                    {
+                                        preserveState: true,
+                                        preserveScroll: true,
+                                    }
+                                );
+                            }}
+                        >
+                            Search
+                        </Button>
+                        <Button
                             variant="outline"
-                            onClick={() => setMapModalOpen(true)}
+                            onClick={() => {
+                                setSearch("");
+                                router.visit("/settings", {
+                                    preserveState: true,
+                                    preserveScroll: true,
+                                });
+                            }}
                         >
-                            Set Map Coordinates
-                        </Button> */}
-                    </DialogTrigger>
-                    <DialogContent
-                        className="sm:max-w-[425px]"
-                        onInteractOutside={(e) => {
-                            e.preventDefault();
-                        }}
-                    >
-                        <DialogHeader>
-                            <DialogTitle>Set Map Coordinates</DialogTitle>
-                            <DialogDescription>
-                                Enter the latitude and longitude coordinates for the map location.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <MapCoordinatesModal map_coordinates={map_coordinates} />
-                    </DialogContent>
-                </Dialog>
-
-                <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogTrigger asChild>
-                        <Button
-                            variant="primary"
-                            className={
-                                "bg-blue-900 hover:bg-blue-800 text-white"
-                            }
-                            onClick={() => setSelectedAttendance(null)}
-                        >
-                            Create Attendance <Plus className="ml-2 size-4" />
+                            Reset
                         </Button>
-                    </DialogTrigger>
-                    <DialogContent
-                        className="sm:max-w-[425px]"
-                        onInteractOutside={(e) => {
-                            e.preventDefault(); // 🚫 prevent closing when clicking outside
-                        }}
-                    >
-                        <DialogHeader>
-                            <DialogTitle>
-                                {selectedAttendance ? "Edit " : "Create "}
-                                Attendance
-                            </DialogTitle>
-                            <DialogDescription>
-                                {selectedAttendance
-                                    ? "Edit attendance. Click save when you're done."
-                                    : "Create a new attendance. Click save when you're done."}
-                            </DialogDescription>
-                        </DialogHeader>
-                        <CreateAttendance />
-                    </DialogContent>
-                </Dialog>
-            </div>
-            <div className="mt-5  overflow-y-auto max-[600px]:w-[400px] max-[520px]:w-[350px] max-[470px]:w-[300px]  max-[412px]:w-[280px] max-[390px]:w-[auto]">
-                <Table>
-                    <TableCaption>List of Attendances</TableCaption>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[100px]">
-                                Attendance title
-                            </TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Closing At</TableHead>
 
-                            <TableHead className="text-right">
-                                Actions
-                            </TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {attendanceList?.data?.map((attendance) => (
-                            <TableRow key={attendance.id}>
-                                <TableCell className="font-medium">
-                                    {attendance.title}
-                                </TableCell>
-                                <TableCell>
-                                    {displayStatus(attendance)}
-                                </TableCell>
-                                <TableCell>
-                                    {attendance.closed_at ?? (
-                                        <>
-                                            <span className="text-xs text-gray-400">
-                                                Not Available
-                                            </span>
-                                        </>
-                                    )}{" "}
-                                </TableCell>
+                        <Dialog open={mapModalOpen} onOpenChange={setMapModalOpen}>
+                            <DialogTrigger asChild>
+                                {/* <Button
+                                    variant="outline"
+                                    onClick={() => setMapModalOpen(true)}
+                                >
+                                    Set Map Coordinates
+                                </Button> */}
+                            </DialogTrigger>
+                            <DialogContent
+                                className="sm:max-w-[425px]"
+                                onInteractOutside={(e) => {
+                                    e.preventDefault();
+                                }}
+                            >
+                                <DialogHeader>
+                                    <DialogTitle>Set Map Coordinates</DialogTitle>
+                                    <DialogDescription>
+                                        Enter the latitude and longitude coordinates for the map location.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <MapCoordinatesModal map_coordinates={map_coordinates} />
+                            </DialogContent>
+                        </Dialog>
 
-                                <TableCell className="text-right">
-                                    <div className="flex gap-2">
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            //disabled={!isEnabled(attendance)}
-                                            className={`${!isEnabled(attendance)
-                                                ? "hidden"
-                                                : ""
-                                                }`}
-                                            onClick={() => {
-                                                console.log(attendance);
-                                                setSelectedAttendance(
-                                                    attendance
-                                                );
+                        <Dialog open={open} onOpenChange={setOpen}>
+                            <DialogTrigger asChild>
+                                <Button
+                                    variant="primary"
+                                    className={
+                                        "bg-blue-900 hover:bg-blue-800 text-white"
+                                    }
+                                    onClick={() => setSelectedAttendance(null)}
+                                >
+                                    Create Attendance <Plus className="ml-2 size-4" />
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent
+                                className="sm:max-w-[425px]"
+                                onInteractOutside={(e) => {
+                                    e.preventDefault(); // 🚫 prevent closing when clicking outside
+                                }}
+                            >
+                                <DialogHeader>
+                                    <DialogTitle>
+                                        {selectedAttendance ? "Edit " : "Create "}
+                                        Attendance
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        {selectedAttendance
+                                            ? "Edit attendance. Click save when you're done."
+                                            : "Create a new attendance. Click save when you're done."}
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <CreateAttendance />
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+                    <div className="mt-5  overflow-y-auto max-[600px]:w-[400px] max-[520px]:w-[350px] max-[470px]:w-[300px]  max-[412px]:w-[280px] max-[390px]:w-[auto]">
+                        <Table>
+                            <TableCaption>List of Attendances</TableCaption>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[100px]">
+                                        Attendance title
+                                    </TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Locations</TableHead>
+                                    <TableHead>Date Range</TableHead>
+                                    <TableHead className="text-right">
+                                        Actions
+                                    </TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {attendanceList?.data?.map((attendance) => (
+                                    <TableRow key={attendance.id}>
+                                        <TableCell className="font-medium">
+                                            {attendance.title}
+                                        </TableCell>
+                                        <TableCell>
+                                            {displayStatus(attendance)}
+                                        </TableCell>
+                                        <TableCell>
+                                            {(attendance.map_locations || []).length > 0 ? (
+                                                <span className="text-xs text-gray-600">
+                                                    {attendance.map_locations.map((loc) => loc.location).join(", ")}
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-gray-400">
+                                                    No locations
+                                                </span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            {attendance.open_date && attendance.closing_date ? (
+                                                <span className="text-xs text-gray-600">
+                                                    {attendance.open_date} → {attendance.closing_date}
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-gray-400">
+                                                    Not set
+                                                </span>
+                                            )}
+                                        </TableCell>
 
-                                                setOpen(true);
-                                            }}
-                                        >
-                                            <Edit
-                                                size={12}
-                                                className="text-blue-400"
-                                            />
-                                        </Button>
-                                    </div>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-                <Pagination className="mt-5">
-                    <PaginationContent>
-                        {attendanceList?.meta?.links?.map((link, key) => {
-                            if (key == 0) {
-                                return (
-                                    <PaginationItem
-                                        key={key}
-                                        className="cursor-pointer"
-                                    >
-                                        <PaginationPrevious
-                                            href={attendanceList?.links?.prev}
-                                        />
-                                    </PaginationItem>
-                                );
-                            }
-
-                            if (
-                                key ==
-                                attendanceList?.meta?.links?.length - 1
-                            ) {
-                                return (
-                                    <PaginationItem className="cursor-pointer">
-                                        <PaginationNext
-                                            href={attendanceList?.links?.next}
-                                        />
-                                    </PaginationItem>
-                                );
-                            }
-
-                            return (
-                                <PaginationItem key={link.label}>
-                                    <PaginationLink
-                                        href={link.url}
-                                        isActive={link.active}
-                                    >
-                                        {link.label}
-                                    </PaginationLink>
-                                </PaginationItem>
-                            );
-                        })}
-
-                        {/* <PaginationItem>
-                            <PaginationEllipsis />
-                        </PaginationItem> */}
-                    </PaginationContent>
-                </Pagination>
-            </div>
-
-            <div className="flex flex-col items-start my-5 mt-10">
-                <div className="text-lg font-semibold">Map Location Settings</div>
-                <div className="mt-2 text-xs">Manage map locations for attendance</div>
-            </div>
-
-            <div className="mt-5 flex sm:flex-row flex-col gap-2 md:w-full">
-                <Input
-                    type="text"
-                    value={mapLocationSearch}
-                    onChange={(e) => setMapLocationSearch(e.target.value)}
-                    placeholder="Search map locations"
-                    size="sm"
-                />
-
-                <Dialog open={mapLocationModalOpen} onOpenChange={setMapLocationModalOpen}>
-                    <DialogTrigger asChild>
-                        <Button
-                            variant="primary"
-                            className="bg-blue-900 hover:bg-blue-800 text-white"
-                            onClick={() => setSelectedMapLocation(null)}
-                        >
-                            Create Map Location <Plus className="ml-2 size-4" />
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent
-                        className="sm:max-w-[425px]"
-                        onInteractOutside={(e) => {
-                            e.preventDefault();
-                        }}
-                    >
-                        <DialogHeader>
-                            <DialogTitle>
-                                {selectedMapLocation ? "Edit " : "Create "}
-                                Map Location
-                            </DialogTitle>
-                            <DialogDescription>
-                                {selectedMapLocation
-                                    ? "Edit map location. Click save when you're done."
-                                    : "Create a new map location. Click save when you're done."}
-                            </DialogDescription>
-                        </DialogHeader>
-                        <MapLocationForm />
-                    </DialogContent>
-                </Dialog>
-            </div>
-
-            <div className="mt-5 overflow-y-auto max-[600px]:w-[400px] max-[520px]:w-[350px] max-[470px]:w-[300px] max-[412px]:w-[280px] max-[390px]:w-[auto]">
-                <Table>
-                    <TableCaption>List of Map Locations</TableCaption>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[150px]">Location Name</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead>Coordinates</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {mapLocations
-                            .filter((loc) =>
-                                loc.location.toLowerCase().includes(mapLocationSearch.toLowerCase()) ||
-                                (loc.description && loc.description.toLowerCase().includes(mapLocationSearch.toLowerCase()))
-                            )
-                            .map((mapLocation) => (
-                                <TableRow key={mapLocation.id}>
-                                    <TableCell className="font-medium">
-                                        {mapLocation.location}
-                                    </TableCell>
-                                    <TableCell>
-                                        {mapLocation.description || (
-                                            <span className="text-xs text-gray-400">No description</span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="text-xs">
-                                            <div>Lat: {mapLocation.lat}</div>
-                                            <div>Lng: {mapLocation.lng}</div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        {displayMapLocationStatus(mapLocation)}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex gap-2 justify-end">
-                                            {!mapLocation.is_active && (
+                                        <TableCell className="text-right">
+                                            <div className="flex gap-2">
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
-                                                    onClick={() => handleSetActiveMapLocation(mapLocation.id)}
+                                                    onClick={() => {
+                                                        setSelectedAttendance(
+                                                            attendance
+                                                        );
+
+                                                        setOpen(true);
+                                                    }}
                                                 >
-                                                    Set Active
+                                                    <Edit
+                                                        size={12}
+                                                        className="text-blue-400"
+                                                    />
                                                 </Button>
-                                            )}
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => {
-                                                    setSelectedMapLocation(mapLocation);
-                                                    setMapLocationModalOpen(true);
-                                                }}
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                        <Pagination className="mt-5">
+                            <PaginationContent>
+                                {attendanceList?.meta?.links?.map((link, key) => {
+                                    if (key == 0) {
+                                        return (
+                                            <PaginationItem
+                                                key={key}
+                                                className="cursor-pointer"
                                             >
-                                                <Edit size={12} className="text-blue-400" />
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => handleDeleteMapLocation(mapLocation.id)}
+                                                <PaginationPrevious
+                                                    href={attendanceList?.links?.prev}
+                                                />
+                                            </PaginationItem>
+                                        );
+                                    }
+
+                                    if (
+                                        key ==
+                                        attendanceList?.meta?.links?.length - 1
+                                    ) {
+                                        return (
+                                            <PaginationItem className="cursor-pointer">
+                                                <PaginationNext
+                                                    href={attendanceList?.links?.next}
+                                                />
+                                            </PaginationItem>
+                                        );
+                                    }
+
+                                    return (
+                                        <PaginationItem key={link.label}>
+                                            <PaginationLink
+                                                href={link.url}
+                                                isActive={link.active}
                                             >
-                                                <Trash size={12} className="text-red-400" />
-                                            </Button>
-                                        </div>
-                                    </TableCell>
+                                                {link.label}
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                    );
+                                })}
+
+                                {/* <PaginationItem>
+                                    <PaginationEllipsis />
+                                </PaginationItem> */}
+                            </PaginationContent>
+                        </Pagination>
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="map-location" className="space-y-4">
+                    <div className="mt-5 flex sm:flex-row flex-col gap-2 md:w-full">
+                        <Input
+                            type="text"
+                            value={mapLocationSearch}
+                            onChange={(e) => setMapLocationSearch(e.target.value)}
+                            placeholder="Search map locations"
+                            size="sm"
+                        />
+
+                        <Dialog open={mapLocationModalOpen} onOpenChange={setMapLocationModalOpen}>
+                            <DialogTrigger asChild>
+                                <Button
+                                    variant="primary"
+                                    className="bg-blue-900 hover:bg-blue-800 text-white"
+                                    onClick={() => setSelectedMapLocation(null)}
+                                >
+                                    Create Map Location <Plus className="ml-2 size-4" />
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent
+                                className="sm:max-w-[425px]"
+                                onInteractOutside={(e) => {
+                                    e.preventDefault();
+                                }}
+                            >
+                                <DialogHeader>
+                                    <DialogTitle>
+                                        {selectedMapLocation ? "Edit " : "Create "}
+                                        Map Location
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        {selectedMapLocation
+                                            ? "Edit map location. Click save when you're done."
+                                            : "Create a new map location. Click save when you're done."}
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <MapLocationForm />
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+
+                    <div className="mt-5 overflow-y-auto max-[600px]:w-[400px] max-[520px]:w-[350px] max-[470px]:w-[300px] max-[412px]:w-[280px] max-[390px]:w-[auto]">
+                        <Table>
+                            <TableCaption>List of Map Locations</TableCaption>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[150px]">Location Name</TableHead>
+                                    <TableHead>Description</TableHead>
+                                    <TableHead>Coordinates</TableHead>
+                                    <TableHead>Token</TableHead>
+                                    <TableHead>Schedule</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
-                            ))}
-                    </TableBody>
-                </Table>
-            </div>
+                            </TableHeader>
+                            <TableBody>
+                                {mapLocations
+                                    .filter((loc) =>
+                                        loc.location.toLowerCase().includes(mapLocationSearch.toLowerCase()) ||
+                                        (loc.description && loc.description.toLowerCase().includes(mapLocationSearch.toLowerCase()))
+                                    )
+                                    .map((mapLocation) => (
+                                        <TableRow key={mapLocation.id}>
+                                            <TableCell className="font-medium">
+                                                {mapLocation.location}
+                                            </TableCell>
+                                            <TableCell>
+                                                {mapLocation.description || (
+                                                    <span className="text-xs text-gray-400">No description</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="text-xs">
+                                                    <div>Lat: {mapLocation.lat}</div>
+                                                    <div>Lng: {mapLocation.lng}</div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-1">
+                                                    {mapLocation.token ? (
+                                                        <>
+                                                            <a
+                                                                href={`/?token=${mapLocation.token}`}
+                                                                target="_blank"
+                                                                className="text-xs text-blue-600 hover:underline font-mono max-w-[140px] truncate inline-block"
+                                                            >
+                                                                {window.location.origin}/?token={mapLocation.token.slice(0, 8)}...
+                                                            </a>
+                                                            <button
+                                                                onClick={() => {
+                                                                    navigator.clipboard.writeText(`${window.location.origin}/?token=${mapLocation.token}`);
+                                                                    toast.success("URL copied!");
+                                                                }}
+                                                                className="text-blue-500 hover:text-blue-700 text-xs"
+                                                            >
+                                                                Copy URL
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-xs text-gray-400">—</span>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="text-xs">
+                                                    <div>{mapLocation.open_time || "N/A"}</div>
+                                                    <div className="text-gray-400">to {mapLocation.closing_time || "N/A"}</div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                {displayMapLocationStatus(mapLocation)}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex gap-2 justify-end">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            setSelectedMapLocation(mapLocation);
+                                                            setMapLocationModalOpen(true);
+                                                        }}
+                                                    >
+                                                        <Edit size={12} className="text-blue-400" />
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => handleDeleteMapLocation(mapLocation.id)}
+                                                    >
+                                                        <Trash size={12} className="text-red-400" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </TabsContent>
+            </Tabs>
         </AppLayout>
     );
 }

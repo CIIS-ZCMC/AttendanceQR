@@ -33,9 +33,12 @@ export default function Scan({
     reload,
     warningSession,
     activeMapLocation,
+    mapToken,
 }) {
     const [anomaly, setAnomaly] = useState(null);
     const [warning, setWarning] = useState(warningSession);
+    const userEnteredEmployeeId = localStorage.getItem("userEnteredEmployeeId");
+    const resolvedMapToken = mapToken || localStorage.getItem("attendanceToken");
     const {
         data,
         setData,
@@ -45,12 +48,13 @@ export default function Scan({
         reset,
         recentlySuccessful,
     } = useForm({
-        employeeId: "",
+        employeeId: userEnteredEmployeeId || "",
         attendanceId: attendance?.id,
         name: null,
         area: null,
         is_no_employee_id: false,
         anomaly: anomaly,
+        mapToken: resolvedMapToken,
     });
 
     const [serverTime, setServerTime] = useState(
@@ -80,6 +84,12 @@ export default function Scan({
     const [edited, setEdited] = useState(false);
     const [showSummary, setShowSummary] = useState(null);
 
+    useEffect(() => {
+        if (resolvedMapToken) {
+            localStorage.setItem("attendanceToken", resolvedMapToken);
+        }
+    }, [resolvedMapToken]);
+
     const getGreeting = () => {
         const hour = new Date().getHours();
         if (hour >= 5 && hour < 12) {
@@ -93,6 +103,11 @@ export default function Scan({
 
     const [noEmployeeID, setNoEmployeeID] = useState(false);
     useEffect(() => {
+        const hasStatusError = invalid_status && (invalid_status.notFound || invalid_status.isNotOpen || invalid_status.isClosed);
+        if (hasStatusError) {
+            setLoad(false);
+            return;
+        }
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
@@ -106,7 +121,7 @@ export default function Scan({
 
                         axios
                             .get(
-                                `validate-location?lat=${lat}&lng=${lng}&fingerprint=${result.visitorId}&accuracy=${posAccuracy}`
+                                `validate-location?lat=${lat}&lng=${lng}&fingerprint=${result.visitorId}&accuracy=${posAccuracy}${resolvedMapToken ? `&token=${resolvedMapToken}` : ''}`
                             )
                             .then((response) => {
 
@@ -145,6 +160,7 @@ export default function Scan({
 
                                     router.post("get-summary", {
                                         employeeId: employeeID,
+                                        mapToken: resolvedMapToken,
                                     }, {
                                         onSuccess: (response) => {
                                             if (response.props?.session?.type == "error") {
@@ -191,8 +207,14 @@ export default function Scan({
     useEffect(() => {
         setData({ attendanceId: attendance?.id, anomaly: anomaly });
         const interval = setInterval(() => {
-            setCloseAt(new Date(attendance?.closed_at));
-            const closeTime = new Date(attendance?.closed_at);
+            const closingDateStr = attendance?.closing_date;
+            const closingTimeStr = activeMapLocation?.closing_time;
+            if (!closingDateStr || !closingTimeStr) {
+                setRemainingTime("0");
+                return;
+            }
+            const closeTime = new Date(`${closingDateStr}T${closingTimeStr}`);
+            setCloseAt(closeTime);
             const now = new Date();
             const diffMs = closeTime - now;
 
@@ -223,14 +245,16 @@ export default function Scan({
         }, 1000);
 
         return () => clearInterval(interval);
-    }, []);
+    }, [attendance, activeMapLocation]);
 
     useEffect(() => {
-        setData({
-            ...data,
-            employeeId: employeeID,
-            anomaly: anomaly
-        });
+        if (!localStorage.getItem("userEnteredEmployeeId")) {
+            setData({
+                ...data,
+                employeeId: employeeID,
+                anomaly: anomaly
+            });
+        }
 
         if (!employeeID && !isRecorded) {
             toast.warning(
@@ -278,7 +302,7 @@ export default function Scan({
         setEdited(true);
         setShowSummary(null);
 
-        setData({ ...data, anomaly: anomaly });
+        setData({ ...data, anomaly: anomaly, mapToken: resolvedMapToken });
 
         post("get-summary", {
             onSuccess: (response) => {
@@ -310,7 +334,7 @@ export default function Scan({
                     toast.warning(response.props.session.message);
                     setAnomalyState(true);
                 } else {
-                    localStorage.setItem("employeeID", data.employeeId);
+                    localStorage.removeItem("userEnteredEmployeeId");
                     toast.success("Attendance recorded successfully");
                 }
             },
@@ -340,7 +364,7 @@ export default function Scan({
                     toast.warning(response.props.session.message);
                     setAnomalyState(true);
                 } else {
-                    localStorage.setItem("employeeID", data.employeeId);
+                    localStorage.removeItem("userEnteredEmployeeId");
                     toast.success("Attendance recorded successfully");
                 }
 
@@ -392,17 +416,17 @@ export default function Scan({
             <div className="mt-4 flex justify-center items-center md:absolute md:top-80 md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2">
                 {load ? (
                     <AttrSkeleton />
-                ) : !isWithinLocation ? (
-                    <NotInLocation
-                        locationService={locationService}
-                        distance={distance}
-                        activeMapLocation={activeMapLocation}
-                    />
                 ) : invalid_status ? (
                     <FailedScan
                         invalid_status={invalid_status}
                         isInLocation={isWithinLocation}
                         anomalyState={anomalyState}
+                    />
+                ) : !isWithinLocation ? (
+                    <NotInLocation
+                        locationService={locationService}
+                        distance={distance}
+                        activeMapLocation={activeMapLocation}
                     />
                 ) : isWithinLocation ? (
                     <div>
@@ -453,6 +477,7 @@ export default function Scan({
                                             value={data.employeeId}
 
                                             onChange={(e) => {
+                                                localStorage.setItem("userEnteredEmployeeId", e.target.value);
                                                 setData({
                                                     ...data,
                                                     employeeId: e.target.value,

@@ -1,11 +1,16 @@
 import { QrCode, MapPin, Smartphone, Globe } from "lucide-react";
-import React from "react";
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { router } from "@inertiajs/react";
 import logo from "../../src/zcmc.jpeg";
 import googleLogo from "../../src/googleLogin.png";
 
-export default function Welcome() {
+export default function Welcome({ mapToken }) {
+    useEffect(() => {
+        if (mapToken) {
+            localStorage.setItem("attendanceToken", mapToken);
+        }
+    }, [mapToken]);
     return (
         <div className="max-w-md  mx-auto mt-10 p-6 text-center space-y-4">
             <div className="flex items-center gap-2 justify-center text-xl font-bold">
@@ -72,7 +77,8 @@ export default function Welcome() {
             <Button
                 className="mt-6 text-primary shadow-lg h-15 w-full flex items-center justify-center gap-2 border border-gray-200 rounded-md p-2 bg-white hover:bg-gray-100"
                 onClick={() => {
-                    window.location.href = "/auth/google";
+                    const savedToken = localStorage.getItem("attendanceToken");
+                    window.location.href = savedToken ? `/auth/google?token=${savedToken}` : "/auth/google";
                 }}
             >
                 <img src={googleLogo} alt="Google login" className="w-4 h-4" />

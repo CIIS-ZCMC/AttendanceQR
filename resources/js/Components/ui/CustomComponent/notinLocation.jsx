@@ -150,7 +150,10 @@ export const NotInLocation = ({ locationService, distance, activeMapLocation }) 
                     )}
                 </div>
 
-                <Link href={"/"}>
+                <Link href={(() => {
+                    const savedToken = localStorage.getItem("attendanceToken");
+                    return savedToken ? `/?token=${savedToken}` : "/";
+                })()}>
                     <Button type="button" className="w-full">
                         Try again
                     </Button>

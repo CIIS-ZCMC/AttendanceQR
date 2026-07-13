@@ -49,26 +49,22 @@ class AttendanceController extends Controller
     public function validateLocation(Request $request)
     {
 
+        $token = $request->query('token');
 
-        $file = storage_path('app/map_coordinates.json');
-        if (!file_exists($file)) {
+        if (!$token) {
             return response()->json([
-                'message' => 'File not found.'
+                'message' => 'No attendance location token provided.'
             ], 404);
         }
 
-        $data = json_decode(file_get_contents($file), true);
-
-        $map_coordinates = [
-            'lat' => 6.907257,
-            'lng' => 122.080909,
-        ];
-        if (isset($data[0])) {
-            $map_coordinates = $data[0];
+        $mapLocation = \App\Models\MapLocation::active()->where('token', $token)->first();
+        if (!$mapLocation) {
+            return response()->json([
+                'message' => 'Location is not active or has expired.'
+            ], 404);
         }
-      //   $geofenceCenter = ['lat' => 6.907257, 'lng' => 122.080909];
-        $geofenceCenter = ['lat' => $map_coordinates['latitude'], 'lng' => $map_coordinates['longitude']];
-        $geofenceRadius = 30; // meters
+        $geofenceCenter = ['lat' => $mapLocation->lat, 'lng' => $mapLocation->lng];
+        $geofenceRadius = 30;
 
         $userLat = $request->lat;
         $userLng = $request->lng;
@@ -77,8 +73,8 @@ class AttendanceController extends Controller
 
         $Saved = false;
 
-        // $userLat =6.906935;
-        // $userLng = 122.081535;
+        $userLat = 6.906935;
+        $userLng = 122.081535;
 
         /**
          * Add Validation here soon , that active attendance does not need location based.
@@ -150,11 +146,30 @@ class AttendanceController extends Controller
             return false;
         }
 
-        return Attendance::where("id", $attendanceID)
-            ->where("is_active", 1)
-            ->where("is_open", 1)
-            ->where("closed_at", ">", now())
-            ->exists();
+        $attendance = Attendance::where("id", $attendanceID)->where("is_active", 1)->first();
+        if (!$attendance || $attendance->mapLocations->isEmpty()) {
+            return false;
+        }
+
+        $now = now();
+        $today = $now->toDateString();
+        $currentTime = $now->format('H:i:s');
+
+        if (!$attendance->open_date || !$attendance->closing_date) {
+            return false;
+        }
+        if ($today < $attendance->open_date || $today > $attendance->closing_date) {
+            return false;
+        }
+
+        foreach ($attendance->mapLocations as $mapLocation) {
+            if ($mapLocation->open_time && $mapLocation->closing_time
+                && $currentTime >= $mapLocation->open_time && $currentTime < $mapLocation->closing_time) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 
@@ -162,35 +177,64 @@ class AttendanceController extends Controller
     public function index(Request $request)
     {
 
-
-        $attendance_key = $request->key ?? Attendance::where("is_active", true)->first()?->attendance_key;
-
-        $attendance = Attendance::where("attendance_key", $attendance_key)->where("is_active", true)->first();
-        // session()->forget("reloaded");
-        // session()->forget("isRecorded");
-        // session()->forget("userToken");
         if (!session()->has("userToken")) {
-            return Inertia::render("Scan/Welcome");
+            return Inertia::render("Scan/Welcome", [
+                'mapToken' => $request->query('token'),
+            ]);
         }
 
+        $token = $request->query('token');
+
+        if ($token) {
+            session()->put('activeMapToken', $token);
+            $activeMapLocation = \App\Models\MapLocation::where('token', $token)->first();
+        } else {
+            $activeMapLocation = null;
+        }
+
+        if (!$activeMapLocation) {
+            return Inertia::render('Scan/NoLocation');
+        }
+
+        $now = now();
+        $today = $now->toDateString();
+        $currentTime = $now->format('H:i:s');
         $status = null;
+
+        $attendance = Attendance::where("is_active", true)
+            ->whereHas('mapLocations', function ($query) use ($activeMapLocation) {
+                $query->where('maplocation.id', $activeMapLocation->id);
+            })
+            ->first();
+
         if (!$attendance) {
             $status['notFound'] = true;
-        } elseif (!$attendance->is_open) {
-            $status['isNotOpen'] = true;
-        } elseif ($attendance->closed_at <= now()) {
-            $status['isClosed'] = true;
+        } else {
+            if (!$attendance->open_date || !$attendance->closing_date) {
+                $status['notFound'] = true;
+            } elseif ($today < $attendance->open_date) {
+                $status['isNotOpen'] = true;
+            } elseif ($today > $attendance->closing_date) {
+                $status['isClosed'] = true;
+            } elseif (!$activeMapLocation->open_time || !$activeMapLocation->closing_time) {
+                $status['notFound'] = true;
+            } elseif ($currentTime < $activeMapLocation->open_time) {
+                $status['isNotOpen'] = true;
+            } elseif ($currentTime >= $activeMapLocation->closing_time) {
+                $status['isClosed'] = true;
+            }
         }
 
-
         $userToken = session()->get('userToken')['id'] ?? $request->fingerprint;
-        session()->put("activeAttendanceID", $attendance->id);
+        if ($attendance) {
+            session()->put("activeAttendanceID", $attendance->id);
+        }
         $userInformation = session()->get('userToken');
         $employeeID = null;
 
         $contact = Contact::where("email_address", $userInformation['email'])->first();
 
-      
+
         $UserName = $userInformation['name'];
         $fullName = null;
 
@@ -202,7 +246,7 @@ class AttendanceController extends Controller
             $employeeProfile = $personalInformation->employeeProfile;
 
             $employeeID = $employeeProfile->employee_id;
-           
+
         }
 
 
@@ -220,20 +264,12 @@ class AttendanceController extends Controller
         if (session()->has("isRecorded")) {
             $status['isRecorded'] = true;
         }
-        //session()->forget('warning_seen');
 
         $showWarning = !session()->has('warning_seen');
 
         if ($showWarning) {
-            // Mark as seen so next refresh it won't show
             session()->put('warning_seen', true);
         }
-
-
-        $activeMapLocation = \App\Models\MapLocation::where('is_active', true)->first();
-
-        
-      
 
         return Inertia::render('Scan/Scan', [
             'invalid_status' => $status,
@@ -249,6 +285,7 @@ class AttendanceController extends Controller
             'googleName' => session()->get('userToken')['name'] ?? null,
             'warningSession' => $showWarning,
             'activeMapLocation' => $activeMapLocation,
+            'mapToken' => $token,
         ]);
     }
 
@@ -257,7 +294,7 @@ class AttendanceController extends Controller
     {
         try {
 
-
+       
             if (isset($request->is_no_employee_id) && $request->is_no_employee_id) {
 
                 $request->validate([
@@ -269,6 +306,7 @@ class AttendanceController extends Controller
 
             $attendanceInformation = $request->userAttendanceInformation();
 
+          
 
             if (empty($attendanceInformation)  || empty($attendanceInformation['name'])) {
                 return redirect()->back()->with("session", [

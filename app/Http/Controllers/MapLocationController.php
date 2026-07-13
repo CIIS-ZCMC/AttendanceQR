@@ -21,15 +21,12 @@ class MapLocationController extends Controller
             'description' => 'nullable|string',
             'lat' => 'required|numeric',
             'lng' => 'required|numeric',
-            'is_active' => 'boolean',
+            'open_time' => 'required|date_format:H:i',
+            'closing_time' => 'required|date_format:H:i|after:open_time',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        if ($request->is_active) {
-            MapLocation::where('is_active', true)->update(['is_active' => false]);
         }
 
         $mapLocation = MapLocation::create([
@@ -37,7 +34,8 @@ class MapLocationController extends Controller
             'description' => $request->description,
             'lat' => $request->lat,
             'lng' => $request->lng,
-            'is_active' => $request->is_active ?? false,
+            'open_time' => $request->open_time,
+            'closing_time' => $request->closing_time,
         ]);
 
         // Also save to JSON file for dual storage
@@ -53,7 +51,8 @@ class MapLocationController extends Controller
             'description' => 'nullable|string',
             'lat' => 'required|numeric',
             'lng' => 'required|numeric',
-            'is_active' => 'boolean',
+            'open_time' => 'required|date_format:H:i',
+            'closing_time' => 'required|date_format:H:i|after:open_time',
         ]);
 
         if ($validator->fails()) {
@@ -66,16 +65,13 @@ class MapLocationController extends Controller
             return response()->json(['message' => 'Map location not found'], 404);
         }
 
-        if ($request->is_active) {
-            MapLocation::where('is_active', true)->update(['is_active' => false]);
-        }
-
         $mapLocation->update([
             'location' => $request->location,
             'description' => $request->description,
             'lat' => $request->lat,
             'lng' => $request->lng,
-            'is_active' => $request->is_active ?? $mapLocation->is_active,
+            'open_time' => $request->open_time,
+            'closing_time' => $request->closing_time,
         ]);
 
         // Also save to JSON file for dual storage
@@ -95,26 +91,6 @@ class MapLocationController extends Controller
         $mapLocation->delete();
 
         return response()->json(['message' => 'Map location deleted successfully'], 200);
-    }
-
-    public function setActive($id)
-    {
-        $mapLocation = MapLocation::find($id);
-
-        if (!$mapLocation) {
-            return response()->json(['message' => 'Map location not found'], 404);
-        }
-
-        // Deactivate all other locations
-        MapLocation::where('is_active', true)->update(['is_active' => false]);
-
-        // Activate the selected location
-        $mapLocation->update(['is_active' => true]);
-
-        // Also save to JSON file for dual storage
-        $this->saveToJsonFile($mapLocation);
-
-        return response()->json($mapLocation, 200);
     }
 
     private function saveToJsonFile($mapLocation)

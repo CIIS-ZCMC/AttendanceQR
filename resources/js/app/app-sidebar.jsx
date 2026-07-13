@@ -80,6 +80,13 @@ export default function AppSidebar() {
                     <SidebarGroupContent>
                         <SidebarMenu className={"gap-4"}>
                             {mainNavItems.map((item) => {
+                                let href = item.href;
+                                if (item.title === "Scan QR") {
+                                    const savedToken = localStorage.getItem("attendanceToken");
+                                    if (savedToken) {
+                                        href = `/?token=${savedToken}`;
+                                    }
+                                }
                                 const pageActive =
                                     page.url.split("?")[0] === item.href;
 
@@ -93,7 +100,7 @@ export default function AppSidebar() {
                                                 : ""
                                                 }`}
                                         >
-                                            <Link href={item.href}>
+                                            <Link href={href}>
                                                 <item.icon
                                                     className={
                                                         pageActive

@@ -39,10 +39,10 @@ class SettingsController extends Controller
         //session()->forget("admin_user");
         $this->ValidateLogin("index.settings");
 
-        $attendanceList = AttendanceResource::collection(Attendance::orderBy("created_at", "desc")->paginate(5));
+        $attendanceList = AttendanceResource::collection(Attendance::with('mapLocations')->orderBy("created_at", "desc")->paginate(5));
 
         if (request()->has("search") && $search = request("search")) {
-            $attendanceList = AttendanceResource::collection(Attendance::where("title", "like", "%{$search}%")->orderBy("created_at", "desc")->paginate(5));
+            $attendanceList = AttendanceResource::collection(Attendance::with('mapLocations')->where("title", "like", "%{$search}%")->orderBy("created_at", "desc")->paginate(5));
         }
 
         $map_coordinates = [];
@@ -77,7 +77,7 @@ class SettingsController extends Controller
 
         $this->ValidateLogin("active-configuration");
 
-        $attendance = Attendance::where("is_active", true)->first();
+        $attendance = Attendance::with('mapLocations')->where("is_active", true)->first();
 
         return Inertia::render("Settings/ActiveConfiguration", [
             "attendance" => $attendance,
@@ -95,34 +95,52 @@ class SettingsController extends Controller
             ]);
         }
         if ($request->id) {
-            Attendance::where("id", $request->id)->update([
+            $attendance = Attendance::where("id", $request->id)->first();
+            $attendance->update([
                 "title" => $request->name,
-                "closed_at" => $request->closing_at,
                 "is_active" => $request->is_active,
-                "is_open" => $request->is_open,
+                "open_date" => $request->open_date,
+                "closing_date" => $request->closing_date,
             ]);
+            if (is_array($request->map_location_ids)) {
+                $attendance->mapLocations()->sync($request->map_location_ids);
+            }
             return to_route("index.settings");
         }
         $concattedName = $request->name . "-" . date("Y_m_d") . "_" . time();
-        Attendance::create([
+        $attendance = Attendance::create([
             "title" => $concattedName,
-            "closed_at" => $request->closing_at,
             "is_active" => $request->is_active,
-            "is_open" => $request->is_open,
+            "open_date" => $request->open_date,
+            "closing_date" => $request->closing_date,
         ]);
+        if (is_array($request->map_location_ids)) {
+            $attendance->mapLocations()->sync($request->map_location_ids);
+        }
 
         return to_route("index.settings");
     }
 
     public function updateActive(Request $request)
     {
+        $attendance = Attendance::where("id", $request->id)->first();
+        if ($attendance) {
+            $attendance->update([
+                "is_active" => true,
+                "open_date" => $request->open_date,
+                "closing_date" => $request->closing_date,
+            ]);
 
-
-        Attendance::where("id", $request->id)->update([
-            "is_active" => true,
-            'is_open' => $request->is_open,
-            'closed_at' => $request->closing_at
-        ]);
+            if ($request->map_location_id) {
+                $mapLocation = $attendance->mapLocations()->where('maplocation.id', $request->map_location_id)->first();
+                if ($mapLocation) {
+                    $mapLocation->update([
+                        'open_time' => $request->open_time,
+                        'closing_time' => $request->closing_time,
+                    ]);
+                }
+            }
+        }
         return to_route("active-configuration");
     }
 
@@ -132,6 +150,14 @@ class SettingsController extends Controller
         $this->ValidateLogin("responses");
 
         $attendance = Attendance::where("is_active", true)->first();
+
+        if (!$attendance) {
+            return Inertia::render("Settings/Responses", [
+                "is_admin" => session()->has("admin_user"),
+                "error" => session()->get("error") ?? false,
+                "logs" => collect()->paginate(50),
+            ]);
+        }
 
         $logs = $attendance->logs()->with("employeeProfile")->paginate(50);
 

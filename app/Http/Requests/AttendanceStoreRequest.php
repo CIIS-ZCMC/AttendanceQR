@@ -6,6 +6,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use App\Models\EmployeeProfile;
 use App\Models\Contact;
 use App\Models\Attendance;
+use App\Models\MapLocation;
 
 class AttendanceStoreRequest extends FormRequest
 {
@@ -29,7 +30,7 @@ class AttendanceStoreRequest extends FormRequest
 
     public function FindEmployeeID()
     {
-        if (isset($this->is_finder)) {
+        if (session()->has('userToken')) {
             $userInformation = session()->get('userToken');
             $contact = Contact::where("email_address", $userInformation['email'] ?? null)->first();
             if ($contact && $contact->personalInformation && $contact->personalInformation->employeeProfile) {
@@ -56,13 +57,18 @@ class AttendanceStoreRequest extends FormRequest
     {
 
         if (isset($this->is_no_employee_id) && $this->is_no_employee_id) {
+          
             return $this->UserNoEmployeeID($this->name, $this->area);
         }
+      
 
         $attendanceID = $this->attendanceId ?? session()->get("activeAttendanceID");
         $userToken = (session()->get('userToken')['id'] ?? '') . $attendanceID;
         //session()->put('employeeID', $this->employeeId);
+
         $employee = EmployeeProfile::where('employee_id', $this->FindEmployeeID())->first();
+
+        
         if (!$employee) {
             return [];
         }
@@ -75,6 +81,25 @@ class AttendanceStoreRequest extends FormRequest
         $email = $personalInfo->contact->email_address;
         $areaDetails = $employee->assignedArea?->findDetails()['details'] ?? null;
         $sector = $employee->assignedArea?->findDetails()['sector'] ?? null;
+
+        $mapLocationData = null;
+        $mapToken = $this->mapToken ?? session()->get('activeMapToken');
+        if ($mapToken) {
+            $mapLocation = MapLocation::where('token', $mapToken)->first();
+            if ($mapLocation) {
+                $mapLocationData = [
+                    'id' => $mapLocation->id,
+                    'location' => $mapLocation->location,
+                    'description' => $mapLocation->description,
+                    'lat' => $mapLocation->lat,
+                    'lng' => $mapLocation->lng,
+                    'token' => $mapLocation->token,
+                    'open_time' => $mapLocation->open_time,
+                    'closing_time' => $mapLocation->closing_time,
+                ];
+            }
+        }
+
         return [
             'biometric_id' => $employee->biometric_id,
             'name' => $employee->name,
@@ -84,6 +109,7 @@ class AttendanceStoreRequest extends FormRequest
             'first_entry' => date("Y-m-d H:i:s"),
             'last_entry' => null,
             'attendances_id' => $attendanceID,
+            'map_location' => $mapLocationData,
             'userToken' => $userToken,
             'email' => $email,
             'employee_id' => $employee->employee_id,
@@ -96,6 +122,24 @@ class AttendanceStoreRequest extends FormRequest
         $attendanceID = $this->attendanceId ?? session()->get("activeAttendanceID");
         $userToken = session()->get('userToken')['id'] . $attendanceID;
 
+        $mapLocationData = null;
+        $mapToken = $this->mapToken ?? session()->get('activeMapToken');
+        if ($mapToken) {
+            $mapLocation = MapLocation::where('token', $mapToken)->first();
+            if ($mapLocation) {
+                $mapLocationData = [
+                    'id' => $mapLocation->id,
+                    'location' => $mapLocation->location,
+                    'description' => $mapLocation->description,
+                    'lat' => $mapLocation->lat,
+                    'lng' => $mapLocation->lng,
+                    'token' => $mapLocation->token,
+                    'open_time' => $mapLocation->open_time,
+                    'closing_time' => $mapLocation->closing_time,
+                ];
+            }
+        }
+
         return [
             'biometric_id' => null,
             'name' => $name,
@@ -105,6 +149,7 @@ class AttendanceStoreRequest extends FormRequest
             'first_entry' => date("Y-m-d H:i:s"),
             'last_entry' => null,
             'attendances_id' => $attendanceID,
+            'map_location' => $mapLocationData,
             'userToken' => $userToken,
             'email' => session()->get('userToken')['email'],
             'employee_id' => null,

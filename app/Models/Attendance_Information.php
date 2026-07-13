@@ -21,8 +21,13 @@ class Attendance_Information extends Model
         'first_entry',
         'last_entry',
         'attendances_id',
+        'map_location',
         'userToken',
         'email'
+    ];
+
+    protected $casts = [
+        'map_location' => 'array',
     ];
 
 

@@ -14,11 +14,18 @@ class Attendance extends Model
         'attendance_key',
         'is_active',
         'is_open',
-        'closed_at'
+        'closed_at',
+        'open_date',
+        'closing_date'
     ];
 
     public function logs()
     {
         return $this->hasMany(Attendance_Information::class, "attendances_id", "id");
+    }
+
+    public function mapLocations()
+    {
+        return $this->belongsToMany(MapLocation::class, 'attendance_map_locations', 'attendance_id', 'map_location_id');
     }
 }

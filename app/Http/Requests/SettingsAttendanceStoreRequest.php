@@ -25,10 +25,10 @@ class SettingsAttendanceStoreRequest extends FormRequest
     {
         return [
             "name" => "required",
-            // "closing_at" => [
-            //     "required",
-            //     "after:" . now()->addHour()->addMinutes(10)->format("Y-m-d h:i a"),
-            // ],
+            "map_location_ids" => "required|array|min:1",
+            "map_location_ids.*" => "exists:maplocation,id",
+            "open_date" => "required|date",
+            "closing_date" => "required|date|after_or_equal:open_date",
         ];
     }
 
@@ -36,8 +36,12 @@ class SettingsAttendanceStoreRequest extends FormRequest
     {
         return [
             "name.required" => "Name is required",
-            "closing_at.required" => "Closing at is required",
-            "closing_at.after" => "Closing at must be after " . now()->addHour()->addMinutes(10)->format("Y-m-d h:i a"),
+            "map_location_ids.required" => "At least one map location is required",
+            "map_location_ids.min" => "At least one map location is required",
+            "map_location_ids.*.exists" => "Selected map location does not exist",
+            "open_date.required" => "Open date is required",
+            "closing_date.required" => "Closing date is required",
+            "closing_date.after_or_equal" => "Closing date must be after or equal to open date",
         ];
     }
 }

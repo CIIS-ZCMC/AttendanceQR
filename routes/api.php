@@ -19,4 +19,3 @@ Route::get('/map-locations', [MapLocationController::class, 'index']);
 Route::post('/map-locations', [MapLocationController::class, 'store']);
 Route::put('/map-locations/{id}', [MapLocationController::class, 'update']);
 Route::delete('/map-locations/{id}', [MapLocationController::class, 'destroy']);
-Route::post('/map-locations/{id}/set-active', [MapLocationController::class, 'setActive']);
