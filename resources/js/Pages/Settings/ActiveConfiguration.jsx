@@ -135,14 +135,23 @@ function getStatusMessage(attendance) {
     return `Attendance closed for today.`;
 }
 
-export default function ActiveConfiguration({ attendance, is_admin }) {
+export default function ActiveConfiguration({ attendance, mapLocations: allMapLocations, is_admin }) {
     const [showLocationDetails, setShowLocationDetails] = useState(false);
-    const mapLocations = attendance?.map_locations || [];
+    const mapLocations = allMapLocations || [];
     const savedToken = typeof window !== "undefined" ? localStorage.getItem("attendanceToken") : null;
     const defaultLoc = mapLocations.find((loc) => loc.token === savedToken) || mapLocations[0] || null;
     const [selectedLocationToken, setSelectedLocationToken] = useState(defaultLoc?.token || "");
 
     const selectedLocation = mapLocations.find((loc) => loc.token === selectedLocationToken) || mapLocations[0] || null;
+    useEffect(() => {
+        const savedToken = localStorage.getItem("attendanceToken");
+        if (savedToken) {
+            const matchingLoc = mapLocations.find((loc) => loc.token === savedToken);
+            if (matchingLoc) {
+                setSelectedLocationToken(savedToken);
+            }
+        }
+    }, [mapLocations.length]);
 
     const useCreateForm = useForm({
         id: "",
@@ -270,6 +279,8 @@ export default function ActiveConfiguration({ attendance, is_admin }) {
                             </CardContent>
                         </Card>
 
+                       
+
                         {selectedLocation && (
                             <Card className="border-l-4 border-l-blue-500 shadow-sm">
                                 <CardContent className="p-3 sm:p-6">
@@ -385,7 +396,7 @@ export default function ActiveConfiguration({ attendance, is_admin }) {
                                                 onChange={(e) => handleLocationChange(e.target.value)}
                                                 className="pl-10 w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
                                             >
-                                                {mapLocations.map((loc) => (
+                                                {(attendance?.map_locations || []).map((loc) => (
                                                     <option key={loc.id} value={loc.token}>
                                                         {loc.location}{loc.description ? ` — ${loc.description}` : ""}
                                                     </option>

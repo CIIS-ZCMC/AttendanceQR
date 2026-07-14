@@ -78,9 +78,11 @@ class SettingsController extends Controller
         $this->ValidateLogin("active-configuration");
 
         $attendance = Attendance::with('mapLocations')->where("is_active", true)->first();
+        $allMapLocations = \App\Models\MapLocation::all();
 
         return Inertia::render("Settings/ActiveConfiguration", [
             "attendance" => $attendance,
+            "mapLocations" => $allMapLocations,
             "is_admin" => session()->has("admin_user"),
             "error" => session()->get("error") ?? false,
         ]);
