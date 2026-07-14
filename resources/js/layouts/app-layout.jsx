@@ -31,7 +31,7 @@ export default function AppLayout({
                 page={page} // this props is based on page usePage inertia
             />
 
-            <main className="p-4 sm:p-5 mt-5">
+            <main className="p-4 sm:p-5 mt-8">
                 {w_admin ? is_admin ? children : <LogAdmin /> : children}
                 <LoadScript
                     googleMapsApiKey="AIzaSyDok3Z6YRFk0Oj1f_bMTuWCDwDMOp6u4Sw"
