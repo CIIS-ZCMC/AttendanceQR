@@ -10,6 +10,12 @@ export default function Welcome({ mapToken }) {
         if (mapToken) {
             localStorage.setItem("attendanceToken", mapToken);
         }
+        if (!mapToken) {
+            const savedToken = localStorage.getItem("attendanceToken");
+            if (savedToken) {
+                window.location.href = `/?token=${savedToken}`;
+            }
+        }
     }, [mapToken]);
     return (
         <div className="max-w-md  mx-auto mt-10 p-6 text-center space-y-4">

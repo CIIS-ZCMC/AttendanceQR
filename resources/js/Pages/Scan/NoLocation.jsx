@@ -1,8 +1,15 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { MapPinOff } from "lucide-react";
 import Header from "@/layouts/Header";
 
 export default function NoLocation() {
+    useEffect(() => {
+        const savedToken = localStorage.getItem("attendanceToken");
+        if (savedToken) {
+            window.location.href = `/?token=${savedToken}`;
+        }
+    }, []);
+
     return (
         <div className="min-h-screen bg-gray-50">
             <Header />
