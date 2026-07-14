@@ -421,6 +421,7 @@ export default function Scan({
                         invalid_status={invalid_status}
                         isInLocation={isWithinLocation}
                         anomalyState={anomalyState}
+                        activeMapLocation={activeMapLocation}
                     />
                 ) : !isWithinLocation ? (
                     <NotInLocation
