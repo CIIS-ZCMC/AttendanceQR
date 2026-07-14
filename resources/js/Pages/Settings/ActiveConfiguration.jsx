@@ -199,9 +199,9 @@ export default function ActiveConfiguration({ attendance, is_admin }) {
     return (
         <AppLayout title="Active Configuration" is_admin={is_admin} w_admin={true}>
             <style>{pickerStyles}</style>
-            <div className="container mx-auto px-4 py-8 max-w-5xl">
+            <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 w-full max-w-full sm:max-w-5xl">
                 <div className="mb-8">
-                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900">
                         Active Attendance Configuration
                     </h1>
                     <p className="mt-1 text-sm text-gray-500">
@@ -218,7 +218,7 @@ export default function ActiveConfiguration({ attendance, is_admin }) {
                             <h2 className="text-lg font-semibold text-gray-900">
                                 No Active Attendance
                             </h2>
-                            <p className="mt-2 text-sm text-gray-500 max-w-sm">
+                            <p className="mt-2 text-sm text-gray-500 max-w-full sm:max-w-sm">
                                 No active attendance session is currently set. Create and activate an attendance from the Settings page to start scanning.
                             </p>
                             <Button
@@ -232,17 +232,17 @@ export default function ActiveConfiguration({ attendance, is_admin }) {
                         </CardContent>
                     </Card>
                 ) : (
-                    <div className="space-y-6">
+                    <div className="space-y-4 sm:space-y-6">
                         <Card className="border-l-4 border-l-green-500 shadow-sm">
-                            <CardContent className="p-6">
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                    <div className="flex items-start gap-4">
-                                        <div className="bg-green-50 p-3 rounded-lg">
+                            <CardContent className="p-3 sm:p-6">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                                    <div className="flex items-start gap-3 sm:gap-4">
+                                        <div className="bg-green-50 p-2 sm:p-3 rounded-lg">
                                             <StatusIcon className="w-6 h-6 text-green-600" />
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2 flex-wrap">
-                                                <h2 className="text-lg font-semibold text-gray-900">
+                                                <h2 className="text-base sm:text-lg font-semibold text-gray-900">
                                                     {attendance.title}
                                                 </h2>
                                                 <Badge
@@ -272,16 +272,16 @@ export default function ActiveConfiguration({ attendance, is_admin }) {
 
                         {selectedLocation && (
                             <Card className="border-l-4 border-l-blue-500 shadow-sm">
-                                <CardContent className="p-6">
-                                    <div className="flex items-start gap-4">
-                                        <div className="bg-blue-50 p-3 rounded-lg">
+                                <CardContent className="p-3 sm:p-6">
+                                    <div className="flex items-start gap-3 sm:gap-4">
+                                        <div className="bg-blue-50 p-2 sm:p-3 rounded-lg">
                                             <MapPin className="w-6 h-6 text-blue-600" />
                                         </div>
                                         <div className="flex-1">
                                             <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">
                                                 Your Current Location
                                             </div>
-                                            <h3 className="text-lg font-semibold text-gray-900">
+                                            <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                                                 {selectedLocation.location}
                                             </h3>
                                             {selectedLocation.description && (
@@ -289,7 +289,7 @@ export default function ActiveConfiguration({ attendance, is_admin }) {
                                                     {selectedLocation.description}
                                                 </p>
                                             )}
-                                            <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-xs text-gray-500">
                                                 <span className="font-mono">
                                                     {selectedLocation.lat}, {selectedLocation.lng}
                                                 </span>
@@ -305,7 +305,7 @@ export default function ActiveConfiguration({ attendance, is_admin }) {
                         )}
 
                         <div className="grid grid-cols-1 gap-6">
-                            <Card className="shadow-sm max-w-2xl">
+                            <Card className="shadow-sm w-full">
                                 <button
                                     type="button"
                                     onClick={() => setShowLocationDetails((v) => !v)}
@@ -313,7 +313,7 @@ export default function ActiveConfiguration({ attendance, is_admin }) {
                                 >
                                     <CardHeader className="pb-3 cursor-pointer hover:bg-gray-50/50 transition-colors rounded-t-xl">
                                         <div className="flex items-center justify-between">
-                                            <div className="p-4">
+                                            <div className="p-3 sm:p-4">
                                                 <CardTitle className="text-base flex items-center gap-2">
                                                     <MapPin className="w-4 h-4 text-blue-500" />
                                                     Location Details
@@ -330,7 +330,7 @@ export default function ActiveConfiguration({ attendance, is_admin }) {
                                         </div>
                                     </CardHeader>
                                 </button>
-                                {showLocationDetails && <CardContent className="space-y-4 p-6">
+                                {showLocationDetails && <CardContent className="space-y-4 p-3 sm:p-6">
                                     {(attendance.map_locations || []).map((loc, idx) => (
                                         <div key={loc.id} className="space-y-2">
                                             {idx > 0 && <Separator />}
@@ -362,7 +362,7 @@ export default function ActiveConfiguration({ attendance, is_admin }) {
                         </div>
 
                         <Card className="shadow-sm">
-                            <CardHeader className="pb-3 p-4">
+                            <CardHeader className="pb-3 p-3 sm:p-4">
                                 <CardTitle className="text-base flex items-center gap-2">
                                     <Clock className="w-4 h-4 text-blue-500" />
                                     Schedule Settings
@@ -371,8 +371,8 @@ export default function ActiveConfiguration({ attendance, is_admin }) {
                                     Update the active date range and daily time window.
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent className="p-6">
-                                <form onSubmit={handleSubmit} className="space-y-6">
+                            <CardContent className="p-3 sm:p-6">
+                                <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                                     <div className="space-y-2">
                                         <Label htmlFor="map_location" className="text-sm font-medium">
                                             Select Location
@@ -396,7 +396,7 @@ export default function ActiveConfiguration({ attendance, is_admin }) {
 
                                     <Separator />
 
-                                    <div className="grid grid-cols-1 gap-6">
+                                    <div className="grid grid-cols-1 gap-3 sm:gap-6">
                                         <div className="space-y-2">
                                             <Label htmlFor="open_date" className="text-sm font-medium">
                                                 Open Date
@@ -435,7 +435,7 @@ export default function ActiveConfiguration({ attendance, is_admin }) {
 
                                     <Separator />
 
-                                    <div className="grid grid-cols-1 gap-6">
+                                    <div className="grid grid-cols-1 gap-3 sm:gap-6">
                                         <div className="space-y-2">
                                             <Label htmlFor="open_time" className="text-sm font-medium">
                                                 Open Time

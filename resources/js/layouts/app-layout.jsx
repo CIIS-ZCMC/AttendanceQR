@@ -24,14 +24,14 @@ export default function AppLayout({
     }, [page.props.error]);
 
     return (
-        <div className="max-w-3xl mx-auto p-6">
+        <div className="max-w-3xl mx-auto p-3 sm:p-6">
 
             {/* header */}
             <Header
                 page={page} // this props is based on page usePage inertia
             />
 
-            <main className="p-5 mt-5">
+            <main className="p-3 sm:p-5 mt-5">
                 {w_admin ? is_admin ? children : <LogAdmin /> : children}
                 <LoadScript
                     googleMapsApiKey="AIzaSyDok3Z6YRFk0Oj1f_bMTuWCDwDMOp6u4Sw"
