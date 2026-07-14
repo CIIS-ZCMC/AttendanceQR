@@ -12,7 +12,7 @@ return new class extends Migration
         // Create pivot table
         Schema::create('attendance_map_locations', function (Blueprint $table) {
             $table->id();
-            $table->unsignedInteger('attendance_id');
+            $table->unsignedBigInteger('attendance_id');
             $table->unsignedInteger('map_location_id');
             $table->timestamps();
 
