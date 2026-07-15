@@ -23,13 +23,20 @@ class SettingsAttendanceStoreRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             "name" => "required",
-            "map_location_ids" => "required|array|min:1",
+            "map_location_ids" => "nullable|array",
             "map_location_ids.*" => "exists:maplocation,id",
             "open_date" => "required|date",
             "closing_date" => "required|date|after_or_equal:open_date",
+            "no_location" => "nullable|boolean",
         ];
+
+        if (!$this->boolean('no_location')) {
+            $rules['map_location_ids'] = 'required|array|min:1';
+        }
+
+        return $rules;
     }
 
     public function messages()

@@ -76,6 +76,7 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
             map_location_ids: [],
             open_date: "",
             closing_date: "",
+            no_location: false,
         });
 
         useEffect(() => {
@@ -87,6 +88,7 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                     map_location_ids: (selectedAttendance.map_locations || []).map((loc) => loc.id),
                     open_date: selectedAttendance.open_date || "",
                     closing_date: selectedAttendance.closing_date || "",
+                    no_location: !!selectedAttendance.no_location,
                 });
             }
         }, [selectedAttendance]);
@@ -137,7 +139,7 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                     </div>
                     <div className="grid gap-3">
                         <Label htmlFor="map_location_ids">Map Locations</Label>
-                        <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2 space-y-2">
+                        <div className={`max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2 space-y-2 ${useCreateForm.data.no_location ? 'opacity-50 pointer-events-none' : ''}`}>
                             {mapLocations.map((loc) => (
                                 <div key={loc.id} className="flex items-center gap-2">
                                     <Checkbox
@@ -214,6 +216,20 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                                 }
                             />
                             <Label htmlFor="is_active">Set active</Label>
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <Label htmlFor="no_location">Location Validation</Label>
+                        <div className="flex items-center gap-3">
+                            <Checkbox
+                                id="no_location"
+                                name="no_location"
+                                checked={useCreateForm.data.no_location}
+                                onCheckedChange={(checked) =>
+                                    useCreateForm.setData("no_location", checked)
+                                }
+                            />
+                            <Label htmlFor="no_location">No location required (free entry)</Label>
                         </div>
                     </div>
                 </div>
@@ -371,8 +387,8 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                 const data = {
                     location: useMapLocationForm.data.location,
                     description: useMapLocationForm.data.description,
-                    lat: parseFloat(useMapLocationForm.data.lat),
-                    lng: parseFloat(useMapLocationForm.data.lng),
+                    lat: useMapLocationForm.data.lat ? parseFloat(useMapLocationForm.data.lat) : "",
+                    lng: useMapLocationForm.data.lng ? parseFloat(useMapLocationForm.data.lng) : "",
                     open_time: useMapLocationForm.data.open_time || null,
                     closing_time: useMapLocationForm.data.closing_time || null,
                     is_default: useMapLocationForm.data.is_default,
@@ -432,7 +448,6 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                     <div className="grid gap-3">
                         <Label htmlFor="lat">Latitude</Label>
                         <Input
-                            required
                             id="lat"
                             name="lat"
                             value={useMapLocationForm.data.lat}
@@ -448,7 +463,6 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                     <div className="grid gap-3">
                         <Label htmlFor="lng">Longitude</Label>
                         <Input
-                            required
                             id="lng"
                             name="lng"
                             value={useMapLocationForm.data.lng}

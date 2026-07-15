@@ -193,6 +193,70 @@ class AttendanceController extends Controller
 
         $token = $request->query('token');
 
+        $noLocationAttendance = Attendance::where("is_active", true)->where("no_location", true)->first();
+
+        if ($noLocationAttendance) {
+            $now = now();
+            $today = $now->toDateString();
+            $status = null;
+
+            if (!$noLocationAttendance->open_date || !$noLocationAttendance->closing_date) {
+                $status['notFound'] = true;
+            } elseif ($today < $noLocationAttendance->open_date) {
+                $status['isNotOpen'] = true;
+            } elseif ($today > $noLocationAttendance->closing_date) {
+                $status['isClosed'] = true;
+            }
+
+            $userToken = session()->get('userToken')['id'] ?? $request->fingerprint;
+            session()->put("activeAttendanceID", $noLocationAttendance->id);
+            $userInformation = session()->get('userToken');
+            $employeeID = null;
+
+            $contact = Contact::where("email_address", $userInformation['email'])->first();
+            if ($contact) {
+                $employeeID = $contact->employee_id;
+            }
+
+            $email = $userInformation['email'] ?? null;
+            $profilePhoto = $userInformation['avatar'] ?? null;
+            $UserName = $userInformation['name'] ?? null;
+
+            $existingRecord = Attendance_Information::where("attendances_id", $noLocationAttendance->id)
+                ->where("userToken", $userToken)
+                ->first();
+
+            if ($existingRecord) {
+                $status['isRecorded'] = true;
+            }
+
+            if (session()->has("isRecorded")) {
+                $status['isRecorded'] = true;
+            }
+
+            $showWarning = !session()->has('warning_seen');
+            if ($showWarning) {
+                session()->put('warning_seen', true);
+            }
+
+            return Inertia::render('Scan/Scan', [
+                'invalid_status' => $status,
+                'attendance' => $noLocationAttendance,
+                "session" => session()->get('session'),
+                'ip' => $request->ip(),
+                'isRecorded' => $status['isRecorded'] ?? session()->get('isRecorded'),
+                'employeeID' => $employeeID,
+                'reload' => session()->get('reloaded') ?? false,
+                'email' => $email,
+                'profilePhoto' => $profilePhoto,
+                'UserName' => $UserName,
+                'googleName' => session()->get('userToken')['name'] ?? null,
+                'warningSession' => $showWarning,
+                'activeMapLocation' => null,
+                'mapToken' => null,
+            ]);
+        }
+
         if ($token) {
             session()->put('activeMapToken', $token);
             $activeMapLocation = \App\Models\MapLocation::where('token', $token)->first();

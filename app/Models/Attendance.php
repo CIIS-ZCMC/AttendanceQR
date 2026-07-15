@@ -16,7 +16,8 @@ class Attendance extends Model
         'is_open',
         'closed_at',
         'open_date',
-        'closing_date'
+        'closing_date',
+        'no_location'
     ];
 
     public function logs()

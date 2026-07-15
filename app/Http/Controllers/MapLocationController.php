@@ -19,8 +19,8 @@ class MapLocationController extends Controller
         $validator = Validator::make($request->all(), [
             'location' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'lat' => 'required|numeric',
-            'lng' => 'required|numeric',
+            'lat' => 'nullable|numeric',
+            'lng' => 'nullable|numeric',
             'open_time' => 'required|date_format:H:i',
             'closing_time' => 'required|date_format:H:i|after:open_time',
             'is_default' => 'nullable|boolean',
@@ -38,8 +38,8 @@ class MapLocationController extends Controller
         $mapLocation = MapLocation::create([
             'location' => $request->location,
             'description' => $request->description,
-            'lat' => $request->lat,
-            'lng' => $request->lng,
+            'lat' => $request->lat ?? '',
+            'lng' => $request->lng ?? '',
             'open_time' => $request->open_time,
             'closing_time' => $request->closing_time,
             'is_default' => $request->boolean('is_default'),
@@ -57,8 +57,8 @@ class MapLocationController extends Controller
         $validator = Validator::make($request->all(), [
             'location' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'lat' => 'required|numeric',
-            'lng' => 'required|numeric',
+            'lat' => 'nullable|numeric',
+            'lng' => 'nullable|numeric',
             'open_time' => 'required|date_format:H:i',
             'closing_time' => 'required|date_format:H:i|after:open_time',
             'is_default' => 'nullable|boolean',
@@ -82,8 +82,8 @@ class MapLocationController extends Controller
         $mapLocation->update([
             'location' => $request->location,
             'description' => $request->description,
-            'lat' => $request->lat,
-            'lng' => $request->lng,
+            'lat' => $request->lat ?? '',
+            'lng' => $request->lng ?? '',
             'open_time' => $request->open_time,
             'closing_time' => $request->closing_time,
             'is_default' => $request->boolean('is_default'),

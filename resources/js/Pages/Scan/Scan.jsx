@@ -111,6 +111,12 @@ export default function Scan({
             setLoad(false);
             return;
         }
+        if (attendance?.no_location) {
+            setIsWithinLocation(true);
+            setLoad(false);
+            setLocationService(false);
+            return;
+        }
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
@@ -212,11 +218,13 @@ export default function Scan({
         const interval = setInterval(() => {
             const closingDateStr = attendance?.closing_date;
             const closingTimeStr = activeMapLocation?.closing_time;
-            if (!closingDateStr || !closingTimeStr) {
+            if (!closingDateStr) {
                 setRemainingTime("0");
                 return;
             }
-            const closeTime = new Date(`${closingDateStr}T${closingTimeStr}`);
+            const closeTime = closingTimeStr
+                ? new Date(`${closingDateStr}T${closingTimeStr}`)
+                : new Date(`${closingDateStr}T23:59:59`);
             setCloseAt(closeTime);
             const now = new Date();
             const diffMs = closeTime - now;

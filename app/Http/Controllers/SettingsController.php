@@ -103,8 +103,9 @@ class SettingsController extends Controller
                 "is_active" => $request->is_active,
                 "open_date" => $request->open_date,
                 "closing_date" => $request->closing_date,
+                "no_location" => $request->boolean('no_location'),
             ]);
-            if (is_array($request->map_location_ids)) {
+            if (!$request->boolean('no_location') && is_array($request->map_location_ids)) {
                 $attendance->mapLocations()->sync($request->map_location_ids);
             }
             return to_route("index.settings");
@@ -115,8 +116,9 @@ class SettingsController extends Controller
             "is_active" => $request->is_active,
             "open_date" => $request->open_date,
             "closing_date" => $request->closing_date,
+            "no_location" => $request->boolean('no_location'),
         ]);
-        if (is_array($request->map_location_ids)) {
+        if (!$request->boolean('no_location') && is_array($request->map_location_ids)) {
             $attendance->mapLocations()->sync($request->map_location_ids);
         }
 
