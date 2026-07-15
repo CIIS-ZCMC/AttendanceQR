@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Link } from "@inertiajs/react";
@@ -9,10 +9,24 @@ import { usePage } from "@inertiajs/react";
 import { Toaster } from "sonner";
 import location from "../../../src/location.png";
 import { Smartphone, Globe } from "lucide-react";
+import { GoogleMap, Circle, Marker } from "@react-google-maps/api";
 
-export const NotInLocation = ({ locationService, distance, activeMapLocation }) => {
+const GEOFENCE_RADIUS = 30;
+
+export const NotInLocation = ({ locationService, distance, activeMapLocation, userCoords }) => {
 
     const page = usePage();
+    const [mapsReady, setMapsReady] = useState(false);
+
+    useEffect(() => {
+        const checkMaps = setInterval(() => {
+            if (window.google && window.google.maps) {
+                setMapsReady(true);
+                clearInterval(checkMaps);
+            }
+        }, 200);
+        return () => clearInterval(checkMaps);
+    }, []);
 
     const getGreeting = () => {
         const hour = new Date().getHours();
@@ -147,6 +161,58 @@ export const NotInLocation = ({ locationService, distance, activeMapLocation }) 
                             Kindly move to the allowed area and click{" "}
                             <span className="font-semibold">Try Again</span>.
                         </p>
+                    )}
+
+                    {locationService && mapsReady && activeMapLocation && userCoords && (
+                        <div className="w-full mt-2 rounded-lg overflow-hidden border border-gray-200">
+                            <GoogleMap
+                                mapContainerStyle={{ width: "100%", height: "300px" }}
+                                center={{ lat: parseFloat(activeMapLocation.lat), lng: parseFloat(activeMapLocation.lng) }}
+                                zoom={17}
+                                options={{
+                                    zoomControl: true,
+                                    mapTypeControl: false,
+                                    streetViewControl: false,
+                                    fullscreenControl: true,
+                                }}
+                            >
+                                <Circle
+                                    center={{ lat: parseFloat(activeMapLocation.lat), lng: parseFloat(activeMapLocation.lng) }}
+                                    radius={GEOFENCE_RADIUS}
+                                    options={{
+                                        fillColor: "#ef4444",
+                                        fillOpacity: 0.15,
+                                        strokeColor: "#ef4444",
+                                        strokeOpacity: 0.8,
+                                        strokeWeight: 2,
+                                    }}
+                                />
+                                <Marker
+                                    position={{ lat: parseFloat(activeMapLocation.lat), lng: parseFloat(activeMapLocation.lng) }}
+                                    label={{ text: "Target", fontSize: "10px" }}
+                                    icon={{
+                                        path: window.google.maps.SymbolPath.CIRCLE,
+                                        scale: 7,
+                                        fillColor: "#3b82f6",
+                                        fillOpacity: 1,
+                                        strokeColor: "#1d4ed8",
+                                        strokeWeight: 2,
+                                    }}
+                                />
+                                <Marker
+                                    position={{ lat: userCoords.lat, lng: userCoords.lng }}
+                                    label={{ text: "You", fontSize: "10px", className: "bg-red-500" }}
+                                    icon={{
+                                        path: window.google.maps.SymbolPath.PIN,
+                                        scale: 1.2,
+                                        fillColor: "#ef4444",
+                                        fillOpacity: 1,
+                                        strokeColor: "#dc2626",
+                                        strokeWeight: 1,
+                                    }}
+                                />
+                            </GoogleMap>
+                        </div>
                     )}
                 </div>
 

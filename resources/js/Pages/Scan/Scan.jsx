@@ -38,7 +38,7 @@ export default function Scan({
     const [anomaly, setAnomaly] = useState(null);
     const [warning, setWarning] = useState(warningSession);
     const userEnteredEmployeeId = localStorage.getItem("userEnteredEmployeeId");
-    const resolvedMapToken = mapToken || localStorage.getItem("attendanceToken");
+    const resolvedMapToken = mapToken;
     const {
         data,
         setData,
@@ -81,12 +81,15 @@ export default function Scan({
     const [fingerprint, setFingerprint] = useState(null);
     const [anomalyState, setAnomalyState] = useState(false);
     const [distance, setDistance] = useState(null);
+    const [userCoords, setUserCoords] = useState(null);
     const [edited, setEdited] = useState(false);
     const [showSummary, setShowSummary] = useState(null);
 
     useEffect(() => {
         if (resolvedMapToken) {
             localStorage.setItem("attendanceToken", resolvedMapToken);
+        } else {
+            localStorage.removeItem("attendanceToken");
         }
     }, [resolvedMapToken]);
 
@@ -114,6 +117,7 @@ export default function Scan({
                     const lat = pos.coords.latitude;
                     const lng = pos.coords.longitude;
                     const posAccuracy = pos.coords.accuracy;
+                    setUserCoords({ lat, lng });
                     const loadFingerprint = async () => {
                         const fp = await FingerprintJS.load();
                         const result = await fp.get();
@@ -428,6 +432,7 @@ export default function Scan({
                         locationService={locationService}
                         distance={distance}
                         activeMapLocation={activeMapLocation}
+                        userCoords={userCoords}
                     />
                 ) : isWithinLocation ? (
                     <div>
@@ -574,6 +579,7 @@ export default function Scan({
                         locationService={locationService}
                         distance={distance}
                         activeMapLocation={activeMapLocation}
+                        userCoords={userCoords}
                     />
                 )}
             </div>

@@ -16,6 +16,7 @@ Route::middleware([
       Route::get("my-attendance", "myAttendance")->name("my-attendance");
       Route::get("validate-location", "validateLocation")->name("validate-location");
       Route::post("get-summary", "getSummary");
+      Route::get("/calibrate", "calibrate")->name("calibrate");
    });
 
 

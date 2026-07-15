@@ -139,7 +139,7 @@ export default function ActiveConfiguration({ attendance, mapLocations: allMapLo
     const [showLocationDetails, setShowLocationDetails] = useState(false);
     const mapLocations = allMapLocations || [];
     const savedToken = typeof window !== "undefined" ? localStorage.getItem("attendanceToken") : null;
-    const defaultLoc = mapLocations.find((loc) => loc.token === savedToken) || mapLocations[0] || null;
+    const defaultLoc = mapLocations.find((loc) => loc.token === savedToken) || mapLocations.find((loc) => loc.is_default) || mapLocations[0] || null;
     const [selectedLocationToken, setSelectedLocationToken] = useState(defaultLoc?.token || "");
 
     const selectedLocation = mapLocations.find((loc) => loc.token === selectedLocationToken) || mapLocations[0] || null;

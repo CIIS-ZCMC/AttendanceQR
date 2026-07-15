@@ -19,6 +19,14 @@ use Illuminate\Support\Facades\Log;
 class AttendanceController extends Controller
 {
 
+    public function calibrate()
+    {
+        $mapLocations = \App\Models\MapLocation::orderBy('location', 'asc')->get();
+        return Inertia::render("Scan/Calibrate", [
+            "mapLocations" => $mapLocations,
+        ]);
+    }
+
     public function saveMapCoordinates(Request $request)
     {
         $coordinates = $request->all();
@@ -73,8 +81,8 @@ class AttendanceController extends Controller
 
         $Saved = false;
 
-        $userLat = 6.906935;
-        $userLng = 122.081535;
+        // $userLat = 6.906935;
+        // $userLng = 122.081535;
 
         /**
          * Add Validation here soon , that active attendance does not need location based.
@@ -189,7 +197,7 @@ class AttendanceController extends Controller
             session()->put('activeMapToken', $token);
             $activeMapLocation = \App\Models\MapLocation::where('token', $token)->first();
         } else {
-            $activeMapLocation = null;
+            $activeMapLocation = \App\Models\MapLocation::where('is_default', true)->first();
         }
 
         if (!$activeMapLocation) {

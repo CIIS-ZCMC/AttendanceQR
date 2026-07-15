@@ -16,6 +16,7 @@ class MapLocation extends Model
         'lat',
         'lng',
         'token',
+        'is_default',
         'open_time',
         'closing_time'
     ];
