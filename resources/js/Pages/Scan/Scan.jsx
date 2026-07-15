@@ -268,7 +268,7 @@ export default function Scan({
                 mapToken: resolvedMapToken,
             });
 
-            if (!isRecorded && !showSummary) {
+            if (isWithinLocation && !isRecorded && !showSummary) {
                 const timer = setTimeout(() => {
                     setVerifying(true);
                     router.post("get-summary", {
@@ -302,7 +302,7 @@ export default function Scan({
             );
             setEdited(true);
         }
-    }, [employeeID, page.url]);
+    }, [employeeID, page.url, isWithinLocation]);
 
 
 
