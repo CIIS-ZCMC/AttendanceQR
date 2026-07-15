@@ -800,6 +800,7 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                                         Attendance title
                                     </TableHead>
                                     <TableHead>Status</TableHead>
+                                    <TableHead>Type</TableHead>
                                     <TableHead>Locations</TableHead>
                                     <TableHead>Date Range</TableHead>
                                     <TableHead className="text-right">
@@ -817,7 +818,16 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                                             {displayStatus(attendance)}
                                         </TableCell>
                                         <TableCell>
-                                            {(attendance.map_locations || []).length > 0 ? (
+                                            {attendance.no_location ? (
+                                                <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs">Free Entry</Badge>
+                                            ) : (
+                                                <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">Location</Badge>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            {attendance.no_location ? (
+                                                <span className="text-xs text-gray-400">—</span>
+                                            ) : (attendance.map_locations || []).length > 0 ? (
                                                 <span className="text-xs text-gray-600">
                                                     {attendance.map_locations.map((loc) => loc.location).join(", ")}
                                                 </span>

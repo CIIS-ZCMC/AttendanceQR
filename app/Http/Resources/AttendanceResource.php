@@ -20,6 +20,7 @@ class AttendanceResource extends JsonResource
             "attendance_key" => $this->attendance_key,
             "is_active" => $this->is_active,
             "is_open" => $this->is_open,
+            "no_location" => $this->no_location,
             "closed_at" => $this->closed_at ? date("h:ia | M j, Y", strtotime($this->closed_at)) : null,
             "closing_at" => $this->closed_at,
             "open_date" => $this->open_date,
