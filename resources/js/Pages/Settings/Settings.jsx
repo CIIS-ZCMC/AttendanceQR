@@ -44,7 +44,8 @@ import { useForm } from "@inertiajs/react";
 import { toast } from "sonner";
 import { LoaderCircle } from "lucide-react";
 import { router, usePage } from "@inertiajs/react";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import { GoogleMap, Marker, Circle } from "@react-google-maps/api";
 
 export default function Settings({ attendanceList, is_admin, map_coordinates, mapLocations: initialMapLocations }) {
     const [selectedAttendance, setSelectedAttendance] = React.useState(null);
@@ -351,6 +352,8 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
 
     const MapLocationForm = () => {
         const [loading, setLoading] = React.useState(false);
+        const [mapsReady, setMapsReady] = useState(false);
+        const mapRef = useRef(null);
         const useMapLocationForm = useForm({
             id: "",
             location: "",
@@ -378,6 +381,38 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                 });
             }
         }, [selectedMapLocation]);
+
+        useEffect(() => {
+            const checkMaps = setInterval(() => {
+                if (window.google && window.google.maps) {
+                    setMapsReady(true);
+                    clearInterval(checkMaps);
+                }
+            }, 200);
+            return () => clearInterval(checkMaps);
+        }, []);
+
+        const mapCenter = useMapLocationForm.data.lat && useMapLocationForm.data.lng
+            ? { lat: parseFloat(useMapLocationForm.data.lat), lng: parseFloat(useMapLocationForm.data.lng) }
+            : { lat: 6.907257, lng: 122.080909 };
+
+        const handleMapClick = (e) => {
+            const lat = e.latLng.lat();
+            const lng = e.latLng.lng();
+            useMapLocationForm.setData("lat", lat);
+            useMapLocationForm.setData("lng", lng);
+        };
+
+        const handleMapLoad = (map) => {
+            mapRef.current = map;
+        };
+
+        const mapOptions = {
+            zoomControl: true,
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: true,
+        };
 
         const handleSubmit = async (e) => {
             e.preventDefault();
@@ -446,34 +481,81 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                         />
                     </div>
                     <div className="grid gap-3">
-                        <Label htmlFor="lat">Latitude</Label>
-                        <Input
-                            id="lat"
-                            name="lat"
-                            value={useMapLocationForm.data.lat}
-                            onChange={(e) => useMapLocationForm.setData("lat", e.target.value)}
-                            placeholder="Enter latitude"
-                            type="number"
-                            step="any"
-                        />
-                        {useMapLocationForm.errors.lat && (
-                            <p className="text-red-500 text-xs">{useMapLocationForm.errors.lat}</p>
+                        <Label>Pin Location on Map</Label>
+                        <p className="text-xs text-gray-500">Click on the map to set coordinates. You can still manually edit below.</p>
+                        {mapsReady ? (
+                            <div className="rounded-md overflow-hidden border border-gray-200">
+                                <GoogleMap
+                                    mapContainerStyle={{ width: "100%", height: "300px" }}
+                                    center={mapCenter}
+                                    zoom={16}
+                                    options={mapOptions}
+                                    onClick={handleMapClick}
+                                    onLoad={handleMapLoad}
+                                >
+                                    {useMapLocationForm.data.lat && useMapLocationForm.data.lng && (
+                                        <>
+                                            <Marker
+                                                position={{
+                                                    lat: parseFloat(useMapLocationForm.data.lat),
+                                                    lng: parseFloat(useMapLocationForm.data.lng),
+                                                }}
+                                            />
+                                            <Circle
+                                                center={{
+                                                    lat: parseFloat(useMapLocationForm.data.lat),
+                                                    lng: parseFloat(useMapLocationForm.data.lng),
+                                                }}
+                                                radius={30}
+                                                options={{
+                                                    fillColor: "#3b82f6",
+                                                    fillOpacity: 0.2,
+                                                    strokeColor: "#3b82f6",
+                                                    strokeOpacity: 0.6,
+                                                    strokeWeight: 2,
+                                                }}
+                                            />
+                                        </>
+                                    )}
+                                </GoogleMap>
+                            </div>
+                        ) : (
+                            <div className="h-[300px] flex items-center justify-center bg-gray-100 rounded-md">
+                                <LoaderCircle className="h-6 w-6 animate-spin text-gray-400" />
+                            </div>
                         )}
                     </div>
-                    <div className="grid gap-3">
-                        <Label htmlFor="lng">Longitude</Label>
-                        <Input
-                            id="lng"
-                            name="lng"
-                            value={useMapLocationForm.data.lng}
-                            onChange={(e) => useMapLocationForm.setData("lng", e.target.value)}
-                            placeholder="Enter longitude"
-                            type="number"
-                            step="any"
-                        />
-                        {useMapLocationForm.errors.lng && (
-                            <p className="text-red-500 text-xs">{useMapLocationForm.errors.lng}</p>
-                        )}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="grid gap-3">
+                            <Label htmlFor="lat">Latitude</Label>
+                            <Input
+                                id="lat"
+                                name="lat"
+                                value={useMapLocationForm.data.lat}
+                                onChange={(e) => useMapLocationForm.setData("lat", e.target.value)}
+                                placeholder="Enter latitude"
+                                type="number"
+                                step="any"
+                            />
+                            {useMapLocationForm.errors.lat && (
+                                <p className="text-red-500 text-xs">{useMapLocationForm.errors.lat}</p>
+                            )}
+                        </div>
+                        <div className="grid gap-3">
+                            <Label htmlFor="lng">Longitude</Label>
+                            <Input
+                                id="lng"
+                                name="lng"
+                                value={useMapLocationForm.data.lng}
+                                onChange={(e) => useMapLocationForm.setData("lng", e.target.value)}
+                                placeholder="Enter longitude"
+                                type="number"
+                                step="any"
+                            />
+                            {useMapLocationForm.errors.lng && (
+                                <p className="text-red-500 text-xs">{useMapLocationForm.errors.lng}</p>
+                            )}
+                        </div>
                     </div>
                     <div className="grid gap-3">
                         <Label htmlFor="open_time">Open Time *</Label>
@@ -943,7 +1025,7 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                                 </Button>
                             </DialogTrigger>
                             <DialogContent
-                                className="sm:max-w-[425px]"
+                                className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto"
                                 onInteractOutside={(e) => {
                                     e.preventDefault();
                                 }}
