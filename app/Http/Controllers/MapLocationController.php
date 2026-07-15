@@ -23,10 +23,16 @@ class MapLocationController extends Controller
             'lng' => 'required|numeric',
             'open_time' => 'required|date_format:H:i',
             'closing_time' => 'required|date_format:H:i|after:open_time',
+            'is_default' => 'nullable|boolean',
+            'w_map' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        if ($request->boolean('is_default')) {
+            MapLocation::where('is_default', true)->update(['is_default' => false]);
         }
 
         $mapLocation = MapLocation::create([
@@ -36,6 +42,8 @@ class MapLocationController extends Controller
             'lng' => $request->lng,
             'open_time' => $request->open_time,
             'closing_time' => $request->closing_time,
+            'is_default' => $request->boolean('is_default'),
+            'w_map' => $request->boolean('w_map'),
         ]);
 
         // Also save to JSON file for dual storage
@@ -53,6 +61,8 @@ class MapLocationController extends Controller
             'lng' => 'required|numeric',
             'open_time' => 'required|date_format:H:i',
             'closing_time' => 'required|date_format:H:i|after:open_time',
+            'is_default' => 'nullable|boolean',
+            'w_map' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -65,6 +75,10 @@ class MapLocationController extends Controller
             return response()->json(['message' => 'Map location not found'], 404);
         }
 
+        if ($request->boolean('is_default')) {
+            MapLocation::where('is_default', true)->where('id', '!=', $id)->update(['is_default' => false]);
+        }
+
         $mapLocation->update([
             'location' => $request->location,
             'description' => $request->description,
@@ -72,6 +86,8 @@ class MapLocationController extends Controller
             'lng' => $request->lng,
             'open_time' => $request->open_time,
             'closing_time' => $request->closing_time,
+            'is_default' => $request->boolean('is_default'),
+            'w_map' => $request->boolean('w_map'),
         ]);
 
         // Also save to JSON file for dual storage

@@ -343,6 +343,8 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
             lng: "",
             open_time: "",
             closing_time: "",
+            is_default: false,
+            w_map: false,
         });
 
         useEffect(() => {
@@ -355,6 +357,8 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                     lng: selectedMapLocation.lng,
                     open_time: selectedMapLocation.open_time ? selectedMapLocation.open_time.slice(0, 5) : "",
                     closing_time: selectedMapLocation.closing_time ? selectedMapLocation.closing_time.slice(0, 5) : "",
+                    is_default: !!selectedMapLocation.is_default,
+                    w_map: !!selectedMapLocation.w_map,
                 });
             }
         }, [selectedMapLocation]);
@@ -371,6 +375,8 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                     lng: parseFloat(useMapLocationForm.data.lng),
                     open_time: useMapLocationForm.data.open_time || null,
                     closing_time: useMapLocationForm.data.closing_time || null,
+                    is_default: useMapLocationForm.data.is_default,
+                    w_map: useMapLocationForm.data.w_map,
                 };
 
                 if (useMapLocationForm.data.id) {
@@ -480,6 +486,28 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                             required
                         />
                         <p className="text-xs text-gray-500">Time when the location becomes inactive daily.</p>
+                    </div>
+                    <div className="flex items-center gap-6 pt-2">
+                        <div className="flex items-center gap-2">
+                            <Checkbox
+                                id="is_default"
+                                checked={!!useMapLocationForm.data.is_default}
+                                onCheckedChange={(checked) => useMapLocationForm.setData("is_default", !!checked)}
+                            />
+                            <Label htmlFor="is_default" className="text-sm font-normal cursor-pointer">
+                                Set as default location
+                            </Label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Checkbox
+                                id="w_map"
+                                checked={!!useMapLocationForm.data.w_map}
+                                onCheckedChange={(checked) => useMapLocationForm.setData("w_map", !!checked)}
+                            />
+                            <Label htmlFor="w_map" className="text-sm font-normal cursor-pointer">
+                                Show map on warning
+                            </Label>
+                        </div>
                     </div>
                 </div>
                 <DialogFooter>
@@ -923,6 +951,8 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                                     <TableHead>Token</TableHead>
                                     <TableHead>Schedule</TableHead>
                                     <TableHead>Status</TableHead>
+                                    <TableHead>Default</TableHead>
+                                    <TableHead>Map</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -982,6 +1012,20 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                                             </TableCell>
                                             <TableCell>
                                                 {displayMapLocationStatus(mapLocation)}
+                                            </TableCell>
+                                            <TableCell>
+                                                {mapLocation.is_default ? (
+                                                    <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white text-xs">Default</Badge>
+                                                ) : (
+                                                    <span className="text-xs text-gray-400">—</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                {mapLocation.w_map ? (
+                                                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs">On</Badge>
+                                                ) : (
+                                                    <span className="text-xs text-gray-400">—</span>
+                                                )}
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex gap-2 justify-end">

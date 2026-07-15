@@ -163,7 +163,7 @@ export const NotInLocation = ({ locationService, distance, activeMapLocation, us
                         </p>
                     )}
 
-                    {locationService && mapsReady && activeMapLocation && userCoords && (
+                    {locationService && mapsReady && activeMapLocation && !!activeMapLocation.w_map && userCoords && (
                         <div className="w-full mt-2 rounded-lg overflow-hidden border border-gray-200">
                             <GoogleMap
                                 mapContainerStyle={{ width: "100%", height: "300px" }}

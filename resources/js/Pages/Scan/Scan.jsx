@@ -38,7 +38,7 @@ export default function Scan({
     const [anomaly, setAnomaly] = useState(null);
     const [warning, setWarning] = useState(warningSession);
     const userEnteredEmployeeId = localStorage.getItem("userEnteredEmployeeId");
-    const resolvedMapToken = mapToken;
+    const resolvedMapToken = mapToken || activeMapLocation?.token;
     const {
         data,
         setData,
@@ -178,9 +178,8 @@ export default function Scan({
                             })
                             .catch((error) => {
                                 console.log(error);
-                                toast.error("❌ Unable to fetch location.");
+                                toast.error("❌ Unable to validate location.");
                                 setLoad(false);
-                                setLocationService(false);
                             });
                     };
 
