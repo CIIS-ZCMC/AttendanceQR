@@ -81,8 +81,8 @@ class AttendanceController extends Controller
 
         $Saved = false;
 
-        // $userLat = 6.906935;
-        // $userLng = 122.081535;
+        // $userLat = 6.907257;
+        // $userLng = 122.080909;
 
         /**
          * Add Validation here soon , that active attendance does not need location based.
@@ -117,7 +117,7 @@ class AttendanceController extends Controller
 
         $isSuspicious = false;
 
-        // Red Flag: If accuracy is reported as 0 or exactly 1, 
+        // Red Flag: If accuracy is reported as 0 or exactly 1,
         // it's almost certainly a mock location.
         if ($accuracy <= 1) {
             $isSuspicious = true;
@@ -214,20 +214,23 @@ class AttendanceController extends Controller
             $employeeID = null;
 
             $contact = Contact::where("email_address", $userInformation['email'])->first();
-            if ($contact) {
-                $employeeID = $contact->employee_id;
+            if ($contact && $contact->personalInformation && $contact->personalInformation->employeeProfile) {
+                $employeeID = $contact->personalInformation->employeeProfile->employee_id;
             }
 
             $email = $userInformation['email'] ?? null;
             $profilePhoto = $userInformation['avatar'] ?? null;
             $UserName = $userInformation['name'] ?? null;
 
+            $fullUserToken = $userToken . $noLocationAttendance->id;
             $existingRecord = Attendance_Information::where("attendances_id", $noLocationAttendance->id)
-                ->where("userToken", $userToken)
+                ->where("userToken", $fullUserToken)
                 ->first();
 
             if ($existingRecord) {
                 $status['isRecorded'] = true;
+            } else {
+                session()->forget("isRecorded");
             }
 
             if (session()->has("isRecorded")) {
@@ -366,7 +369,7 @@ class AttendanceController extends Controller
     {
         try {
 
-       
+
             if (isset($request->is_no_employee_id) && $request->is_no_employee_id) {
 
                 $request->validate([
@@ -378,7 +381,7 @@ class AttendanceController extends Controller
 
             $attendanceInformation = $request->userAttendanceInformation();
 
-          
+
 
             if (empty($attendanceInformation)  || empty($attendanceInformation['name'])) {
                 return redirect()->back()->with("session", [

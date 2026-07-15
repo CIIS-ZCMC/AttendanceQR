@@ -84,6 +84,7 @@ export default function Scan({
     const [userCoords, setUserCoords] = useState(null);
     const [edited, setEdited] = useState(false);
     const [showSummary, setShowSummary] = useState(null);
+    const [verifying, setVerifying] = useState(false);
 
     useEffect(() => {
         if (resolvedMapToken) {
@@ -114,7 +115,6 @@ export default function Scan({
         if (attendance?.no_location) {
             setIsWithinLocation(true);
             setLoad(false);
-            setLocationService(false);
             return;
         }
         if (navigator.geolocation) {
@@ -259,23 +259,50 @@ export default function Scan({
     }, [attendance, activeMapLocation]);
 
     useEffect(() => {
-        if (!localStorage.getItem("userEnteredEmployeeId")) {
+        if (employeeID) {
+            localStorage.setItem("userEnteredEmployeeId", employeeID);
             setData({
                 ...data,
                 employeeId: employeeID,
-                anomaly: anomaly
+                anomaly: anomaly,
+                mapToken: resolvedMapToken,
             });
-        }
 
-        if (!employeeID && !isRecorded) {
+            if (!isRecorded && !showSummary) {
+                const timer = setTimeout(() => {
+                    setVerifying(true);
+                    router.post("get-summary", {
+                        employeeId: employeeID,
+                        attendanceId: attendance?.id,
+                        mapToken: resolvedMapToken,
+                        anomaly: anomaly,
+                    }, {
+                        preserveState: true,
+                        preserveScroll: true,
+                        onSuccess: (page) => {
+                            setVerifying(false);
+                            if (page.props?.session?.type == "error") {
+                                toast.error(page.props.session.message);
+                            } else if (page.props?.session?.type == "success") {
+                                setShowSummary(page.props.session.data);
+                            }
+                        },
+                        onError: (errors) => {
+                            setVerifying(false);
+                            toast.error("Unable to verify employee ID. Please try again.");
+                        },
+                    });
+                }, 500);
+
+                return () => clearTimeout(timer);
+            }
+        } else if (!employeeID && !isRecorded) {
             toast.warning(
                 "We couldn't find an employee ID linked to your email address."
             );
             setEdited(true);
         }
-
-
-    }, [employeeID]);
+    }, [employeeID, page.url]);
 
 
 
@@ -313,14 +340,31 @@ export default function Scan({
         setEdited(true);
         setShowSummary(null);
 
-        setData({ ...data, anomaly: anomaly, mapToken: resolvedMapToken });
+        const enteredId = e.currentTarget.employeeId?.value || data.employeeId;
 
-        post("get-summary", {
-            onSuccess: (response) => {
-                if (response.props?.session?.type == "error") {
-                    toast.error(response.props.session.message);
-                } else if (response.props?.session?.type == "success") {
-                    setShowSummary(response.props.session.data);
+        if (!enteredId) {
+            toast.error("Employee ID is required");
+            return;
+        }
+
+        setVerifying(true);
+
+        router.post("get-summary", {
+            employeeId: enteredId,
+            attendanceId: attendance?.id,
+            mapToken: resolvedMapToken,
+            anomaly: anomaly,
+            name: data.name,
+            area: data.area,
+            is_no_employee_id: data.is_no_employee_id,
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+            onSuccess: (page) => {
+                if (page.props?.session?.type == "error") {
+                    toast.error(page.props.session.message);
+                } else if (page.props?.session?.type == "success") {
+                    setShowSummary(page.props.session.data);
                 }
             },
             onError: (errors) => {
@@ -328,11 +372,10 @@ export default function Scan({
             },
             onFinish: () => {
                 setEdited(true);
+                setVerifying(false);
             },
         });
-
     };
-
 
     const handleSubmitAttendance = () => {
 
@@ -474,9 +517,25 @@ export default function Scan({
                                             </div>
                                         )}
 
+                                        {!activeMapLocation && attendance && (
+                                            <div className="bg-white border border-blue-200 rounded-xl shadow-sm p-4 mb-4 max-w-xs mx-auto">
+                                                <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                                                    Attendance Title
+                                                </div>
+                                                <div className="text-lg font-semibold text-gray-800">
+                                                    {attendance.title}
+                                                </div>
+                                                <div className="text-sm text-gray-600 mt-1">
+                                                    No location required
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <div className="inline-flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 rounded-lg text-xs font-medium">
                                             <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                            Attendance can be logged — you are inside the allowed area.
+                                            {attendance?.no_location
+                                                ? "Attendance can be logged"
+                                                : "Attendance can be logged — you are inside the allowed area."}
                                         </div>
                                     </div>
                                     <span className="text-sm">
@@ -510,11 +569,11 @@ export default function Scan({
 
                                         <Button
                                             type="submit"
-                                            disabled={processing}
+                                            disabled={verifying}
                                             className="z-1 absolute px-6"
                                         >
                                             {" "}
-                                            {processing ? (
+                                            {verifying ? (
                                                 <>
                                                     <LoaderCircle className="h-4 w-4 animate-spin" />{" "}
                                                     Verifying

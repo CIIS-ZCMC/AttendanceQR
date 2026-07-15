@@ -30,6 +30,10 @@ class AttendanceStoreRequest extends FormRequest
 
     public function FindEmployeeID()
     {
+        if (!empty($this->employeeId)) {
+            return $this->employeeId;
+        }
+
         if (session()->has('userToken')) {
             $userInformation = session()->get('userToken');
             $contact = Contact::where("email_address", $userInformation['email'] ?? null)->first();
