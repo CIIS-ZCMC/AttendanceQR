@@ -87,12 +87,12 @@ export default function Scan({
     const [verifying, setVerifying] = useState(false);
 
     useEffect(() => {
-        if (resolvedMapToken) {
-            localStorage.setItem("attendanceToken", resolvedMapToken);
+        if (mapToken) {
+            localStorage.setItem("attendanceToken", mapToken);
         } else {
             localStorage.removeItem("attendanceToken");
         }
-    }, [resolvedMapToken]);
+    }, [mapToken]);
 
     const getGreeting = () => {
         const hour = new Date().getHours();

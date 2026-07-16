@@ -9,12 +9,8 @@ export default function Welcome({ mapToken }) {
     useEffect(() => {
         if (mapToken) {
             localStorage.setItem("attendanceToken", mapToken);
-        }
-        if (!mapToken) {
-            const savedToken = localStorage.getItem("attendanceToken");
-            if (savedToken) {
-                window.location.href = `/?token=${savedToken}`;
-            }
+        } else {
+            localStorage.removeItem("attendanceToken");
         }
     }, [mapToken]);
     return (
