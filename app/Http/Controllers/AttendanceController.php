@@ -81,8 +81,8 @@ class AttendanceController extends Controller
 
         $Saved = false;
 
-        // $userLat = 6.907257;
-        // $userLng = 122.080909;
+        $userLat = 6.906935;
+        $userLng = 122.081535;
 
         /**
          * Add Validation here soon , that active attendance does not need location based.
@@ -369,7 +369,6 @@ class AttendanceController extends Controller
     {
         try {
 
-
             if (isset($request->is_no_employee_id) && $request->is_no_employee_id) {
 
                 $request->validate([
@@ -380,8 +379,6 @@ class AttendanceController extends Controller
             }
 
             $attendanceInformation = $request->userAttendanceInformation();
-
-
 
             if (empty($attendanceInformation)  || empty($attendanceInformation['name'])) {
                 return redirect()->back()->with("session", [
@@ -419,7 +416,7 @@ class AttendanceController extends Controller
 
 
             Attendance_Information::firstOrCreate([
-                "userToken" => $attendanceInformation['userToken'],
+                "biometric_id" => $attendanceInformation['biometric_id'],
                 "attendances_id" => $attendanceInformation['attendances_id'],
             ], $attendanceInformation);
 

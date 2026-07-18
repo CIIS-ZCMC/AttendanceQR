@@ -35,13 +35,15 @@ class AttendanceStoreRequest extends FormRequest
         }
 
         if (session()->has('userToken')) {
+          
             $userInformation = session()->get('userToken');
             $contact = Contact::where("email_address", $userInformation['email'] ?? null)->first();
+
             if ($contact && $contact->personalInformation && $contact->personalInformation->employeeProfile) {
                 $employeeID = $contact->personalInformation->employeeProfile->employee_id;
-                session()->put("isRecorded", true);
                 return $employeeID;
             }
+         
         }
         return $this->employeeId;
     }
@@ -64,14 +66,14 @@ class AttendanceStoreRequest extends FormRequest
           
             return $this->UserNoEmployeeID($this->name, $this->area);
         }
-      
+  
 
         $attendanceID = $this->attendanceId ?? session()->get("activeAttendanceID");
         $userToken = (session()->get('userToken')['id'] ?? '') . $attendanceID;
         //session()->put('employeeID', $this->employeeId);
 
         $employee = EmployeeProfile::where('employee_id', $this->FindEmployeeID())->first();
-
+        
         
         if (!$employee) {
             return [];

@@ -1,6 +1,6 @@
 import React, { use } from "react";
 import { useGeofence } from "@/hooks/use-geofence";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import AppLayout from "@/layouts/app-layout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,11 @@ export default function Scan({
 }) {
     const [anomaly, setAnomaly] = useState(null);
     const [warning, setWarning] = useState(warningSession);
-    const userEnteredEmployeeId = localStorage.getItem("userEnteredEmployeeId");
+    const emailWarningShown = useRef(false);
+    const storedEmployeeId = localStorage.getItem("userEnteredEmployeeId");
+    const storedEmployeeEmail = localStorage.getItem("userEnteredEmployeeEmail");
+    const userEnteredEmployeeId =
+        storedEmployeeEmail && storedEmployeeEmail === email ? storedEmployeeId : "";
     const resolvedMapToken = mapToken || activeMapLocation?.token;
     const {
         data,
@@ -261,6 +265,7 @@ export default function Scan({
     useEffect(() => {
         if (employeeID) {
             localStorage.setItem("userEnteredEmployeeId", employeeID);
+            localStorage.setItem("userEnteredEmployeeEmail", email || "");
             setData({
                 ...data,
                 employeeId: employeeID,
@@ -297,9 +302,12 @@ export default function Scan({
                 return () => clearTimeout(timer);
             }
         } else if (!employeeID && !isRecorded) {
-            toast.warning(
-                "We couldn't find an employee ID linked to your email address."
-            );
+            if (!emailWarningShown.current) {
+                emailWarningShown.current = true;
+                toast.warning(
+                    "We couldn't find an employee ID linked to your email address."
+                );
+            }
             setEdited(true);
         }
     }, [employeeID, page.url, isWithinLocation]);
@@ -347,6 +355,8 @@ export default function Scan({
             return;
         }
 
+        setData("employeeId", enteredId);
+
         setVerifying(true);
 
         router.post("get-summary", {
@@ -379,8 +389,13 @@ export default function Scan({
 
     const handleSubmitAttendance = () => {
 
-        post("/store_attendance", {
+        router.post("/store_attendance", {
+            employeeId: showSummary?.employee_id ?? data.employeeId,
+            attendanceId: attendance?.id,
+            mapToken: resolvedMapToken,
+            anomaly: anomaly,
             fingerprint: fingerprint,
+        }, {
             onSuccess: (response) => {
                 if (response.props?.session?.type == "error") {
                     toast.error(response.props.session.message);
@@ -389,6 +404,7 @@ export default function Scan({
                     setAnomalyState(true);
                 } else {
                     localStorage.removeItem("userEnteredEmployeeId");
+                    localStorage.removeItem("userEnteredEmployeeEmail");
                     toast.success("Attendance recorded successfully");
                 }
             },
@@ -407,10 +423,14 @@ export default function Scan({
             return;
         }
 
-        post("/store_attendance", {
+        router.post("/store_attendance", {
             name: name,
             area: area,
             is_no_employee_id: true,
+            attendanceId: attendance?.id,
+            mapToken: resolvedMapToken,
+            fingerprint: fingerprint,
+        }, {
             onSuccess: (response) => {
                 if (response.props?.session?.type == "error") {
                     toast.error(response.props.session.message);
@@ -419,10 +439,9 @@ export default function Scan({
                     setAnomalyState(true);
                 } else {
                     localStorage.removeItem("userEnteredEmployeeId");
+                    localStorage.removeItem("userEnteredEmployeeEmail");
                     toast.success("Attendance recorded successfully");
                 }
-
-
             },
         });
 
@@ -550,6 +569,7 @@ export default function Scan({
 
                                             onChange={(e) => {
                                                 localStorage.setItem("userEnteredEmployeeId", e.target.value);
+                                                localStorage.setItem("userEnteredEmployeeEmail", email || "");
                                                 setData({
                                                     ...data,
                                                     employeeId: e.target.value,
