@@ -19,7 +19,8 @@ class MapLocation extends Model
         'is_default',
         'w_map',
         'open_time',
-        'closing_time'
+        'closing_time',
+        'schedule_id'
     ];
 
     protected static function boot()
@@ -50,5 +51,26 @@ class MapLocation extends Model
     public function attendances()
     {
         return $this->belongsToMany(Attendance::class, 'attendance_map_locations', 'map_location_id', 'attendance_id');
+    }
+
+    public function schedule()
+    {
+        return $this->belongsTo(AttendanceSchedule::class, 'schedule_id');
+    }
+
+    public function getEffectiveOpenTimeAttribute()
+    {
+        if ($this->schedule_id && $this->schedule) {
+            return $this->schedule->open_time;
+        }
+        return $this->open_time;
+    }
+
+    public function getEffectiveClosingTimeAttribute()
+    {
+        if ($this->schedule_id && $this->schedule) {
+            return $this->schedule->closing_time;
+        }
+        return $this->closing_time;
     }
 }

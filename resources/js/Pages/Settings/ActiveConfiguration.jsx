@@ -50,6 +50,13 @@ const pickerStyles = `
     }
 `;
 
+function getEffectiveTime(loc) {
+    if (loc.schedule) {
+        return { open_time: loc.schedule.open_time, closing_time: loc.schedule.closing_time };
+    }
+    return { open_time: loc.open_time, closing_time: loc.closing_time };
+}
+
 function getAttendanceStatus(attendance) {
     if (!attendance) return { label: "No Active Attendance", variant: "destructive", icon: AlertCircle };
 
@@ -72,13 +79,12 @@ function getAttendanceStatus(attendance) {
     }
 
     const hasActive = mapLocations.some((loc) => {
-        const ot = loc.open_time?.slice(0, 5);
-        const ct = loc.closing_time?.slice(0, 5);
-        return ot && ct && currentTime >= ot && currentTime < ct;
+        const { open_time: ot, closing_time: ct } = getEffectiveTime(loc);
+        return ot && ct && currentTime >= ot?.slice(0, 5) && currentTime < ct?.slice(0, 5);
     });
     const hasNotOpenYet = mapLocations.some((loc) => {
-        const ot = loc.open_time?.slice(0, 5);
-        return ot && currentTime < ot;
+        const { open_time: ot } = getEffectiveTime(loc);
+        return ot && currentTime < ot?.slice(0, 5);
     });
 
     if (hasActive) return { label: "Active Now", variant: "success", icon: CheckCircle2 };
@@ -107,35 +113,35 @@ function getStatusMessage(attendance) {
     }
 
     const hasActive = mapLocations.some((loc) => {
-        const ot = loc.open_time?.slice(0, 5);
-        const ct = loc.closing_time?.slice(0, 5);
-        return ot && ct && currentTime >= ot && currentTime < ct;
+        const { open_time: ot, closing_time: ct } = getEffectiveTime(loc);
+        return ot && ct && currentTime >= ot?.slice(0, 5) && currentTime < ct?.slice(0, 5);
     });
     if (hasActive) {
-        const closingTime = mapLocations.find((loc) => {
-            const ot = loc.open_time?.slice(0, 5);
-            const ct = loc.closing_time?.slice(0, 5);
-            return ot && ct && currentTime >= ot && currentTime < ct;
-        })?.closing_time?.slice(0, 5);
-        return `Attendance is open today until ${closingTime}.`;
+        const activeLoc = mapLocations.find((loc) => {
+            const { open_time: ot, closing_time: ct } = getEffectiveTime(loc);
+            return ot && ct && currentTime >= ot?.slice(0, 5) && currentTime < ct?.slice(0, 5);
+        });
+        const { closing_time: ct } = getEffectiveTime(activeLoc);
+        return `Attendance is open today until ${ct?.slice(0, 5)}.`;
     }
 
     const hasNotOpenYet = mapLocations.some((loc) => {
-        const ot = loc.open_time?.slice(0, 5);
-        return ot && currentTime < ot;
+        const { open_time: ot } = getEffectiveTime(loc);
+        return ot && currentTime < ot?.slice(0, 5);
     });
     if (hasNotOpenYet) {
-        const openTime = mapLocations.find((loc) => {
-            const ot = loc.open_time?.slice(0, 5);
-            return ot && currentTime < ot;
-        })?.open_time?.slice(0, 5);
-        return `Attendance opens today at ${openTime}.`;
+        const loc = mapLocations.find((loc) => {
+            const { open_time: ot } = getEffectiveTime(loc);
+            return ot && currentTime < ot?.slice(0, 5);
+        });
+        const { open_time: ot } = getEffectiveTime(loc);
+        return `Attendance opens today at ${ot?.slice(0, 5)}.`;
     }
 
     return `Attendance closed for today.`;
 }
 
-export default function ActiveConfiguration({ attendance, mapLocations: allMapLocations, is_admin }) {
+export default function ActiveConfiguration({ attendance, mapLocations: allMapLocations, schedules, is_admin }) {
     const [showLocationDetails, setShowLocationDetails] = useState(false);
     const mapLocations = allMapLocations || [];
     const savedToken = typeof window !== "undefined" ? localStorage.getItem("attendanceToken") : null;
@@ -159,6 +165,7 @@ export default function ActiveConfiguration({ attendance, mapLocations: allMapLo
         map_location_id: "",
         open_date: "",
         closing_date: "",
+        schedule_id: "",
         open_time: "",
         closing_time: "",
     });
@@ -171,6 +178,7 @@ export default function ActiveConfiguration({ attendance, mapLocations: allMapLo
                 map_location_id: selectedLocation.id,
                 open_date: attendance.open_date || "",
                 closing_date: attendance.closing_date || "",
+                schedule_id: selectedLocation.schedule_id || "",
                 open_time: selectedLocation.open_time ? selectedLocation.open_time.slice(0, 5) : "",
                 closing_time: selectedLocation.closing_time ? selectedLocation.closing_time.slice(0, 5) : "",
             });
@@ -306,7 +314,11 @@ export default function ActiveConfiguration({ attendance, mapLocations: allMapLo
                                                 </span>
                                                 <span className="flex items-center gap-1">
                                                     <Clock className="w-3 h-3" />
-                                                    {selectedLocation.open_time?.slice(0, 5)} — {selectedLocation.closing_time?.slice(0, 5)}
+                                                    {(() => {
+                                                        const { open_time: ot, closing_time: ct } = getEffectiveTime(selectedLocation);
+                                                        const schedName = selectedLocation.schedule?.name;
+                                                        return `${ot?.slice(0, 5) || "N/A"} — ${ct?.slice(0, 5) || "N/A"}${schedName ? ` (${schedName})` : ""}`;
+                                                    })()}
                                                 </span>
                                             </div>
                                         </div>
@@ -448,39 +460,72 @@ export default function ActiveConfiguration({ attendance, mapLocations: allMapLo
 
                                     <div className="grid grid-cols-1 gap-3 sm:gap-6">
                                         <div className="space-y-2">
-                                            <Label htmlFor="open_time" className="text-sm font-medium">
-                                                Open Time
+                                            <Label htmlFor="schedule_id" className="text-sm font-medium">
+                                                Time Schedule
                                             </Label>
                                             <div className="relative w-full">
                                                 <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                                <Input
-                                                    id="open_time"
-                                                    name="open_time"
-                                                    type="time"
-                                                    required
-                                                    value={useCreateForm.data.open_time}
-                                                    onChange={(e) => useCreateForm.setData("open_time", e.target.value)}
-                                                    className="pl-10 w-full date-time-input"
-                                                />
+                                                <select
+                                                    id="schedule_id"
+                                                    value={useCreateForm.data.schedule_id}
+                                                    onChange={(e) => useCreateForm.setData("schedule_id", e.target.value)}
+                                                    className="pl-10 w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                                                >
+                                                    <option value="">Custom (manual times)</option>
+                                                    {(schedules || []).map((sched) => (
+                                                        <option key={sched.id} value={sched.id}>
+                                                            {sched.name} ({sched.open_time?.slice(0, 5)} - {sched.closing_time?.slice(0, 5)})
+                                                        </option>
+                                                    ))}
+                                                </select>
                                             </div>
+                                            {useCreateForm.data.schedule_id && (() => {
+                                                const sched = (schedules || []).find(s => s.id == useCreateForm.data.schedule_id);
+                                                return sched ? (
+                                                    <p className="text-xs text-gray-500">
+                                                        Open: {sched.open_time?.slice(0, 5)} — Close: {sched.closing_time?.slice(0, 5)}
+                                                    </p>
+                                                ) : null;
+                                            })()}
                                         </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="closing_time" className="text-sm font-medium">
-                                                Closing Time
-                                            </Label>
-                                            <div className="relative w-full">
-                                                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                                <Input
-                                                    id="closing_time"
-                                                    name="closing_time"
-                                                    type="time"
-                                                    required
-                                                    value={useCreateForm.data.closing_time}
-                                                    onChange={(e) => useCreateForm.setData("closing_time", e.target.value)}
-                                                    className="pl-10 w-full date-time-input"
-                                                />
+                                        {!useCreateForm.data.schedule_id && (
+                                            <div className="grid grid-cols-2 gap-3 sm:gap-6">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="open_time" className="text-sm font-medium">
+                                                        Open Time
+                                                    </Label>
+                                                    <div className="relative w-full">
+                                                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                                        <Input
+                                                            id="open_time"
+                                                            name="open_time"
+                                                            type="time"
+                                                            required
+                                                            value={useCreateForm.data.open_time}
+                                                            onChange={(e) => useCreateForm.setData("open_time", e.target.value)}
+                                                            className="pl-10 w-full date-time-input"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="closing_time" className="text-sm font-medium">
+                                                        Closing Time
+                                                    </Label>
+                                                    <div className="relative w-full">
+                                                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                                        <Input
+                                                            id="closing_time"
+                                                            name="closing_time"
+                                                            type="time"
+                                                            required
+                                                            value={useCreateForm.data.closing_time}
+                                                            onChange={(e) => useCreateForm.setData("closing_time", e.target.value)}
+                                                            className="pl-10 w-full date-time-input"
+                                                        />
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
 
                                     <div className="flex justify-end">

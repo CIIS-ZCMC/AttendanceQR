@@ -154,7 +154,7 @@ class AttendanceController extends Controller
             return false;
         }
 
-        $attendance = Attendance::where("id", $attendanceID)->where("is_active", 1)->first();
+        $attendance = Attendance::with('mapLocations.schedule')->where("id", $attendanceID)->where("is_active", 1)->first();
         if (!$attendance || $attendance->mapLocations->isEmpty()) {
             return false;
         }
@@ -171,8 +171,10 @@ class AttendanceController extends Controller
         }
 
         foreach ($attendance->mapLocations as $mapLocation) {
-            if ($mapLocation->open_time && $mapLocation->closing_time
-                && $currentTime >= $mapLocation->open_time && $currentTime < $mapLocation->closing_time) {
+            $openTime = $mapLocation->effective_open_time;
+            $closingTime = $mapLocation->effective_closing_time;
+            if ($openTime && $closingTime
+                && $currentTime >= $openTime && $currentTime < $closingTime) {
                 return true;
             }
         }
@@ -262,9 +264,9 @@ class AttendanceController extends Controller
 
         if ($token) {
             session()->put('activeMapToken', $token);
-            $activeMapLocation = \App\Models\MapLocation::where('token', $token)->first();
+            $activeMapLocation = \App\Models\MapLocation::with('schedule')->where('token', $token)->first();
         } else {
-            $activeMapLocation = \App\Models\MapLocation::where('is_default', true)->first();
+            $activeMapLocation = \App\Models\MapLocation::with('schedule')->where('is_default', true)->first();
         }
 
         if (!$activeMapLocation) {
@@ -291,11 +293,11 @@ class AttendanceController extends Controller
                 $status['isNotOpen'] = true;
             } elseif ($today > $attendance->closing_date) {
                 $status['isClosed'] = true;
-            } elseif (!$activeMapLocation->open_time || !$activeMapLocation->closing_time) {
+            } elseif (!$activeMapLocation->effective_open_time || !$activeMapLocation->effective_closing_time) {
                 $status['notFound'] = true;
-            } elseif ($currentTime < $activeMapLocation->open_time) {
+            } elseif ($currentTime < $activeMapLocation->effective_open_time) {
                 $status['isNotOpen'] = true;
-            } elseif ($currentTime >= $activeMapLocation->closing_time) {
+            } elseif ($currentTime >= $activeMapLocation->effective_closing_time) {
                 $status['isClosed'] = true;
             }
         }

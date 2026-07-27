@@ -16,16 +16,19 @@ class MapLocationController extends Controller
 
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $rules = [
             'location' => 'required|string|max:255',
             'description' => 'nullable|string',
             'lat' => 'nullable|numeric',
             'lng' => 'nullable|numeric',
-            'open_time' => 'required|date_format:H:i',
-            'closing_time' => 'required|date_format:H:i|after:open_time',
+            'schedule_id' => 'nullable|exists:attendanceschedule,id',
+            'open_time' => 'nullable|date_format:H:i',
+            'closing_time' => 'nullable|date_format:H:i|after:open_time',
             'is_default' => 'nullable|boolean',
             'w_map' => 'nullable|boolean',
-        ]);
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
@@ -40,8 +43,9 @@ class MapLocationController extends Controller
             'description' => $request->description,
             'lat' => $request->lat ?? '',
             'lng' => $request->lng ?? '',
-            'open_time' => $request->open_time,
-            'closing_time' => $request->closing_time,
+            'schedule_id' => $request->schedule_id ?: null,
+            'open_time' => $request->schedule_id ? null : ($request->open_time ?? null),
+            'closing_time' => $request->schedule_id ? null : ($request->closing_time ?? null),
             'is_default' => $request->boolean('is_default'),
             'w_map' => $request->boolean('w_map'),
         ]);
@@ -54,16 +58,19 @@ class MapLocationController extends Controller
 
     public function update(Request $request, $id)
     {
-        $validator = Validator::make($request->all(), [
+        $rules = [
             'location' => 'required|string|max:255',
             'description' => 'nullable|string',
             'lat' => 'nullable|numeric',
             'lng' => 'nullable|numeric',
-            'open_time' => 'required|date_format:H:i',
-            'closing_time' => 'required|date_format:H:i|after:open_time',
+            'schedule_id' => 'nullable|exists:attendanceschedule,id',
+            'open_time' => 'nullable|date_format:H:i',
+            'closing_time' => 'nullable|date_format:H:i|after:open_time',
             'is_default' => 'nullable|boolean',
             'w_map' => 'nullable|boolean',
-        ]);
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
@@ -84,8 +91,9 @@ class MapLocationController extends Controller
             'description' => $request->description,
             'lat' => $request->lat ?? '',
             'lng' => $request->lng ?? '',
-            'open_time' => $request->open_time,
-            'closing_time' => $request->closing_time,
+            'schedule_id' => $request->schedule_id ?: null,
+            'open_time' => $request->schedule_id ? null : ($request->open_time ?? null),
+            'closing_time' => $request->schedule_id ? null : ($request->closing_time ?? null),
             'is_default' => $request->boolean('is_default'),
             'w_map' => $request->boolean('w_map'),
         ]);

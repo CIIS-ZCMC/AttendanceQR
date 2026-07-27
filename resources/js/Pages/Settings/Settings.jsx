@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/Components/ui/input";
 import { Button } from "@/Components/ui/button";
-import { Edit, Plus, Calendar, MapPin } from "lucide-react";
+import { Edit, Plus, Calendar, MapPin, Clock } from "lucide-react";
 import {
     Pagination,
     PaginationContent,
@@ -47,7 +47,7 @@ import { router, usePage } from "@inertiajs/react";
 import { useEffect, useRef, useState } from "react";
 import { GoogleMap, Marker, Circle } from "@react-google-maps/api";
 
-export default function Settings({ attendanceList, is_admin, map_coordinates, mapLocations: initialMapLocations }) {
+export default function Settings({ attendanceList, is_admin, map_coordinates, mapLocations: initialMapLocations, schedules: initialSchedules }) {
     const [selectedAttendance, setSelectedAttendance] = React.useState(null);
     const [open, setOpen] = React.useState(false);
     const [mapModalOpen, setMapModalOpen] = React.useState(false);
@@ -58,6 +58,10 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
     const [activeTab, setActiveTab] = React.useState("attendance");
     const page = usePage();
     const [search, setSearch] = React.useState("");
+    const [schedules, setSchedules] = React.useState(initialSchedules || []);
+    const [scheduleModalOpen, setScheduleModalOpen] = React.useState(false);
+    const [selectedSchedule, setSelectedSchedule] = React.useState(null);
+    const [scheduleSearch, setScheduleSearch] = React.useState("");
 
     const fetchMapLocations = async () => {
         try {
@@ -65,6 +69,29 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
             setMapLocations(response.data);
         } catch (error) {
             console.error('Error fetching map locations:', error);
+        }
+    };
+
+    const fetchSchedules = async () => {
+        try {
+            const response = await axios.get('/api/schedules');
+            setSchedules(response.data);
+        } catch (error) {
+            console.error('Error fetching schedules:', error);
+        }
+    };
+
+    const handleDeleteSchedule = async (id) => {
+        if (!confirm("Are you sure you want to delete this schedule?")) {
+            return;
+        }
+        try {
+            await axios.delete(`/api/schedules/${id}`);
+            toast.success("Schedule deleted successfully!");
+            fetchSchedules();
+        } catch (error) {
+            console.error('Error deleting schedule:', error);
+            toast.error("Failed to delete schedule");
         }
     };
 
@@ -350,6 +377,123 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
         );
     };
 
+    const ScheduleForm = () => {
+        const [loading, setLoading] = React.useState(false);
+        const useScheduleForm = useForm({
+            id: "",
+            name: "",
+            open_time: "",
+            closing_time: "",
+        });
+
+        useEffect(() => {
+            if (selectedSchedule) {
+                useScheduleForm.setData({
+                    id: selectedSchedule.id,
+                    name: selectedSchedule.name,
+                    open_time: selectedSchedule.open_time ? selectedSchedule.open_time.slice(0, 5) : "",
+                    closing_time: selectedSchedule.closing_time ? selectedSchedule.closing_time.slice(0, 5) : "",
+                });
+            }
+        }, [selectedSchedule]);
+
+        const handleSubmit = async (e) => {
+            e.preventDefault();
+            setLoading(true);
+            try {
+                const data = {
+                    name: useScheduleForm.data.name,
+                    open_time: useScheduleForm.data.open_time,
+                    closing_time: useScheduleForm.data.closing_time,
+                };
+                if (useScheduleForm.data.id) {
+                    await axios.put(`/api/schedules/${useScheduleForm.data.id}`, data);
+                    toast.success("Schedule updated successfully!");
+                } else {
+                    await axios.post('/api/schedules', data);
+                    toast.success("Schedule created successfully!");
+                }
+                setScheduleModalOpen(false);
+                setSelectedSchedule(null);
+                useScheduleForm.reset();
+                fetchSchedules();
+            } catch (error) {
+                console.error('Error saving schedule:', error);
+                if (error.response?.data?.errors) {
+                    useScheduleForm.setError(error.response.data.errors);
+                }
+                toast.error("Failed to save schedule");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        return (
+            <form onSubmit={handleSubmit}>
+                <div className="grid gap-4 mb-4">
+                    <div className="grid gap-3">
+                        <Label htmlFor="schedule_name">Schedule Name</Label>
+                        <Input
+                            required
+                            id="schedule_name"
+                            value={useScheduleForm.data.name}
+                            onChange={(e) => useScheduleForm.setData("name", e.target.value)}
+                            placeholder="e.g. Flag Ceremony AM"
+                        />
+                        {useScheduleForm.errors.name && (
+                            <p className="text-red-500 text-xs">{useScheduleForm.errors.name}</p>
+                        )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="grid gap-3">
+                            <Label htmlFor="schedule_open_time">Open Time</Label>
+                            <Input
+                                required
+                                id="schedule_open_time"
+                                type="time"
+                                value={useScheduleForm.data.open_time}
+                                onChange={(e) => useScheduleForm.setData("open_time", e.target.value)}
+                                className="w-full block rounded-md p-2"
+                            />
+                        </div>
+                        <div className="grid gap-3">
+                            <Label htmlFor="schedule_closing_time">Closing Time</Label>
+                            <Input
+                                required
+                                id="schedule_closing_time"
+                                type="time"
+                                value={useScheduleForm.data.closing_time}
+                                onChange={(e) => useScheduleForm.setData("closing_time", e.target.value)}
+                                className="w-full block rounded-md p-2"
+                            />
+                        </div>
+                    </div>
+                    {useScheduleForm.errors.open_time && (
+                        <p className="text-red-500 text-xs">{useScheduleForm.errors.open_time}</p>
+                    )}
+                    {useScheduleForm.errors.closing_time && (
+                        <p className="text-red-500 text-xs">{useScheduleForm.errors.closing_time}</p>
+                    )}
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button type="button" variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button disabled={loading} type="submit">
+                        {loading ? (
+                            <div className="flex items-center">
+                                <LoaderCircle size="sm" className="mr-2 animate-spin" />
+                                Saving...
+                            </div>
+                        ) : (
+                            "Save Schedule"
+                        )}
+                    </Button>
+                </DialogFooter>
+            </form>
+        );
+    };
+
     const MapLocationForm = () => {
         const [loading, setLoading] = React.useState(false);
         const [mapsReady, setMapsReady] = useState(false);
@@ -360,6 +504,7 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
             description: "",
             lat: "",
             lng: "",
+            schedule_id: "",
             open_time: "",
             closing_time: "",
             is_default: false,
@@ -374,6 +519,7 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                     description: selectedMapLocation.description || "",
                     lat: selectedMapLocation.lat,
                     lng: selectedMapLocation.lng,
+                    schedule_id: selectedMapLocation.schedule_id || "",
                     open_time: selectedMapLocation.open_time ? selectedMapLocation.open_time.slice(0, 5) : "",
                     closing_time: selectedMapLocation.closing_time ? selectedMapLocation.closing_time.slice(0, 5) : "",
                     is_default: !!selectedMapLocation.is_default,
@@ -424,8 +570,9 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                     description: useMapLocationForm.data.description,
                     lat: useMapLocationForm.data.lat ? parseFloat(useMapLocationForm.data.lat) : "",
                     lng: useMapLocationForm.data.lng ? parseFloat(useMapLocationForm.data.lng) : "",
-                    open_time: useMapLocationForm.data.open_time || null,
-                    closing_time: useMapLocationForm.data.closing_time || null,
+                    schedule_id: useMapLocationForm.data.schedule_id || null,
+                    open_time: useMapLocationForm.data.schedule_id ? null : (useMapLocationForm.data.open_time || null),
+                    closing_time: useMapLocationForm.data.schedule_id ? null : (useMapLocationForm.data.closing_time || null),
                     is_default: useMapLocationForm.data.is_default,
                     w_map: useMapLocationForm.data.w_map,
                 };
@@ -558,31 +705,50 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                         </div>
                     </div>
                     <div className="grid gap-3">
-                        <Label htmlFor="open_time">Open Time *</Label>
-                        <Input
-                            id="open_time"
-                            name="open_time"
-                            value={useMapLocationForm.data.open_time}
-                            onChange={(e) => useMapLocationForm.setData("open_time", e.target.value)}
-                            type="time"
-                            className="w-full block rounded-md p-2"
-                            required
-                        />
-                        <p className="text-xs text-gray-500">Time when the location becomes active daily.</p>
+                        <Label htmlFor="schedule_id">Schedule</Label>
+                        <select
+                            id="schedule_id"
+                            value={useMapLocationForm.data.schedule_id}
+                            onChange={(e) => useMapLocationForm.setData("schedule_id", e.target.value)}
+                            className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                        >
+                            <option value="">Custom (manual times)</option>
+                            {schedules.map((sched) => (
+                                <option key={sched.id} value={sched.id}>
+                                    {sched.name} ({sched.open_time?.slice(0, 5)} - {sched.closing_time?.slice(0, 5)})
+                                </option>
+                            ))}
+                        </select>
+                        <p className="text-xs text-gray-500">Select a predefined schedule or choose Custom to set times manually.</p>
                     </div>
-                    <div className="grid gap-3">
-                        <Label htmlFor="closing_time">Closing Time *</Label>
-                        <Input
-                            id="closing_time"
-                            name="closing_time"
-                            value={useMapLocationForm.data.closing_time}
-                            onChange={(e) => useMapLocationForm.setData("closing_time", e.target.value)}
-                            type="time"
-                            className="w-full block rounded-md p-2"
-                            required
-                        />
-                        <p className="text-xs text-gray-500">Time when the location becomes inactive daily.</p>
-                    </div>
+                    {!useMapLocationForm.data.schedule_id && (
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="grid gap-3">
+                                <Label htmlFor="open_time">Open Time *</Label>
+                                <Input
+                                    id="open_time"
+                                    name="open_time"
+                                    value={useMapLocationForm.data.open_time}
+                                    onChange={(e) => useMapLocationForm.setData("open_time", e.target.value)}
+                                    type="time"
+                                    className="w-full block rounded-md p-2"
+                                    required
+                                />
+                            </div>
+                            <div className="grid gap-3">
+                                <Label htmlFor="closing_time">Closing Time *</Label>
+                                <Input
+                                    id="closing_time"
+                                    name="closing_time"
+                                    value={useMapLocationForm.data.closing_time}
+                                    onChange={(e) => useMapLocationForm.setData("closing_time", e.target.value)}
+                                    type="time"
+                                    className="w-full block rounded-md p-2"
+                                    required
+                                />
+                            </div>
+                        </div>
+                    )}
                     <div className="flex items-center gap-6 pt-2">
                         <div className="flex items-center gap-2">
                             <Checkbox
@@ -767,7 +933,7 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+                <TabsList className="grid w-full max-w-md grid-cols-3 mb-6">
                     <TabsTrigger value="attendance">
                         <Calendar className="w-4 h-4 mr-2" />
                         Attendance
@@ -775,6 +941,10 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                     <TabsTrigger value="map-location">
                         <MapPin className="w-4 h-4 mr-2" />
                         Map Location
+                    </TabsTrigger>
+                    <TabsTrigger value="schedules">
+                        <Clock className="w-4 h-4 mr-2" />
+                        Schedules
                     </TabsTrigger>
                 </TabsList>
 
@@ -1111,10 +1281,24 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <div className="text-xs">
-                                                    <div>{mapLocation.open_time || "N/A"}</div>
-                                                    <div className="text-gray-400">to {mapLocation.closing_time || "N/A"}</div>
-                                                </div>
+                                                {mapLocation.schedule_id ? (
+                                                    (() => {
+                                                        const sched = schedules.find(s => s.id === mapLocation.schedule_id);
+                                                        return sched ? (
+                                                            <div className="text-xs">
+                                                                <div className="font-medium text-blue-600">{sched.name}</div>
+                                                                <div className="text-gray-400">{sched.open_time?.slice(0, 5)} - {sched.closing_time?.slice(0, 5)}</div>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-xs text-gray-400">Schedule #{mapLocation.schedule_id}</span>
+                                                        );
+                                                    })()
+                                                ) : (
+                                                    <div className="text-xs">
+                                                        <div>{mapLocation.open_time || "N/A"}</div>
+                                                        <div className="text-gray-400">to {mapLocation.closing_time || "N/A"}</div>
+                                                    </div>
+                                                )}
                                             </TableCell>
                                             <TableCell>
                                                 {displayMapLocationStatus(mapLocation)}
@@ -1149,6 +1333,103 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                                                         size="sm"
                                                         variant="outline"
                                                         onClick={() => handleDeleteMapLocation(mapLocation.id)}
+                                                    >
+                                                        <Trash size={12} className="text-red-400" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="schedules" className="space-y-4">
+                    <div className="mt-5 flex sm:flex-row flex-col gap-2 md:w-full">
+                        <Input
+                            type="text"
+                            value={scheduleSearch}
+                            onChange={(e) => setScheduleSearch(e.target.value)}
+                            placeholder="Search schedules"
+                            size="sm"
+                        />
+
+                        <Dialog open={scheduleModalOpen} onOpenChange={setScheduleModalOpen}>
+                            <DialogTrigger asChild>
+                                <Button
+                                    variant="primary"
+                                    className="bg-blue-900 hover:bg-blue-800 text-white"
+                                    onClick={() => setSelectedSchedule(null)}
+                                >
+                                    Create Schedule <Plus className="ml-2 size-4" />
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent
+                                className="sm:max-w-[425px]"
+                                onInteractOutside={(e) => {
+                                    e.preventDefault();
+                                }}
+                            >
+                                <DialogHeader>
+                                    <DialogTitle>
+                                        {selectedSchedule ? "Edit " : "Create "}
+                                        Schedule
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        {selectedSchedule
+                                            ? "Edit schedule. Click save when you're done."
+                                            : "Create a new time schedule. Click save when you're done."}
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <ScheduleForm />
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+
+                    <div className="mt-5 overflow-y-auto max-[600px]:w-[400px] max-[520px]:w-[350px] max-[470px]:w-[300px] max-[412px]:w-[280px] max-[390px]:w-[auto]">
+                        <Table>
+                            <TableCaption>List of Time Schedules</TableCaption>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[200px]">Schedule Name</TableHead>
+                                    <TableHead>Open Time</TableHead>
+                                    <TableHead>Closing Time</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {schedules
+                                    .filter((sched) =>
+                                        sched.name.toLowerCase().includes(scheduleSearch.toLowerCase())
+                                    )
+                                    .map((schedule) => (
+                                        <TableRow key={schedule.id}>
+                                            <TableCell className="font-medium">
+                                                {schedule.name}
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className="text-xs text-gray-600">{schedule.open_time?.slice(0, 5)}</span>
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className="text-xs text-gray-600">{schedule.closing_time?.slice(0, 5)}</span>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex gap-2 justify-end">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            setSelectedSchedule(schedule);
+                                                            setScheduleModalOpen(true);
+                                                        }}
+                                                    >
+                                                        <Edit size={12} className="text-blue-400" />
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => handleDeleteSchedule(schedule.id)}
                                                     >
                                                         <Trash size={12} className="text-red-400" />
                                                     </Button>
