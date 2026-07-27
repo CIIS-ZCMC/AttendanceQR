@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\AttendanceScheduleController;
 use App\Http\Controllers\MapLocationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -19,3 +20,9 @@ Route::get('/map-locations', [MapLocationController::class, 'index']);
 Route::post('/map-locations', [MapLocationController::class, 'store']);
 Route::put('/map-locations/{id}', [MapLocationController::class, 'update']);
 Route::delete('/map-locations/{id}', [MapLocationController::class, 'destroy']);
+
+// Attendance Schedules CRUD routes
+Route::get('/schedules', [AttendanceScheduleController::class, 'index']);
+Route::post('/schedules', [AttendanceScheduleController::class, 'store']);
+Route::put('/schedules/{id}', [AttendanceScheduleController::class, 'update']);
+Route::delete('/schedules/{id}', [AttendanceScheduleController::class, 'destroy']);

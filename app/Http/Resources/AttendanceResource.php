@@ -36,6 +36,13 @@ class AttendanceResource extends JsonResource
                         "token" => $loc->token,
                         "open_time" => $loc->open_time,
                         "closing_time" => $loc->closing_time,
+                        "schedule_id" => $loc->schedule_id,
+                        "schedule" => $loc->schedule ? [
+                            "id" => $loc->schedule->id,
+                            "name" => $loc->schedule->name,
+                            "open_time" => $loc->schedule->open_time,
+                            "closing_time" => $loc->schedule->closing_time,
+                        ] : null,
                     ];
                 });
             }),

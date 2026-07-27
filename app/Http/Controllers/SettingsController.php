@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use App\Http\Requests\SettingsAttendanceStoreRequest;
 use App\Models\Attendance_Information;
+use App\Models\AttendanceSchedule;
 
 class SettingsController extends Controller
 {
@@ -61,7 +62,8 @@ class SettingsController extends Controller
             }
         }
 
-        $mapLocations = \App\Models\MapLocation::orderBy('created_at', 'desc')->get();
+        $mapLocations = \App\Models\MapLocation::with('schedule')->orderBy('created_at', 'desc')->get();
+        $schedules = AttendanceSchedule::orderBy('created_at', 'desc')->get();
 
         return Inertia::render("Settings/Settings", [
             "attendanceList" => $attendanceList,
@@ -69,6 +71,7 @@ class SettingsController extends Controller
             "error" => session()->get("error") ?? false,
             "map_coordinates" => $map_coordinates,
             "mapLocations" => $mapLocations,
+            "schedules" => $schedules,
         ]);
     }
 
@@ -77,12 +80,14 @@ class SettingsController extends Controller
 
         $this->ValidateLogin("active-configuration");
 
-        $attendance = Attendance::with('mapLocations')->where("is_active", true)->first();
-        $allMapLocations = \App\Models\MapLocation::all();
+        $attendance = Attendance::with('mapLocations.schedule')->where("is_active", true)->first();
+        $allMapLocations = \App\Models\MapLocation::with('schedule')->get();
+        $schedules = AttendanceSchedule::orderBy('created_at', 'desc')->get();
 
         return Inertia::render("Settings/ActiveConfiguration", [
             "attendance" => $attendance,
             "mapLocations" => $allMapLocations,
+            "schedules" => $schedules,
             "is_admin" => session()->has("admin_user"),
             "error" => session()->get("error") ?? false,
         ]);
@@ -139,8 +144,9 @@ class SettingsController extends Controller
                 $mapLocation = $attendance->mapLocations()->where('maplocation.id', $request->map_location_id)->first();
                 if ($mapLocation) {
                     $mapLocation->update([
-                        'open_time' => $request->open_time,
-                        'closing_time' => $request->closing_time,
+                        'schedule_id' => $request->schedule_id ?: null,
+                        'open_time' => $request->schedule_id ? null : ($request->open_time ?? null),
+                        'closing_time' => $request->schedule_id ? null : ($request->closing_time ?? null),
                     ]);
                 }
             }
