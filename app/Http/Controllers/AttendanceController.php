@@ -64,8 +64,10 @@ class AttendanceController extends Controller
                 'message' => 'No attendance location token provided.'
             ], 404);
         }
+       
 
-        $mapLocation = \App\Models\MapLocation::active()->where('token', $token)->first();
+        $mapLocation = \App\Models\MapLocation::where('token', $token)->first();
+       
         if (!$mapLocation) {
             return response()->json([
                 'message' => 'Location is not active or has expired.'
