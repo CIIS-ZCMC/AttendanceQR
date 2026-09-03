@@ -136,7 +136,7 @@ export default function Myattendances({ attendanceList, employeeID }) {
                         {attendanceList?.length == 0 ? (
                             <TableRow>
                                 <TableCell
-                                    colSpan={2}
+                                    colSpan={3}
                                     className=" h-20 text-xs font-semibold text-red-400 uppercase text-center"
                                 >
                                     {noAttendances}
@@ -160,7 +160,6 @@ export default function Myattendances({ attendanceList, employeeID }) {
                                             hour: "2-digit",
                                             minute: "2-digit",
                                             hour12: true,
-                                            timeZone: "UTC"
                                         })}
                                     </TableCell>
                                     <TableCell className="text-center">
