@@ -23,6 +23,12 @@ class MapLocation extends Model
         'schedule_id'
     ];
 
+    protected $casts = [
+        'is_default' => 'boolean',
+        'w_map' => 'boolean',
+        'is_active' => 'boolean',
+    ];
+
     protected static function boot()
     {
         parent::boot();

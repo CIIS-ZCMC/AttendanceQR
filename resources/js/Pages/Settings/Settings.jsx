@@ -1382,7 +1382,7 @@ export default function Settings({
                                                     >
                                                         {status.label}
                                                     </span>
-                                                    {loc.is_default && (
+                                                    {Boolean(loc.is_default) && (
                                                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white">
                                                             Default
                                                         </span>

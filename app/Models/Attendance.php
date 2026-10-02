@@ -20,6 +20,12 @@ class Attendance extends Model
         'no_location'
     ];
 
+    protected $casts = [
+        'is_active' => 'boolean',
+        'is_open' => 'boolean',
+        'no_location' => 'boolean',
+    ];
+
     public function logs()
     {
         return $this->hasMany(Attendance_Information::class, "attendances_id", "id");

@@ -84,13 +84,15 @@ class SettingsController extends Controller
         $this->ValidateLogin("active-configuration");
 
         $attendance = Attendance::with('mapLocations.schedule')->where("is_active", true)->first();
-        $allMapLocations = \App\Models\MapLocation::with('schedule')->get();
-        $schedules = AttendanceSchedule::orderBy('created_at', 'desc')->get();
+        $allMapLocations = \App\Models\MapLocation::with('schedule')->orderBy('location', 'asc')->get();
+        $schedules = AttendanceSchedule::orderBy('name', 'asc')->get();
+        $allAttendances = Attendance::with('mapLocations.schedule')->orderBy('created_at', 'desc')->take(25)->get();
 
         return Inertia::render("Settings/ActiveConfiguration", [
             "attendance" => $attendance,
             "mapLocations" => $allMapLocations,
             "schedules" => $schedules,
+            "allAttendances" => $allAttendances,
             "is_admin" => AdminHelper::isLoggedAdmin(),
             "error" => session()->get("error") ?? false,
         ]);
@@ -142,15 +144,59 @@ class SettingsController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
+        // Quick switch active attendance session
+        if ($request->has('switch_active_id') && $request->switch_active_id) {
+            Attendance::where("is_active", true)->update(["is_active" => false]);
+            Attendance::where("id", $request->switch_active_id)->update(["is_active" => true]);
+            return to_route("active-configuration");
+        }
+
         $attendance = Attendance::where("id", $request->id)->first();
         if ($attendance) {
-            $attendance->update([
+            $updateData = [
                 "is_active" => true,
                 "open_date" => $request->open_date,
                 "closing_date" => $request->closing_date,
-            ]);
+            ];
 
-            if ($request->map_location_id) {
+            if ($request->filled('name')) {
+                $updateData["title"] = $request->name;
+            }
+
+            if ($request->has('no_location')) {
+                $updateData["no_location"] = $request->boolean('no_location');
+            }
+
+            $attendance->update($updateData);
+
+            // Sync assigned map locations if provided
+            if ($request->has('map_location_ids') && is_array($request->map_location_ids)) {
+                $attendance->mapLocations()->sync($request->map_location_ids);
+            }
+
+            // Process per-location schedules if provided
+            if ($request->has('location_schedules') && is_array($request->location_schedules)) {
+                foreach ($request->location_schedules as $locId => $schedData) {
+                    $mapLocation = \App\Models\MapLocation::find($locId);
+                    if ($mapLocation) {
+                        $schedId = !empty($schedData['schedule_id']) ? $schedData['schedule_id'] : null;
+                        $mapLocation->update([
+                            'schedule_id' => $schedId,
+                            'open_time' => $schedId ? null : ($schedData['open_time'] ?? null),
+                            'closing_time' => $schedId ? null : ($schedData['closing_time'] ?? null),
+                        ]);
+                    }
+                }
+            } elseif ($request->boolean('apply_to_all')) {
+                // Apply schedule/times across all linked stations
+                foreach ($attendance->mapLocations as $loc) {
+                    $loc->update([
+                        'schedule_id' => $request->schedule_id ?: null,
+                        'open_time' => $request->schedule_id ? null : ($request->open_time ?? null),
+                        'closing_time' => $request->schedule_id ? null : ($request->closing_time ?? null),
+                    ]);
+                }
+            } elseif ($request->map_location_id) {
                 $mapLocation = $attendance->mapLocations()->where('maplocation.id', $request->map_location_id)->first();
                 if ($mapLocation) {
                     $mapLocation->update([
