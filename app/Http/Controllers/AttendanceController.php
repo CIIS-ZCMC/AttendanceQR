@@ -15,6 +15,7 @@ use App\Models\Notifications;
 use App\Models\UserNotifications;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use App\Helpers\AdminHelper;
 
 class AttendanceController extends Controller
 {
@@ -24,6 +25,7 @@ class AttendanceController extends Controller
         $mapLocations = \App\Models\MapLocation::orderBy('location', 'asc')->get();
         return Inertia::render("Scan/Calibrate", [
             "mapLocations" => $mapLocations,
+            "is_admin" => AdminHelper::isLoggedAdmin(),
         ]);
     }
 
@@ -54,6 +56,71 @@ class AttendanceController extends Controller
             'message' => 'Map coordinates saved successfully!'
         ], 200);
     }
+    public function validateQrLocation(Request $request)
+    {
+        $token = $request->query('token') ?? $request->input('token');
+
+        if (!$token) {
+            return response()->json([
+                'valid' => false,
+                'message' => 'No attendance location token provided in the QR code.',
+            ], 400);
+        }
+
+        $mapLocation = \App\Models\MapLocation::with('schedule')->where('token', $token)->first();
+
+        if (!$mapLocation) {
+            return response()->json([
+                'valid' => false,
+                'message' => 'Location is not registered or has expired.',
+            ], 404);
+        }
+
+        $now = now();
+        $today = $now->toDateString();
+        $currentTime = $now->format('H:i:s');
+
+        $attendance = Attendance::where("is_active", true)
+            ->whereHas('mapLocations', function ($query) use ($mapLocation) {
+                $query->where('maplocation.id', $mapLocation->id);
+            })
+            ->first();
+
+        $isActiveNow = false;
+        $statusMessage = null;
+
+        if (!$attendance) {
+            $statusMessage = 'No active attendance schedule is currently assigned to this location.';
+        } elseif (!$attendance->open_date || !$attendance->closing_date) {
+            $statusMessage = 'Attendance schedule is incomplete.';
+        } elseif ($today < $attendance->open_date) {
+            $statusMessage = 'Attendance is not yet open (opens on ' . $attendance->open_date . ').';
+        } elseif ($today > $attendance->closing_date) {
+            $statusMessage = 'Attendance closed on ' . $attendance->closing_date . '.';
+        } elseif ($mapLocation->effective_open_time && $mapLocation->effective_closing_time) {
+            if ($currentTime < $mapLocation->effective_open_time) {
+                $statusMessage = 'Attendance opens today at ' . substr($mapLocation->effective_open_time, 0, 5) . '.';
+            } elseif ($currentTime >= $mapLocation->effective_closing_time) {
+                $statusMessage = 'Attendance closed today at ' . substr($mapLocation->effective_closing_time, 0, 5) . '.';
+            } else {
+                $isActiveNow = true;
+            }
+        } else {
+            $isActiveNow = true;
+        }
+
+        return response()->json([
+            'valid' => true,
+            'token' => $mapLocation->token,
+            'location' => $mapLocation->location,
+            'description' => $mapLocation->description,
+            'has_attendance' => (bool) $attendance,
+            'is_active_now' => $isActiveNow,
+            'status_message' => $statusMessage,
+            'redirect_url' => "/?token=" . $mapLocation->token,
+        ]);
+    }
+
     public function validateLocation(Request $request)
     {
 
@@ -83,8 +150,8 @@ class AttendanceController extends Controller
 
         $Saved = false;
 
-        // $userLat = 6.906935;
-        // $userLng = 122.081535;
+        $userLat =6.9069749679137;
+        $userLng = 122.08160398685;
 
         /**
          * Add Validation here soon , that active attendance does not need location based.
@@ -214,13 +281,7 @@ class AttendanceController extends Controller
 
             $userToken = session()->get('userToken')['id'] ?? $request->fingerprint;
             session()->put("activeAttendanceID", $noLocationAttendance->id);
-            $userInformation = session()->get('userToken');
-            $employeeID = null;
-
-            $contact = Contact::where("email_address", $userInformation['email'])->first();
-            if ($contact && $contact->personalInformation && $contact->personalInformation->employeeProfile) {
-                $employeeID = $contact->personalInformation->employeeProfile->employee_id;
-            }
+            $employeeID = AdminHelper::getLoggedEmployeeId();
 
             $email = $userInformation['email'] ?? null;
             $profilePhoto = $userInformation['avatar'] ?? null;
@@ -253,6 +314,7 @@ class AttendanceController extends Controller
                 'ip' => $request->ip(),
                 'isRecorded' => $status['isRecorded'] ?? session()->get('isRecorded'),
                 'employeeID' => $employeeID,
+                'is_admin' => AdminHelper::isLoggedAdmin(),
                 'reload' => session()->get('reloaded') ?? false,
                 'email' => $email,
                 'profilePhoto' => $profilePhoto,
@@ -309,25 +371,13 @@ class AttendanceController extends Controller
             session()->put("activeAttendanceID", $attendance->id);
         }
         $userInformation = session()->get('userToken');
-        $employeeID = null;
+        $employeeID = AdminHelper::getLoggedEmployeeId();
 
-        $contact = Contact::where("email_address", $userInformation['email'])->first();
-
-
-        $UserName = $userInformation['name'];
+        $UserName = $userInformation['name'] ?? null;
         $fullName = null;
 
-        $email = $userInformation['email'];
-        $profilePhoto = $userInformation['avatar'];
-        if ($contact) {
-            $personalInformation = $contact->personalInformation;
-            $fullName = $personalInformation->fullName();
-            $employeeProfile = $personalInformation->employeeProfile;
-
-            $employeeID = $employeeProfile->employee_id;
-
-        }
-
+        $email = $userInformation['email'] ?? null;
+        $profilePhoto = $userInformation['avatar'] ?? null;
 
         $userToken = $userToken . ($attendance->id ?? -1);
         $attendanceInformation = Attendance_Information::where('userToken', $userToken)
@@ -357,6 +407,7 @@ class AttendanceController extends Controller
             'ip' => $request->ip(),
             'isRecorded' => $status['isRecorded'] ?? session()->get('isRecorded'),
             'employeeID' => $employeeID,
+            'is_admin' => AdminHelper::isLoggedAdmin(),
             'reload' => session()->get('reloaded')  ?? false,
             'email' => $email,
             'profilePhoto' => $profilePhoto,
@@ -561,6 +612,11 @@ class AttendanceController extends Controller
 
 
 
+        $employeeID = $employeeID ?? AdminHelper::getLoggedEmployeeId();
+        if (!$Employee && $employeeID) {
+            $Employee = EmployeeProfile::where("employee_id", $employeeID)->first();
+        }
+
         $attendance = [];
 
         if ($Employee) {
@@ -568,28 +624,32 @@ class AttendanceController extends Controller
         }
 
         if (!$Employee && !empty($request->employee_id)) {
-            $biometric_id = EmployeeProfile::firstWhere("employee_id", $request->employee_id)->biometric_id;
+            $biometric_id = EmployeeProfile::firstWhere("employee_id", $request->employee_id)?->biometric_id;
         }
 
 
-        $from = date("Y-m-d H:i:s", strtotime("-3 months"));
-        $to = date("Y-m-d H:i:s");
+        $from = date("Y-m-d 00:00:00", strtotime("-3 months"));
+        $to = date("Y-m-d 23:59:59");
 
-        $attendance = Attendance_Information::where("biometric_id", $biometric_id)
-            ->whereBetween("first_entry", [$from, $to])
-            ->with("attendance")
-            ->get();
+        $attendance = [];
 
-        if ($date && $biometric_id) {
-            $attendance = Attendance_Information::where("biometric_id", $biometric_id)
-                ->whereDate("first_entry", $date)
+        if ($biometric_id) {
+            $query = Attendance_Information::where("biometric_id", $biometric_id)
                 ->with("attendance")
-                ->get();
+                ->orderBy("first_entry", "desc")
+                ->orderBy("id", "desc");
+
+            if ($date) {
+                $attendance = $query->whereDate("first_entry", $date)->get();
+            } else {
+                $attendance = $query->whereBetween("first_entry", [$from, $to])->get();
+            }
         }
 
         return Inertia::render('MyAttendances/Myattendances', [
             'attendanceList' => !$employeeID ? [] : $attendance,
-            'employeeID' => $employeeID
+            'employeeID' => $employeeID,
+            'is_admin' => AdminHelper::isLoggedAdmin(),
         ]);
     }
 

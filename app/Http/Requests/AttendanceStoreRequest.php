@@ -34,17 +34,11 @@ class AttendanceStoreRequest extends FormRequest
             return $this->employeeId;
         }
 
-        if (session()->has('userToken')) {
-          
-            $userInformation = session()->get('userToken');
-            $contact = Contact::where("email_address", $userInformation['email'] ?? null)->first();
-
-            if ($contact && $contact->personalInformation && $contact->personalInformation->employeeProfile) {
-                $employeeID = $contact->personalInformation->employeeProfile->employee_id;
-                return $employeeID;
-            }
-         
+        $loggedId = \App\Helpers\AdminHelper::getLoggedEmployeeId();
+        if (!empty($loggedId)) {
+            return $loggedId;
         }
+
         return $this->employeeId;
     }
 

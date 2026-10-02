@@ -1,25 +1,30 @@
-import React, { use } from "react";
-import { useGeofence } from "@/hooks/use-geofence";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import AppLayout from "@/layouts/app-layout";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NotInLocation } from "@/Components/ui/CustomComponent/notinLocation";
 import { AttrSkeleton } from "@/Components/ui/CustomComponent/AttrSkeleton";
-import { LoaderCircle } from "lucide-react";
-import mappin from "../../src/mappin.gif";
-import check from "../../src/check.gif";
+import {
+    LoaderCircle,
+    CheckCircle2,
+    Clock,
+    MapPin,
+    IdCard,
+    ShieldCheck,
+    UserCheck,
+    Calendar,
+    X,
+    Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 import FailedScan from "./FailedScan";
-import { router, useForm } from "@inertiajs/react";
-import { usePage } from "@inertiajs/react";
+import { router, useForm, usePage } from "@inertiajs/react";
 import axios from "axios";
 import FingerprintJS from "@fingerprintjs/fingerprintjs";
-import click from "../../src/click.gif";
 import NoEmployeeID from "./NoEmployeeID";
 import Summary from "./Summary";
 import AdvisoryModal from "./AdvisoryModal";
+
 export default function Scan({
     invalid_status,
     attendance,
@@ -38,20 +43,23 @@ export default function Scan({
     const [anomaly, setAnomaly] = useState(null);
     const [warning, setWarning] = useState(warningSession);
     const emailWarningShown = useRef(false);
-    const storedEmployeeId = localStorage.getItem("userEnteredEmployeeId");
-    const storedEmployeeEmail = localStorage.getItem("userEnteredEmployeeEmail");
+
+    const storedEmployeeId =
+        typeof window !== "undefined"
+            ? localStorage.getItem("userEnteredEmployeeId")
+            : "";
+    const storedEmployeeEmail =
+        typeof window !== "undefined"
+            ? localStorage.getItem("userEnteredEmployeeEmail")
+            : "";
     const userEnteredEmployeeId =
-        storedEmployeeEmail && storedEmployeeEmail === email ? storedEmployeeId : "";
+        storedEmployeeEmail && storedEmployeeEmail === email
+            ? storedEmployeeId
+            : "";
+
     const resolvedMapToken = mapToken || activeMapLocation?.token;
-    const {
-        data,
-        setData,
-        post,
-        processing,
-        errors,
-        reset,
-        recentlySuccessful,
-    } = useForm({
+
+    const { data, setData, post, processing, errors, reset } = useForm({
         employeeId: userEnteredEmployeeId || "",
         attendanceId: attendance?.id,
         name: null,
@@ -69,12 +77,12 @@ export default function Scan({
     );
     const [serverDate, setServerDate] = useState(
         new Date().toLocaleDateString([], {
-            year: "numeric",
-            month: "long",
+            weekday: "short",
+            month: "short",
             day: "numeric",
+            year: "numeric",
         })
     );
-
 
     const page = usePage();
     const [closeAt, setCloseAt] = useState(new Date());
@@ -89,6 +97,7 @@ export default function Scan({
     const [edited, setEdited] = useState(false);
     const [showSummary, setShowSummary] = useState(null);
     const [verifying, setVerifying] = useState(false);
+    const [noEmployeeID, setNoEmployeeID] = useState(false);
 
     useEffect(() => {
         if (mapToken) {
@@ -100,18 +109,17 @@ export default function Scan({
 
     const getGreeting = () => {
         const hour = new Date().getHours();
-        if (hour >= 5 && hour < 12) {
-            return "Good morning";
-        } else if (hour >= 12 && hour < 17) {
-            return "Good afternoon";
-        } else {
-            return "Good evening";
-        }
+        if (hour >= 5 && hour < 12) return "Good morning";
+        if (hour >= 12 && hour < 17) return "Good afternoon";
+        return "Good evening";
     };
 
-    const [noEmployeeID, setNoEmployeeID] = useState(false);
     useEffect(() => {
-        const hasStatusError = invalid_status && (invalid_status.notFound || invalid_status.isNotOpen || invalid_status.isClosed);
+        const hasStatusError =
+            invalid_status &&
+            (invalid_status.notFound ||
+                invalid_status.isNotOpen ||
+                invalid_status.isClosed);
         if (hasStatusError) {
             setLoad(false);
             return;
@@ -121,6 +129,7 @@ export default function Scan({
             setLoad(false);
             return;
         }
+
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
@@ -128,76 +137,61 @@ export default function Scan({
                     const lng = pos.coords.longitude;
                     const posAccuracy = pos.coords.accuracy;
                     setUserCoords({ lat, lng });
+
                     const loadFingerprint = async () => {
-                        const fp = await FingerprintJS.load();
-                        const result = await fp.get();
-                        setFingerprint(result.visitorId);
+                        try {
+                            const fp = await FingerprintJS.load();
+                            const result = await fp.get();
+                            setFingerprint(result.visitorId);
 
-                        axios
-                            .get(
-                                `validate-location?lat=${lat}&lng=${lng}&fingerprint=${result.visitorId}&accuracy=${posAccuracy}${resolvedMapToken ? `&token=${resolvedMapToken}` : ''}`
-                            )
-                            .then((response) => {
+                            const response = await axios.get(
+                                `validate-location?lat=${lat}&lng=${lng}&fingerprint=${
+                                    result.visitorId
+                                }&accuracy=${posAccuracy}${
+                                    resolvedMapToken ? `&token=${resolvedMapToken}` : ""
+                                }`
+                            );
 
-                                console.log(response.data);
+                            const isSuspicious = response.data.isSuspicious;
+                            if (isSuspicious) {
+                                setAnomaly(true);
+                            }
 
-                                const isSuspicious = response.data.isSuspicious;
+                            setIsWithinLocation(response.data.isInLocation);
+                            setLoad(false);
+                            setLocationService(true);
+                            setDistance(response.data.distance);
 
-                                if (isSuspicious) {
-                                    setAnomaly(true);
-                                }
-
-                                setIsWithinLocation(response.data.isInLocation);
-                                setLoad(false);
-                                setLocationService(true);
-                                setDistance(response.data.distance);
-
-                                if (response.data.saved_direct && !reload) {
-                                    // 
-                                    // setTimeout(() => {
-                                    //     window.location.href = "/";
-                                    // }, 1000);
-
-
-                                    // post("get-summary",
-                                    //     {
-                                    //         onSuccess: (response) => {
-                                    //             if (response.props?.session?.type == "error") {
-                                    //                 toast.error(response.props.session.message);
-                                    //             } else if (response.props?.session?.type == "success") {
-                                    //                 setShowSummary(response.props.session.data);
-                                    //             }
-                                    //         }
-                                    //     });
-
-
-
-                                    router.post("get-summary", {
+                            if (response.data.saved_direct && !reload) {
+                                router.post(
+                                    "get-summary",
+                                    {
                                         employeeId: employeeID,
                                         mapToken: resolvedMapToken,
-                                    }, {
-                                        onSuccess: (response) => {
-                                            if (response.props?.session?.type == "error") {
-                                                toast.error(response.props.session.message);
-                                            } else if (response.props?.session?.type == "success") {
-                                                setShowSummary(response.props.session.data);
+                                    },
+                                    {
+                                        onSuccess: (res) => {
+                                            if (res.props?.session?.type === "error") {
+                                                toast.error(res.props.session.message);
+                                            } else if (res.props?.session?.type === "success") {
+                                                setShowSummary(res.props.session.data);
                                             }
-                                        }
-                                    });
-                                }
-                            })
-                            .catch((error) => {
-                                console.log(error);
-                                toast.error("❌ Unable to validate location.");
-                                setLoad(false);
-                            });
+                                        },
+                                    }
+                                );
+                            }
+                        } catch (error) {
+                            console.error(error);
+                            toast.error("Unable to validate location accurately.");
+                            setLoad(false);
+                        }
                     };
 
                     loadFingerprint();
                 },
                 () => {
-                    alert(
-                        "❌ Location access is currently disabled.\n\nPlease enable location services to continue — this helps us verify your attendance accurately and provide a better experience.\n\n👉 Go to your device or browser settings and allow location access for this app, then try again!"
+                    toast.error(
+                        "Location access is disabled. Please allow location permissions in device settings."
                     );
                     setLocationService(false);
                     setLoad(false);
@@ -205,20 +199,23 @@ export default function Scan({
                 {
                     enableHighAccuracy: true,
                     maximumAge: 5000,
+                    timeout: 10000,
                 }
             );
         } else {
-            toast.error(
-                "❌ Geolocation is not supported on this device or browser. Please try using a supported browser or enable location settings to continue."
-            );
+            toast.error("Geolocation is not supported on this browser.");
             setLocationService(false);
-
             setLoad(false);
         }
     }, []);
 
     useEffect(() => {
-        setData({ attendanceId: attendance?.id, anomaly: anomaly });
+        setData((prev) => ({
+            ...prev,
+            attendanceId: attendance?.id,
+            anomaly: anomaly,
+        }));
+
         const interval = setInterval(() => {
             const closingDateStr = attendance?.closing_date;
             const closingTimeStr = activeMapLocation?.closing_time;
@@ -246,57 +243,59 @@ export default function Scan({
                 const formattedMinutes = minutes
                     ? `${minutes.toString().padStart(2, "0")}m`
                     : "";
-                const formattedSeconds = seconds
-                    ? `${seconds.toString().padStart(2, "0")}s`
-                    : "";
+                const formattedSeconds = `${seconds.toString().padStart(2, "0")}s`;
 
-                const remainingTime = `${formattedHours ? `${formattedHours} : ` : ""
-                    }${formattedMinutes ? `${formattedMinutes} :` : ""}${formattedSeconds ? `  ${formattedSeconds}` : ""
-                    }`;
-                const isValidTime =
-                    formattedHours || formattedMinutes || formattedSeconds;
-                setRemainingTime(isValidTime ? remainingTime : "0");
+                const timeParts = [formattedHours, formattedMinutes, formattedSeconds]
+                    .filter(Boolean)
+                    .join(" : ");
+                setRemainingTime(timeParts || "0");
+            } else {
+                setRemainingTime("0");
             }
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [attendance, activeMapLocation]);
+    }, [attendance, activeMapLocation, anomaly]);
 
     useEffect(() => {
         if (employeeID) {
             localStorage.setItem("userEnteredEmployeeId", employeeID);
             localStorage.setItem("userEnteredEmployeeEmail", email || "");
-            setData({
-                ...data,
+            setData((prev) => ({
+                ...prev,
                 employeeId: employeeID,
                 anomaly: anomaly,
                 mapToken: resolvedMapToken,
-            });
+            }));
 
             if (isWithinLocation && !isRecorded && !showSummary) {
                 const timer = setTimeout(() => {
                     setVerifying(true);
-                    router.post("get-summary", {
-                        employeeId: employeeID,
-                        attendanceId: attendance?.id,
-                        mapToken: resolvedMapToken,
-                        anomaly: anomaly,
-                    }, {
-                        preserveState: true,
-                        preserveScroll: true,
-                        onSuccess: (page) => {
-                            setVerifying(false);
-                            if (page.props?.session?.type == "error") {
-                                toast.error(page.props.session.message);
-                            } else if (page.props?.session?.type == "success") {
-                                setShowSummary(page.props.session.data);
-                            }
+                    router.post(
+                        "get-summary",
+                        {
+                            employeeId: employeeID,
+                            attendanceId: attendance?.id,
+                            mapToken: resolvedMapToken,
+                            anomaly: anomaly,
                         },
-                        onError: (errors) => {
-                            setVerifying(false);
-                            toast.error("Unable to verify employee ID. Please try again.");
-                        },
-                    });
+                        {
+                            preserveState: true,
+                            preserveScroll: true,
+                            onSuccess: (p) => {
+                                setVerifying(false);
+                                if (p.props?.session?.type === "error") {
+                                    toast.error(p.props.session.message);
+                                } else if (p.props?.session?.type === "success") {
+                                    setShowSummary(p.props.session.data);
+                                }
+                            },
+                            onError: () => {
+                                setVerifying(false);
+                                toast.error("Unable to verify employee ID. Please try again.");
+                            },
+                        }
+                    );
                 }, 500);
 
                 return () => clearTimeout(timer);
@@ -304,17 +303,11 @@ export default function Scan({
         } else if (!employeeID && !isRecorded) {
             if (!emailWarningShown.current) {
                 emailWarningShown.current = true;
-                toast.warning(
-                    "We couldn't find an employee ID linked to your email address."
-                );
+                toast.warning("Enter your employee ID to confirm your attendance.");
             }
             setEdited(true);
         }
     }, [employeeID, page.url, isWithinLocation]);
-
-
-
-
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -322,13 +315,15 @@ export default function Scan({
                 new Date().toLocaleTimeString([], {
                     hour: "numeric",
                     minute: "2-digit",
+                    second: "2-digit",
                 })
             );
             setServerDate(
                 new Date().toLocaleDateString([], {
-                    year: "numeric",
-                    month: "long",
+                    weekday: "short",
+                    month: "short",
                     day: "numeric",
+                    year: "numeric",
                 })
             );
         }, 1000);
@@ -337,9 +332,10 @@ export default function Scan({
 
     useEffect(() => {
         if (remainingTime === "0") {
-            setTimeout(() => {
+            const timeout = setTimeout(() => {
                 router.reload();
             }, 5000);
+            return () => clearTimeout(timeout);
         }
     }, [remainingTime]);
 
@@ -348,145 +344,118 @@ export default function Scan({
         setEdited(true);
         setShowSummary(null);
 
-        const enteredId = e.currentTarget.employeeId?.value || data.employeeId;
-
+        const enteredId = data.employeeId?.toString().trim();
         if (!enteredId) {
-            toast.error("Employee ID is required");
+            toast.error("Please enter your employee ID");
             return;
         }
-
-        setData("employeeId", enteredId);
 
         setVerifying(true);
 
-        router.post("get-summary", {
-            employeeId: enteredId,
-            attendanceId: attendance?.id,
-            mapToken: resolvedMapToken,
-            anomaly: anomaly,
-            name: data.name,
-            area: data.area,
-            is_no_employee_id: data.is_no_employee_id,
-        }, {
-            preserveState: true,
-            preserveScroll: true,
-            onSuccess: (page) => {
-                if (page.props?.session?.type == "error") {
-                    toast.error(page.props.session.message);
-                } else if (page.props?.session?.type == "success") {
-                    setShowSummary(page.props.session.data);
-                }
+        router.post(
+            "get-summary",
+            {
+                employeeId: enteredId,
+                attendanceId: attendance?.id,
+                mapToken: resolvedMapToken,
+                anomaly: anomaly,
+                name: data.name,
+                area: data.area,
+                is_no_employee_id: data.is_no_employee_id,
             },
-            onError: (errors) => {
-                toast.error("Unable to verify employee ID. Please try again.");
-            },
-            onFinish: () => {
-                setEdited(true);
-                setVerifying(false);
-            },
-        });
+            {
+                preserveState: true,
+                preserveScroll: true,
+                onSuccess: (p) => {
+                    if (p.props?.session?.type === "error") {
+                        toast.error(p.props.session.message);
+                    } else if (p.props?.session?.type === "success") {
+                        setShowSummary(p.props.session.data);
+                    }
+                },
+                onError: () => {
+                    toast.error("Unable to verify employee ID. Please try again.");
+                },
+                onFinish: () => {
+                    setEdited(true);
+                    setVerifying(false);
+                },
+            }
+        );
     };
 
     const handleSubmitAttendance = () => {
-
-        router.post("/store_attendance", {
-            employeeId: showSummary?.employee_id ?? data.employeeId,
-            attendanceId: attendance?.id,
-            mapToken: resolvedMapToken,
-            anomaly: anomaly,
-            fingerprint: fingerprint,
-        }, {
-            onSuccess: (response) => {
-                if (response.props?.session?.type == "error") {
-                    toast.error(response.props.session.message);
-                } else if (response.props?.session?.type == "warning-anomaly") {
-                    toast.warning(response.props.session.message);
-                    setAnomalyState(true);
-                } else {
-                    localStorage.removeItem("userEnteredEmployeeId");
-                    localStorage.removeItem("userEnteredEmployeeEmail");
-                    toast.success("Attendance recorded successfully");
-                }
+        router.post(
+            "/store_attendance",
+            {
+                employeeId: showSummary?.employee_id ?? data.employeeId,
+                attendanceId: attendance?.id,
+                mapToken: resolvedMapToken,
+                anomaly: anomaly,
+                fingerprint: fingerprint,
             },
-        });
-    }
+            {
+                onSuccess: (response) => {
+                    if (response.props?.session?.type === "error") {
+                        toast.error(response.props.session.message);
+                    } else if (response.props?.session?.type === "warning-anomaly") {
+                        toast.warning(response.props.session.message);
+                        setAnomalyState(true);
+                    } else {
+                        localStorage.removeItem("userEnteredEmployeeId");
+                        localStorage.removeItem("userEnteredEmployeeEmail");
+                        toast.success("Attendance recorded successfully!");
+                    }
+                },
+            }
+        );
+    };
 
     const handleSaveNoEmployeeID = (e) => {
         e.preventDefault();
-
         const formData = new FormData(e.currentTarget);
-        const name = formData.get("name").trim();
-        const area = formData.get("area").trim();
+        const name = formData.get("name")?.toString().trim();
+        const area = formData.get("area")?.toString().trim();
 
         if (!name || !area) {
-            alert("❌ Please fill in all fields");
+            toast.error("Please fill in all required fields");
             return;
         }
 
-        router.post("/store_attendance", {
-            name: name,
-            area: area,
-            is_no_employee_id: true,
-            attendanceId: attendance?.id,
-            mapToken: resolvedMapToken,
-            fingerprint: fingerprint,
-        }, {
-            onSuccess: (response) => {
-                if (response.props?.session?.type == "error") {
-                    toast.error(response.props.session.message);
-                } else if (response.props?.session?.type == "warning-anomaly") {
-                    toast.warning(response.props.session.message);
-                    setAnomalyState(true);
-                } else {
-                    localStorage.removeItem("userEnteredEmployeeId");
-                    localStorage.removeItem("userEnteredEmployeeEmail");
-                    toast.success("Attendance recorded successfully");
-                }
+        router.post(
+            "/store_attendance",
+            {
+                name: name,
+                area: area,
+                is_no_employee_id: true,
+                attendanceId: attendance?.id,
+                mapToken: resolvedMapToken,
+                fingerprint: fingerprint,
             },
-        });
-
+            {
+                onSuccess: (response) => {
+                    if (response.props?.session?.type === "error") {
+                        toast.error(response.props.session.message);
+                    } else if (response.props?.session?.type === "warning-anomaly") {
+                        toast.warning(response.props.session.message);
+                        setAnomalyState(true);
+                    } else {
+                        localStorage.removeItem("userEnteredEmployeeId");
+                        localStorage.removeItem("userEnteredEmployeeEmail");
+                        toast.success("Attendance recorded successfully!");
+                    }
+                },
+            }
+        );
 
         setNoEmployeeID(false);
     };
 
     return (
         <AppLayout>
+            <AdvisoryModal open={warning} setOpen={setWarning} />
 
-            <AdvisoryModal
-                open={warning}
-                setOpen={setWarning}
-            />
-
-
-
-            {/* {attendance && invalid_status === null && !showSummary && (
-                <div className="my-5">
-                    <h2 className="text-xl  text-gray-700">
-                        <span className="text-gray-600"> {getGreeting()}!</span>,{" "}
-                        <span className="font-semibold">{UserName}</span>
-                    </h2>
-                    <h3 className="text-md font-normal font-medium text-gray-600">
-                        Mark your attendance below
-                    </h3>
-
-                    <span className="text-xs" data-live="server-time">
-                        <span
-                            className="text-gray-500 text-xs font-bold"
-                            data-live-update
-                        >
-                            {serverTime} | {serverDate}
-                        </span>
-                    </span>
-                    <br />
-                    <span className="text-xs" data-live="server-time">
-                        <span className="text-gray-500 text-md font-bold">
-                            {attendance?.title}
-                        </span>
-                    </span>
-                </div>
-            )} */}
-
-            <div className="mt-4 flex justify-center items-center md:absolute md:top-80 md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2">
+            <div className="w-full max-w-sm sm:max-w-md mx-auto space-y-4 transition-all">
                 {load ? (
                     <AttrSkeleton />
                 ) : invalid_status ? (
@@ -504,124 +473,182 @@ export default function Scan({
                         userCoords={userCoords}
                     />
                 ) : isWithinLocation ? (
-                    <div>
-                        <br />
+                    <div className="space-y-4">
+                        {noEmployeeID ? (
+                            <NoEmployeeID
+                                googleName={googleName}
+                                setData={setData}
+                                data={data}
+                                setNoEmployeeID={setNoEmployeeID}
+                                handleSaveNoEmployeeID={handleSaveNoEmployeeID}
+                            />
+                        ) : showSummary ? (
+                            <Summary
+                                anomaly={anomaly}
+                                employeeID={employeeID}
+                                processing={processing}
+                                data={data}
+                                setData={setData}
+                                handleSubmitAttendance={handleSubmitAttendance}
+                                showSummary={showSummary}
+                                setShowSummary={setShowSummary}
+                            />
+                        ) : (
+                            /* Main Scan Card */
+                            <div className="space-y-4 animate-in fade-in duration-300">
+                                {/* Digital Clock & Greeting Hero Card */}
+                                <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-md relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl pointer-events-none" />
 
-                        {noEmployeeID ? <>
-                            <div className="w-[300px]">
-                                <NoEmployeeID googleName={googleName} setData={setData} data={data} setNoEmployeeID={setNoEmployeeID} handleSaveNoEmployeeID={handleSaveNoEmployeeID} />
-                            </div>
-                        </> :
-
-                            !showSummary ?
-                                <>
-                                    <div className="text-center mb-6">
-                                        <div className="text-2xl font-bold uppercase text-blue-700 mb-4">
-                                            {getGreeting()}!
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold border border-emerald-500/20">
+                                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                            <span>
+                                                {attendance?.no_location
+                                                    ? "Free Location Entry"
+                                                    : "Geofence Verified"}
+                                            </span>
                                         </div>
 
-                                        {activeMapLocation && (
-                                            <div className="bg-white border border-blue-200 rounded-xl shadow-sm p-4 mb-4 max-w-xs mx-auto">
-                                                <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                                                    Attendance Location
-                                                </div>
-                                                <div className="text-lg font-semibold text-gray-800">
+                                        <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                                            {serverDate}
+                                        </span>
+                                    </div>
+
+                                    <div>
+                                        <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                                            {getGreeting()}
+                                            {UserName || googleName ? (
+                                                <span className="text-blue-600 dark:text-blue-400">
+                                                    , {UserName || googleName}
+                                                </span>
+                                            ) : (
+                                                "!"
+                                            )}
+                                        </h2>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                            Ready to register your official attendance log
+                                        </p>
+                                    </div>
+
+                                    {/* Live Clock Display */}
+                                    <div className="mt-4 pt-3.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
+                                            <Clock className="w-4 h-4 text-blue-500" />
+                                            <span className="font-mono text-base font-bold tracking-tight">
+                                                {serverTime}
+                                            </span>
+                                        </div>
+
+                                        {activeMapLocation?.location && (
+                                            <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 font-medium max-w-[180px] truncate">
+                                                <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                                                <span className="truncate">
                                                     {activeMapLocation.location}
-                                                </div>
-                                                {activeMapLocation.description && (
-                                                    <div className="text-sm text-gray-600 mt-1">
-                                                        {activeMapLocation.description}
-                                                    </div>
-                                                )}
+                                                </span>
                                             </div>
                                         )}
+                                    </div>
+                                </div>
 
-                                        {!activeMapLocation && attendance && (
-                                            <div className="bg-white border border-blue-200 rounded-xl shadow-sm p-4 mb-4 max-w-xs mx-auto">
-                                                <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                                                    Attendance Title
-                                                </div>
-                                                <div className="text-lg font-semibold text-gray-800">
-                                                    {attendance.title}
-                                                </div>
-                                                <div className="text-sm text-gray-600 mt-1">
-                                                    No location required
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <div className="inline-flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 rounded-lg text-xs font-medium">
-                                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                            {attendance?.no_location
-                                                ? "Attendance can be logged"
-                                                : "Attendance can be logged — you are inside the allowed area."}
+                                {/* Form Entry Card */}
+                                <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-xl space-y-5">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                                            <IdCard className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                                                Employee Identification
+                                            </h3>
+                                            <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                                                Enter your official hospital ID number
+                                            </span>
                                         </div>
                                     </div>
-                                    <span className="text-sm">
-                                        Enter employee ID : <br />{" "}
-                                        <span className="text-gray-500"></span>
-                                    </span>
-                                    <form onSubmit={handleSubmit}>
-                                        <Input
-                                            type="number"
-                                            name="employeeId"
-                                            value={data.employeeId}
 
-                                            onChange={(e) => {
-                                                localStorage.setItem("userEnteredEmployeeId", e.target.value);
-                                                localStorage.setItem("userEnteredEmployeeEmail", email || "");
-                                                setData({
-                                                    ...data,
-                                                    employeeId: e.target.value,
-                                                    name: null,
-                                                    area: null,
-                                                    is_no_employee_id: false,
-                                                });
-                                                setEdited(true);
-                                            }}
-                                            required
-                                            placeholder="e.g 2022090251"
-                                            autoFocus
-                                            className={`mt-4 mb-3 text-center shadow-lg  ${employeeID ? 'bg-green-100 font-bold text-green-700' : ''}`}
-                                        />
+                                    <form onSubmit={handleSubmit} className="space-y-4">
+                                        <div className="space-y-1.5">
+                                            <div className="relative">
+                                                <Input
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    pattern="[0-9]*"
+                                                    name="employeeId"
+                                                    value={data.employeeId || ""}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value.replace(/\D/g, "");
+                                                        localStorage.setItem("userEnteredEmployeeId", val);
+                                                        localStorage.setItem(
+                                                            "userEnteredEmployeeEmail",
+                                                            email || ""
+                                                        );
+                                                        setData((prev) => ({
+                                                            ...prev,
+                                                            employeeId: val,
+                                                            name: null,
+                                                            area: null,
+                                                            is_no_employee_id: false,
+                                                        }));
+                                                        setEdited(true);
+                                                    }}
+                                                    required
+                                                    autoFocus
+                                                    placeholder="e.g. 2022090251"
+                                                    className={`h-14 text-center text-xl font-mono font-bold tracking-wider rounded-2xl border-2 transition-all ${
+                                                        employeeID
+                                                            ? "border-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-200"
+                                                            : "border-slate-200 dark:border-slate-700 focus:border-blue-500 bg-slate-50/50 dark:bg-slate-800/50"
+                                                    }`}
+                                                />
 
+                                                {data.employeeId && (
+                                                    <button
+                                                        type="button"
+                                                        aria-label="Clear Employee ID"
+                                                        onClick={() => {
+                                                            setData("employeeId", "");
+                                                            setEdited(true);
+                                                        }}
+                                                        className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-slate-400 hover:text-slate-600 bg-slate-200/60 dark:bg-slate-700"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </div>
 
+                                            {employeeID && (
+                                                <div className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 pt-1">
+                                                    <ShieldCheck className="w-3.5 h-3.5" />
+                                                    <span>Auto-detected from Google account</span>
+                                                </div>
+                                            )}
+                                        </div>
 
+                                        {/* Full-width Thumb-Friendly Confirm Button */}
                                         <Button
                                             type="submit"
-                                            disabled={verifying}
-                                            className="z-1 absolute px-6"
+                                            disabled={verifying || !data.employeeId}
+                                            className="w-full h-14 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-base shadow-lg shadow-blue-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
                                         >
-                                            {" "}
                                             {verifying ? (
                                                 <>
-                                                    <LoaderCircle className="h-4 w-4 animate-spin" />{" "}
-                                                    Verifying
+                                                    <LoaderCircle className="h-5 w-5 animate-spin" />
+                                                    <span>Verifying Record...</span>
                                                 </>
                                             ) : (
-                                                "Confirm"
+                                                <>
+                                                    <span>Verify & Proceed</span>
+                                                </>
                                             )}
                                         </Button>
-
-
-
-
-                                        {!edited && (
-                                            <img
-                                                src={click}
-                                                alt=""
-                                                style={{ marginTop: "-5px" }}
-                                                className="w-10 h-10 left-20 z-0 relative top-7 rotate-320"
-                                            />
-                                        )}
                                     </form>
 
-                                    <div className={`relative p-8 border ${employeeID ? 'hidden' : ''}`}>
-                                        {/* Ensure parent has 'relative' class */}
-
-                                        <div className="absolute left-2 bottom-2 flex items-center gap-1 text-xs text-slate-500">
-                                            <span>Don't have employee ID yet?</span>
+                                    {/* Registration Link for New Users */}
+                                    {!employeeID && (
+                                        <div className="pt-2 text-center">
                                             <button
+                                                type="button"
                                                 onClick={() => {
                                                     setNoEmployeeID(true);
                                                     setData({
@@ -631,34 +658,34 @@ export default function Scan({
                                                         is_no_employee_id: true,
                                                     });
                                                 }}
-                                                className="text-blue-600 hover:underline font-medium"
+                                                className="text-xs text-slate-500 hover:text-blue-600 transition-colors inline-flex items-center gap-1 font-medium"
                                             >
-                                                Click here
+                                                <span>Don't have an Employee ID yet?</span>
+                                                <span className="text-blue-600 dark:text-blue-400 font-bold underline">
+                                                    Tap here
+                                                </span>
                                             </button>
                                         </div>
-                                    </div>
-                                </> : <div className=""><Summary anomaly={anomaly} employeeID={employeeID} processing={processing} data={data} setData={setData} handleSubmitAttendance={handleSubmitAttendance} showSummary={showSummary} setShowSummary={setShowSummary} /></div>}
-
-                        <br />
-
-                        {isWithinLocation && !showSummary &&
-                            attendance &&
-                            invalid_status === null && (
-                                <div className="mt-6 text-center">
-                                    <div className="inline-flex items-center gap-3 bg-red-600 text-white rounded-full px-5 py-3 shadow-lg">
-                                        <div className="text-xs text-red-100 uppercase tracking-wide">
-                                            Closes In
-                                        </div>
-                                        <div className="text-xl font-bold font-mono">
-                                            {remainingTime}
-                                        </div>
-                                    </div>
-                                    <div className="text-xs text-gray-500 mt-2">
-                                        Closing: {closeAt.toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" })} {closeAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                    </div>
+                                    )}
                                 </div>
-                            )}
 
+                                {/* Session Countdown Timer */}
+                                {attendance && invalid_status === null && remainingTime && remainingTime !== "0" && (
+                                    <div className="p-3.5 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/20 text-center animate-pulse-subtle">
+                                        <div className="inline-flex items-center gap-2 text-xs font-bold text-amber-700 dark:text-amber-300">
+                                            <Clock className="w-3.5 h-3.5" />
+                                            <span>Session Closes In:</span>
+                                            <span className="font-mono text-sm tracking-wide bg-amber-500/20 px-2 py-0.5 rounded-md text-amber-900 dark:text-amber-200">
+                                                {remainingTime}
+                                            </span>
+                                        </div>
+                                        <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                                            Closes at {closeAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <NotInLocation

@@ -1,9 +1,9 @@
-import StatusCardComponent from "./Status/StatusCardComponent";
-import AnomalyStatus from "./Status/AnomalyStatus";
-import ClosedStatus from "./Status/ClosedStatus";
-import NotFoundStatus from './Status/NotFoundStatus';
-import NotOpenStatus from "./Status/NotOpenStatus";
-import RecordedStatus from "./Status/RecordedStatus";
+import StatusCardComponent from "./status/StatusCardComponent";
+import AnomalyStatus from "./status/AnomalyStatus";
+import ClosedStatus from "./status/ClosedStatus";
+import NotFoundStatus from "./status/NotFoundStatus";
+import NotOpenStatus from "./status/NotOpenStatus";
+import RecordedStatus from "./status/RecordedStatus";
 
 export default function FailedScan({ invalid_status, anomalyState, activeMapLocation }) {
     const { notFound, isNotOpen, isClosed, isRecorded } = invalid_status || {}

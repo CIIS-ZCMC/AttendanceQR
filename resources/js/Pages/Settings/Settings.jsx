@@ -1,28 +1,45 @@
-import React from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import AppLayout from "@/layouts/app-layout";
 import {
     Table,
     TableBody,
-    TableCaption,
     TableCell,
-    TableFooter,
     TableHead,
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/Components/ui/input";
 import { Button } from "@/Components/ui/button";
-import { Edit, Plus, Calendar, MapPin, Clock } from "lucide-react";
+import {
+    Edit,
+    Plus,
+    Calendar,
+    MapPin,
+    Clock,
+    Trash2,
+    Search,
+    RotateCcw,
+    CheckCircle2,
+    Copy,
+    Check,
+    Navigation,
+    Shield,
+    CalendarDays,
+    SlidersHorizontal,
+    Globe,
+    Layers,
+    Timer,
+    AlertCircle,
+    X,
+} from "lucide-react";
 import {
     Pagination,
     PaginationContent,
-    PaginationEllipsis,
     PaginationItem,
     PaginationLink,
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination";
-
 import {
     Dialog,
     DialogClose,
@@ -35,458 +52,458 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { BadgeCheckIcon } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import { Trash } from "lucide-react";
 import { Checkbox } from "@/Components/ui/checkbox";
-import { route } from "ziggy-js";
-import { useForm } from "@inertiajs/react";
+import { useForm, router, usePage } from "@inertiajs/react";
 import { toast } from "sonner";
 import { LoaderCircle } from "lucide-react";
-import { router, usePage } from "@inertiajs/react";
-import { useEffect, useRef, useState } from "react";
 import { GoogleMap, Marker, Circle } from "@react-google-maps/api";
+import axios from "axios";
 
-export default function Settings({ attendanceList, is_admin, map_coordinates, mapLocations: initialMapLocations, schedules: initialSchedules }) {
-    const [selectedAttendance, setSelectedAttendance] = React.useState(null);
-    const [open, setOpen] = React.useState(false);
-    const [mapModalOpen, setMapModalOpen] = React.useState(false);
-    const [mapLocationModalOpen, setMapLocationModalOpen] = React.useState(false);
-    const [selectedMapLocation, setSelectedMapLocation] = React.useState(null);
-    const [mapLocations, setMapLocations] = React.useState(initialMapLocations || []);
-    const [mapLocationSearch, setMapLocationSearch] = React.useState("");
-    const [activeTab, setActiveTab] = React.useState("attendance");
-    const page = usePage();
-    const [search, setSearch] = React.useState("");
-    const [schedules, setSchedules] = React.useState(initialSchedules || []);
-    const [scheduleModalOpen, setScheduleModalOpen] = React.useState(false);
-    const [selectedSchedule, setSelectedSchedule] = React.useState(null);
-    const [scheduleSearch, setScheduleSearch] = React.useState("");
+// Helper for effective schedule times
+function getEffectiveLocationTime(loc, schedules = []) {
+    if (loc.schedule_id) {
+        const sched = schedules.find((s) => s.id === loc.schedule_id) || loc.schedule;
+        if (sched) {
+            return {
+                open_time: sched.open_time,
+                closing_time: sched.closing_time,
+                name: sched.name,
+            };
+        }
+    }
+    return {
+        open_time: loc.open_time,
+        closing_time: loc.closing_time,
+        name: null,
+    };
+}
+
+export default function Settings({
+    attendanceList,
+    is_admin,
+    map_coordinates,
+    mapLocations: initialMapLocations,
+    schedules: initialSchedules,
+}) {
+    const [selectedAttendance, setSelectedAttendance] = useState(null);
+    const [openAttendanceModal, setOpenAttendanceModal] = useState(false);
+    const [mapLocationModalOpen, setMapLocationModalOpen] = useState(false);
+    const [selectedMapLocation, setSelectedMapLocation] = useState(null);
+    const [mapLocations, setMapLocations] = useState(initialMapLocations || []);
+    const [mapLocationSearch, setMapLocationSearch] = useState("");
+    const [activeTab, setActiveTab] = useState("attendance");
+    const [search, setSearch] = useState("");
+    const [schedules, setSchedules] = useState(initialSchedules || []);
+    const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+    const [selectedSchedule, setSelectedSchedule] = useState(null);
+    const [scheduleSearch, setScheduleSearch] = useState("");
+    const [copiedToken, setCopiedToken] = useState(null);
 
     const fetchMapLocations = async () => {
         try {
-            const response = await axios.get('/api/map-locations');
+            const response = await axios.get("/api/map-locations");
             setMapLocations(response.data);
         } catch (error) {
-            console.error('Error fetching map locations:', error);
+            console.error("Error fetching map locations:", error);
         }
     };
 
     const fetchSchedules = async () => {
         try {
-            const response = await axios.get('/api/schedules');
+            const response = await axios.get("/api/schedules");
             setSchedules(response.data);
         } catch (error) {
-            console.error('Error fetching schedules:', error);
+            console.error("Error fetching schedules:", error);
         }
     };
 
     const handleDeleteSchedule = async (id) => {
-        if (!confirm("Are you sure you want to delete this schedule?")) {
-            return;
-        }
+        if (!confirm("Are you sure you want to delete this schedule?")) return;
         try {
             await axios.delete(`/api/schedules/${id}`);
             toast.success("Schedule deleted successfully!");
             fetchSchedules();
         } catch (error) {
-            console.error('Error deleting schedule:', error);
+            console.error("Error deleting schedule:", error);
             toast.error("Failed to delete schedule");
         }
     };
 
-    const CreateAttendance = () => {
-        const [loading, setLoading] = React.useState(false);
-        const useCreateForm = useForm({
-            id: "",
-            name: "",
-            is_active: false,
-            map_location_ids: [],
-            open_date: "",
-            closing_date: "",
-            no_location: false,
+    const handleDeleteMapLocation = async (id) => {
+        if (!confirm("Are you sure you want to delete this map location?")) return;
+        try {
+            await axios.delete(`/api/map-locations/${id}`);
+            toast.success("Map location deleted successfully!");
+            fetchMapLocations();
+        } catch (error) {
+            console.error("Error deleting map location:", error);
+            toast.error("Failed to delete map location");
+        }
+    };
+
+    const copyTokenUrl = (token) => {
+        if (!token) return;
+        const url = `${window.location.origin}/?token=${token}`;
+        navigator.clipboard.writeText(url).then(() => {
+            setCopiedToken(token);
+            toast.success("Scanner URL copied to clipboard!");
+            setTimeout(() => setCopiedToken(null), 2000);
+        });
+    };
+
+    const getStatusInfo = (attendance) => {
+        if (!attendance.is_active) {
+            return {
+                label: "Inactive",
+                badgeClass: "bg-slate-100 text-slate-600 border-slate-200",
+                dotClass: "bg-slate-400",
+            };
+        }
+
+        const now = new Date();
+        const today = now.toISOString().split("T")[0];
+        const currentTime = now.toTimeString().slice(0, 8);
+        const openDate = attendance.open_date;
+        const closingDate = attendance.closing_date;
+        const locs = attendance.map_locations || [];
+
+        if (!openDate || !closingDate || locs.length === 0) {
+            return {
+                label: "No Schedule",
+                badgeClass: "bg-slate-100 text-slate-600 border-slate-200",
+                dotClass: "bg-slate-400",
+            };
+        }
+
+        if (today < openDate) {
+            return {
+                label: "Scheduled",
+                badgeClass: "bg-blue-50 text-blue-700 border-blue-200",
+                dotClass: "bg-blue-500",
+            };
+        }
+
+        if (today > closingDate) {
+            return {
+                label: "Closed",
+                badgeClass: "bg-slate-100 text-slate-600 border-slate-200",
+                dotClass: "bg-slate-400",
+            };
+        }
+
+        const hasActiveLocation = locs.some((loc) => {
+            return (
+                loc.open_time &&
+                loc.closing_time &&
+                currentTime >= loc.open_time &&
+                currentTime < loc.closing_time
+            );
         });
 
-        useEffect(() => {
-            if (selectedAttendance) {
-                useCreateForm.setData({
-                    id: selectedAttendance.id,
-                    name: selectedAttendance.title,
-                    is_active: selectedAttendance.is_active,
-                    map_location_ids: (selectedAttendance.map_locations || []).map((loc) => loc.id),
-                    open_date: selectedAttendance.open_date || "",
-                    closing_date: selectedAttendance.closing_date || "",
-                    no_location: !!selectedAttendance.no_location,
-                });
+        if (!hasActiveLocation) {
+            const hasNotOpenYet = locs.some(
+                (loc) => loc.open_time && currentTime < loc.open_time
+            );
+            if (hasNotOpenYet) {
+                return {
+                    label: "Not Open Yet",
+                    badgeClass: "bg-amber-50 text-amber-700 border-amber-200",
+                    dotClass: "bg-amber-500",
+                };
             }
-        }, [selectedAttendance]);
+            return {
+                label: "Closed Today",
+                badgeClass: "bg-slate-100 text-slate-600 border-slate-200",
+                dotClass: "bg-slate-400",
+            };
+        }
+
+        return {
+            label: "Active Now",
+            badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
+            dotClass: "bg-emerald-500 animate-pulse",
+        };
+    };
+
+    const getLocationStatusInfo = (loc) => {
+        const { open_time: ot, closing_time: ct } = getEffectiveLocationTime(
+            loc,
+            schedules
+        );
+        if (!ot || !ct) {
+            return {
+                label: "No Schedule",
+                badgeClass: "bg-slate-100 text-slate-600 border-slate-200",
+            };
+        }
+        const now = new Date();
+        const currentTime = now.toTimeString().slice(0, 8);
+
+        if (currentTime < ot) {
+            return {
+                label: "Not Open",
+                badgeClass: "bg-amber-50 text-amber-700 border-amber-200",
+            };
+        }
+        if (currentTime >= ct) {
+            return {
+                label: "Closed",
+                badgeClass: "bg-slate-100 text-slate-600 border-slate-200",
+            };
+        }
+        return {
+            label: "Active Now",
+            badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
+        };
+    };
+
+    // Filtered lists
+    const filteredLocations = useMemo(() => {
+        const q = mapLocationSearch.toLowerCase().trim();
+        if (!q) return mapLocations;
+        return mapLocations.filter(
+            (loc) =>
+                loc.location.toLowerCase().includes(q) ||
+                (loc.description && loc.description.toLowerCase().includes(q))
+        );
+    }, [mapLocations, mapLocationSearch]);
+
+    const filteredSchedules = useMemo(() => {
+        const q = scheduleSearch.toLowerCase().trim();
+        if (!q) return schedules;
+        return schedules.filter((s) => s.name.toLowerCase().includes(q));
+    }, [schedules, scheduleSearch]);
+
+    /* =========================================================================
+       SUB-COMPONENTS FOR FORMS
+    ========================================================================= */
+
+    const CreateAttendanceForm = () => {
+        const [loading, setLoading] = useState(false);
+        const useCreateForm = useForm({
+            id: selectedAttendance?.id || "",
+            name: selectedAttendance?.title || "",
+            is_active: selectedAttendance?.is_active || false,
+            map_location_ids:
+                (selectedAttendance?.map_locations || []).map((l) => l.id) || [],
+            open_date: selectedAttendance?.open_date || "",
+            closing_date: selectedAttendance?.closing_date || "",
+            no_location: !!selectedAttendance?.no_location,
+        });
 
         const handleSubmit = async (e) => {
             e.preventDefault();
             setLoading(true);
 
-            await axios
-                .post("/store_attendance/settings", useCreateForm.data)
-                .then(() => {
-                    setOpen(false);
-                    window.location.reload();
-                })
-                .catch((error) => {
+            try {
+                await axios.post("/store_attendance/settings", useCreateForm.data);
+                setOpenAttendanceModal(false);
+                toast.success(
+                    selectedAttendance
+                        ? "Attendance updated successfully!"
+                        : "Attendance created successfully!"
+                );
+                router.reload();
+            } catch (error) {
+                if (error.response?.data?.errors) {
                     useCreateForm.setError(error.response.data.errors);
-                    toast.error("Attendance creation failed");
-                    setOpen(true);
-                })
-                .finally(() => {
-                    setLoading(false);
-                });
+                }
+                toast.error("Failed to save attendance.");
+            } finally {
+                setLoading(false);
+            }
         };
 
-        const oneHourThirtyAhead = new Date();
-        oneHourThirtyAhead.setMinutes(oneHourThirtyAhead.getMinutes() + 90);
-        const minValue = oneHourThirtyAhead.toISOString().slice(0, 16);
-
         return (
-            <form onSubmit={handleSubmit}>
-                <div className="grid gap-4 mb-4">
-                    <div className="grid gap-3">
-                        <Label htmlFor="name-1">Title</Label>
+            <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+                <div className="space-y-1.5">
+                    <Label htmlFor="title" className="text-xs font-bold text-slate-700">
+                        Session Title *
+                    </Label>
+                    <Input
+                        id="title"
+                        required
+                        value={useCreateForm.data.name}
+                        onChange={(e) => useCreateForm.setData("name", e.target.value)}
+                        placeholder="e.g. Daily Hospital Morning Shift"
+                        className="h-11 rounded-xl text-sm"
+                    />
+                    {useCreateForm.errors.name && (
+                        <p className="text-rose-500 text-xs">{useCreateForm.errors.name}</p>
+                    )}
+                </div>
+
+                {/* Date Ranges */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                        <Label htmlFor="open_date" className="text-xs font-bold text-slate-700">
+                            Open Date *
+                        </Label>
                         <Input
-                            required
-                            id="name-1"
-                            name="name"
-                            value={useCreateForm.data.name}
-                            onChange={(e) =>
-                                useCreateForm.setData("name", e.target.value)
-                            }
-                        />
-                        {useCreateForm.errors.name && (
-                            <p className="text-red-500 text-xs">
-                                {useCreateForm.errors.name}
-                            </p>
-                        )}
-                    </div>
-                    <div className="grid gap-3">
-                        <Label htmlFor="map_location_ids">Map Locations</Label>
-                        <div className={`max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2 space-y-2 ${useCreateForm.data.no_location ? 'opacity-50 pointer-events-none' : ''}`}>
-                            {mapLocations.map((loc) => (
-                                <div key={loc.id} className="flex items-center gap-2">
-                                    <Checkbox
-                                        id={`loc-${loc.id}`}
-                                        checked={useCreateForm.data.map_location_ids?.includes(loc.id) || false}
-                                        onCheckedChange={(checked) => {
-                                            const current = useCreateForm.data.map_location_ids || [];
-                                            if (checked) {
-                                                useCreateForm.setData("map_location_ids", [...current, loc.id]);
-                                            } else {
-                                                useCreateForm.setData("map_location_ids", current.filter((id) => id !== loc.id));
-                                            }
-                                        }}
-                                    />
-                                    <Label htmlFor={`loc-${loc.id}`} className="text-sm font-normal cursor-pointer">
-                                        {loc.location}{loc.description ? ` - ${loc.description}` : ""}
-                                    </Label>
-                                </div>
-                            ))}
-                        </div>
-                        {useCreateForm.errors.map_location_ids && (
-                            <p className="text-red-500 text-xs">
-                                {useCreateForm.errors.map_location_ids}
-                            </p>
-                        )}
-                    </div>
-                    <div className="grid gap-3">
-                        <Label htmlFor="open_date">Open Date</Label>
-                        <Input
-                            required
                             id="open_date"
-                            name="open_date"
-                            value={useCreateForm.data.open_date}
-                            onChange={(e) =>
-                                useCreateForm.setData("open_date", e.target.value)
-                            }
                             type="date"
-                            className="w-full block rounded-md p-2"
+                            required
+                            value={useCreateForm.data.open_date}
+                            onChange={(e) => useCreateForm.setData("open_date", e.target.value)}
+                            className="h-11 rounded-xl text-xs"
                         />
                         {useCreateForm.errors.open_date && (
-                            <p className="text-red-500 text-xs">
+                            <p className="text-rose-500 text-xs">
                                 {useCreateForm.errors.open_date}
                             </p>
                         )}
                     </div>
-                    <div className="grid gap-3">
-                        <Label htmlFor="closing_date">Closing Date</Label>
+
+                    <div className="space-y-1.5">
+                        <Label htmlFor="closing_date" className="text-xs font-bold text-slate-700">
+                            Closing Date *
+                        </Label>
                         <Input
-                            required
                             id="closing_date"
-                            name="closing_date"
+                            type="date"
+                            required
                             value={useCreateForm.data.closing_date}
                             onChange={(e) =>
                                 useCreateForm.setData("closing_date", e.target.value)
                             }
-                            type="date"
-                            className="w-full block rounded-md p-2"
+                            className="h-11 rounded-xl text-xs"
                         />
                         {useCreateForm.errors.closing_date && (
-                            <p className="text-red-500 text-xs">
+                            <p className="text-rose-500 text-xs">
                                 {useCreateForm.errors.closing_date}
                             </p>
                         )}
                     </div>
-                    <div className="flex  flex-col  gap-2">
-                        <Label htmlFor="is_active">Status</Label>
-                        <div className="flex items-center gap-3">
-                            <Checkbox
-                                id="is_active"
-                                name="is_active"
-                                checked={useCreateForm.data.is_active}
-                                onCheckedChange={(checked) =>
-                                    useCreateForm.setData("is_active", checked)
-                                }
-                            />
-                            <Label htmlFor="is_active">Set active</Label>
-                        </div>
+                </div>
+
+                {/* Map Locations Checkbox Selection */}
+                <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                        <Label className="text-xs font-bold text-slate-700">
+                            Allowed Locations
+                        </Label>
+                        <span className="text-[11px] text-slate-400">
+                            {useCreateForm.data.map_location_ids.length} selected
+                        </span>
                     </div>
-                    <div className="flex flex-col gap-2">
-                        <Label htmlFor="no_location">Location Validation</Label>
-                        <div className="flex items-center gap-3">
-                            <Checkbox
-                                id="no_location"
-                                name="no_location"
-                                checked={useCreateForm.data.no_location}
-                                onCheckedChange={(checked) =>
-                                    useCreateForm.setData("no_location", checked)
-                                }
-                            />
-                            <Label htmlFor="no_location">No location required (free entry)</Label>
-                        </div>
+
+                    <div
+                        className={`max-h-44 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-2xl p-2.5 space-y-1.5 bg-slate-50/50 dark:bg-slate-800/40 ${
+                            useCreateForm.data.no_location
+                                ? "opacity-40 pointer-events-none"
+                                : ""
+                        }`}
+                    >
+                        {mapLocations.length === 0 ? (
+                            <p className="text-xs text-slate-400 text-center py-4">
+                                No map locations created yet.
+                            </p>
+                        ) : (
+                            mapLocations.map((loc) => (
+                                <label
+                                    key={loc.id}
+                                    htmlFor={`loc-${loc.id}`}
+                                    className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-white dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                                >
+                                    <Checkbox
+                                        id={`loc-${loc.id}`}
+                                        checked={useCreateForm.data.map_location_ids.includes(
+                                            loc.id
+                                        )}
+                                        onCheckedChange={(checked) => {
+                                            const current =
+                                                useCreateForm.data.map_location_ids || [];
+                                            if (checked) {
+                                                useCreateForm.setData("map_location_ids", [
+                                                    ...current,
+                                                    loc.id,
+                                                ]);
+                                            } else {
+                                                useCreateForm.setData(
+                                                    "map_location_ids",
+                                                    current.filter((id) => id !== loc.id)
+                                                );
+                                            }
+                                        }}
+                                    />
+                                    <div className="text-xs">
+                                        <span className="font-semibold text-slate-800 dark:text-slate-100">
+                                            {loc.location}
+                                        </span>
+                                        {loc.description && (
+                                            <span className="text-slate-400 ml-1.5">
+                                                — {loc.description}
+                                            </span>
+                                        )}
+                                    </div>
+                                </label>
+                            ))
+                        )}
                     </div>
                 </div>
-                <DialogFooter>
+
+                {/* Toggles */}
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 space-y-3">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                        <Checkbox
+                            id="is_active"
+                            checked={useCreateForm.data.is_active}
+                            onCheckedChange={(checked) =>
+                                useCreateForm.setData("is_active", !!checked)
+                            }
+                        />
+                        <div className="text-xs">
+                            <span className="font-bold text-slate-800 dark:text-slate-100 block">
+                                Set as Active Session
+                            </span>
+                            <span className="text-slate-500 text-[11px]">
+                                Makes this session the live attendance session for employees
+                            </span>
+                        </div>
+                    </label>
+
+                    <label className="flex items-center gap-3 cursor-pointer pt-2 border-t border-slate-200/60 dark:border-slate-700">
+                        <Checkbox
+                            id="no_location"
+                            checked={useCreateForm.data.no_location}
+                            onCheckedChange={(checked) =>
+                                useCreateForm.setData("no_location", !!checked)
+                            }
+                        />
+                        <div className="text-xs">
+                            <span className="font-bold text-slate-800 dark:text-slate-100 block">
+                                Free Entry (No Geofence Required)
+                            </span>
+                            <span className="text-slate-500 text-[11px]">
+                                Disables radius check; employees can submit from anywhere
+                            </span>
+                        </div>
+                    </label>
+                </div>
+
+                <DialogFooter className="flex-row gap-2 pt-2 sm:justify-end">
                     <DialogClose asChild>
-                        <Button type="button" variant="outline">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="flex-1 sm:flex-none h-11 rounded-xl text-xs"
+                        >
                             Cancel
                         </Button>
                     </DialogClose>
-                    <Button disabled={loading} type="submit">
+                    <Button
+                        type="submit"
+                        disabled={loading}
+                        className="flex-1 sm:flex-none h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs active:scale-95 shadow-sm"
+                    >
                         {loading ? (
-                            <div className="flex items-center">
-                                <LoaderCircle
-                                    size="sm"
-                                    color="green"
-                                    className="mr-2 animate-spin"
-                                />
+                            <>
+                                <LoaderCircle className="w-4 h-4 mr-1.5 animate-spin" />
                                 Saving...
-                            </div>
+                            </>
                         ) : (
-                            "Save"
-                        )}
-                    </Button>
-                </DialogFooter>
-            </form>
-        );
-    };
-
-    const MapCoordinatesModal = ({ map_coordinates }) => {
-        const [loading, setLoading] = React.useState(false);
-        const [latitude, setLatitude] = React.useState(map_coordinates?.latitude || "");
-        const [longitude, setLongitude] = React.useState(map_coordinates?.longitude || "");
-
-        const handleSave = async (e) => {
-            e.preventDefault();
-            setLoading(true);
-
-            try {
-                const coordinates = {
-                    latitude: parseFloat(latitude),
-                    longitude: parseFloat(longitude),
-                    saved_at: new Date().toISOString()
-                };
-
-                // Save to JSON file via API endpoint
-                await axios.post('/api/save-map-coordinates', coordinates)
-                    .then(() => {
-                        toast.success("Map coordinates saved successfully!");
-                        setMapModalOpen(false);
-                        setLatitude("");
-                        setLongitude("");
-                    })
-                    .catch((error) => {
-                        console.error('Error saving coordinates:', error);
-                        toast.error("Failed to save coordinates");
-                    });
-            } catch (error) {
-                console.error('Error:', error);
-                toast.error("Failed to save coordinates");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        return (
-            <form onSubmit={handleSave}>
-                <div className="grid gap-4 mb-4">
-                    <div className="grid gap-3">
-                        <Label htmlFor="latitude">Latitude</Label>
-                        <Input
-                            required
-                            id="latitude"
-                            name="latitude"
-                            value={latitude}
-                            onChange={(e) => setLatitude(e.target.value)}
-                            placeholder="Enter latitude"
-                            type="number"
-                            step="any"
-                        />
-                    </div>
-                    <div className="grid gap-3">
-                        <Label htmlFor="longitude">Longitude</Label>
-                        <Input
-                            required
-                            id="longitude"
-                            name="longitude"
-                            value={longitude}
-                            onChange={(e) => setLongitude(e.target.value)}
-                            placeholder="Enter longitude"
-                            type="number"
-                            step="any"
-                        />
-                    </div>
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild>
-                        <Button type="button" variant="outline">
-                            Cancel
-                        </Button>
-                    </DialogClose>
-                    <Button disabled={loading} type="submit">
-                        {loading ? (
-                            <div className="flex items-center">
-                                <LoaderCircle
-                                    size="sm"
-                                    color="green"
-                                    className="mr-2 animate-spin"
-                                />
-                                Saving...
-                            </div>
-                        ) : (
-                            "Save Coordinates"
-                        )}
-                    </Button>
-                </DialogFooter>
-            </form>
-        );
-    };
-
-    const ScheduleForm = () => {
-        const [loading, setLoading] = React.useState(false);
-        const useScheduleForm = useForm({
-            id: "",
-            name: "",
-            open_time: "",
-            closing_time: "",
-        });
-
-        useEffect(() => {
-            if (selectedSchedule) {
-                useScheduleForm.setData({
-                    id: selectedSchedule.id,
-                    name: selectedSchedule.name,
-                    open_time: selectedSchedule.open_time ? selectedSchedule.open_time.slice(0, 5) : "",
-                    closing_time: selectedSchedule.closing_time ? selectedSchedule.closing_time.slice(0, 5) : "",
-                });
-            }
-        }, [selectedSchedule]);
-
-        const handleSubmit = async (e) => {
-            e.preventDefault();
-            setLoading(true);
-            try {
-                const data = {
-                    name: useScheduleForm.data.name,
-                    open_time: useScheduleForm.data.open_time,
-                    closing_time: useScheduleForm.data.closing_time,
-                };
-                if (useScheduleForm.data.id) {
-                    await axios.put(`/api/schedules/${useScheduleForm.data.id}`, data);
-                    toast.success("Schedule updated successfully!");
-                } else {
-                    await axios.post('/api/schedules', data);
-                    toast.success("Schedule created successfully!");
-                }
-                setScheduleModalOpen(false);
-                setSelectedSchedule(null);
-                useScheduleForm.reset();
-                fetchSchedules();
-            } catch (error) {
-                console.error('Error saving schedule:', error);
-                if (error.response?.data?.errors) {
-                    useScheduleForm.setError(error.response.data.errors);
-                }
-                toast.error("Failed to save schedule");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        return (
-            <form onSubmit={handleSubmit}>
-                <div className="grid gap-4 mb-4">
-                    <div className="grid gap-3">
-                        <Label htmlFor="schedule_name">Schedule Name</Label>
-                        <Input
-                            required
-                            id="schedule_name"
-                            value={useScheduleForm.data.name}
-                            onChange={(e) => useScheduleForm.setData("name", e.target.value)}
-                            placeholder="e.g. Flag Ceremony AM"
-                        />
-                        {useScheduleForm.errors.name && (
-                            <p className="text-red-500 text-xs">{useScheduleForm.errors.name}</p>
-                        )}
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="grid gap-3">
-                            <Label htmlFor="schedule_open_time">Open Time</Label>
-                            <Input
-                                required
-                                id="schedule_open_time"
-                                type="time"
-                                value={useScheduleForm.data.open_time}
-                                onChange={(e) => useScheduleForm.setData("open_time", e.target.value)}
-                                className="w-full block rounded-md p-2"
-                            />
-                        </div>
-                        <div className="grid gap-3">
-                            <Label htmlFor="schedule_closing_time">Closing Time</Label>
-                            <Input
-                                required
-                                id="schedule_closing_time"
-                                type="time"
-                                value={useScheduleForm.data.closing_time}
-                                onChange={(e) => useScheduleForm.setData("closing_time", e.target.value)}
-                                className="w-full block rounded-md p-2"
-                            />
-                        </div>
-                    </div>
-                    {useScheduleForm.errors.open_time && (
-                        <p className="text-red-500 text-xs">{useScheduleForm.errors.open_time}</p>
-                    )}
-                    {useScheduleForm.errors.closing_time && (
-                        <p className="text-red-500 text-xs">{useScheduleForm.errors.closing_time}</p>
-                    )}
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild>
-                        <Button type="button" variant="outline">Cancel</Button>
-                    </DialogClose>
-                    <Button disabled={loading} type="submit">
-                        {loading ? (
-                            <div className="flex items-center">
-                                <LoaderCircle size="sm" className="mr-2 animate-spin" />
-                                Saving...
-                            </div>
-                        ) : (
-                            "Save Schedule"
+                            "Save Attendance"
                         )}
                     </Button>
                 </DialogFooter>
@@ -495,69 +512,53 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
     };
 
     const MapLocationForm = () => {
-        const [loading, setLoading] = React.useState(false);
+        const [loading, setLoading] = useState(false);
         const [mapsReady, setMapsReady] = useState(false);
         const mapRef = useRef(null);
+
         const useMapLocationForm = useForm({
-            id: "",
-            location: "",
-            description: "",
-            lat: "",
-            lng: "",
-            schedule_id: "",
-            open_time: "",
-            closing_time: "",
-            is_default: false,
-            w_map: false,
+            id: selectedMapLocation?.id || "",
+            location: selectedMapLocation?.location || "",
+            description: selectedMapLocation?.description || "",
+            lat: selectedMapLocation?.lat || "",
+            lng: selectedMapLocation?.lng || "",
+            schedule_id: selectedMapLocation?.schedule_id || "",
+            open_time: selectedMapLocation?.open_time
+                ? selectedMapLocation.open_time.slice(0, 5)
+                : "",
+            closing_time: selectedMapLocation?.closing_time
+                ? selectedMapLocation.closing_time.slice(0, 5)
+                : "",
+            is_default: !!selectedMapLocation?.is_default,
+            w_map: !!selectedMapLocation?.w_map,
         });
 
         useEffect(() => {
-            if (selectedMapLocation) {
-                useMapLocationForm.setData({
-                    id: selectedMapLocation.id,
-                    location: selectedMapLocation.location,
-                    description: selectedMapLocation.description || "",
-                    lat: selectedMapLocation.lat,
-                    lng: selectedMapLocation.lng,
-                    schedule_id: selectedMapLocation.schedule_id || "",
-                    open_time: selectedMapLocation.open_time ? selectedMapLocation.open_time.slice(0, 5) : "",
-                    closing_time: selectedMapLocation.closing_time ? selectedMapLocation.closing_time.slice(0, 5) : "",
-                    is_default: !!selectedMapLocation.is_default,
-                    w_map: !!selectedMapLocation.w_map,
-                });
-            }
-        }, [selectedMapLocation]);
-
-        useEffect(() => {
-            const checkMaps = setInterval(() => {
+            const check = setInterval(() => {
                 if (window.google && window.google.maps) {
                     setMapsReady(true);
-                    clearInterval(checkMaps);
+                    clearInterval(check);
                 }
             }, 200);
-            return () => clearInterval(checkMaps);
+            return () => clearInterval(check);
         }, []);
 
-        const mapCenter = useMapLocationForm.data.lat && useMapLocationForm.data.lng
-            ? { lat: parseFloat(useMapLocationForm.data.lat), lng: parseFloat(useMapLocationForm.data.lng) }
-            : { lat: 6.907257, lng: 122.080909 };
+        const mapCenter =
+            useMapLocationForm.data.lat && useMapLocationForm.data.lng
+                ? {
+                      lat: parseFloat(useMapLocationForm.data.lat),
+                      lng: parseFloat(useMapLocationForm.data.lng),
+                  }
+                : { lat: 6.907257, lng: 122.080909 };
 
         const handleMapClick = (e) => {
             const lat = e.latLng.lat();
             const lng = e.latLng.lng();
-            useMapLocationForm.setData("lat", lat);
-            useMapLocationForm.setData("lng", lng);
-        };
-
-        const handleMapLoad = (map) => {
-            mapRef.current = map;
-        };
-
-        const mapOptions = {
-            zoomControl: true,
-            mapTypeControl: false,
-            streetViewControl: false,
-            fullscreenControl: true,
+            useMapLocationForm.setData((prev) => ({
+                ...prev,
+                lat: lat.toFixed(6),
+                lng: lng.toFixed(6),
+            }));
         };
 
         const handleSubmit = async (e) => {
@@ -565,32 +566,36 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
             setLoading(true);
 
             try {
-                const data = {
+                const payload = {
                     location: useMapLocationForm.data.location,
                     description: useMapLocationForm.data.description,
-                    lat: useMapLocationForm.data.lat ? parseFloat(useMapLocationForm.data.lat) : "",
-                    lng: useMapLocationForm.data.lng ? parseFloat(useMapLocationForm.data.lng) : "",
+                    lat: parseFloat(useMapLocationForm.data.lat),
+                    lng: parseFloat(useMapLocationForm.data.lng),
                     schedule_id: useMapLocationForm.data.schedule_id || null,
-                    open_time: useMapLocationForm.data.schedule_id ? null : (useMapLocationForm.data.open_time || null),
-                    closing_time: useMapLocationForm.data.schedule_id ? null : (useMapLocationForm.data.closing_time || null),
+                    open_time: useMapLocationForm.data.schedule_id
+                        ? null
+                        : useMapLocationForm.data.open_time || null,
+                    closing_time: useMapLocationForm.data.schedule_id
+                        ? null
+                        : useMapLocationForm.data.closing_time || null,
                     is_default: useMapLocationForm.data.is_default,
                     w_map: useMapLocationForm.data.w_map,
                 };
 
                 if (useMapLocationForm.data.id) {
-                    await axios.put(`/api/map-locations/${useMapLocationForm.data.id}`, data);
-                    toast.success("Map location updated successfully!");
+                    await axios.put(
+                        `/api/map-locations/${useMapLocationForm.data.id}`,
+                        payload
+                    );
+                    toast.success("Location updated successfully!");
                 } else {
-                    await axios.post('/api/map-locations', data);
-                    toast.success("Map location created successfully!");
+                    await axios.post("/api/map-locations", payload);
+                    toast.success("Location created successfully!");
                 }
 
                 setMapLocationModalOpen(false);
-                setSelectedMapLocation(null);
-                useMapLocationForm.reset();
                 fetchMapLocations();
             } catch (error) {
-                console.error('Error saving map location:', error);
                 if (error.response?.data?.errors) {
                     useMapLocationForm.setError(error.response.data.errors);
                 }
@@ -601,46 +606,65 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
         };
 
         return (
-            <form onSubmit={handleSubmit}>
-                <div className="grid gap-4 mb-4">
-                    <div className="grid gap-3">
-                        <Label htmlFor="location">Location Name</Label>
-                        <Input
-                            required
-                            id="location"
-                            name="location"
-                            value={useMapLocationForm.data.location}
-                            onChange={(e) => useMapLocationForm.setData("location", e.target.value)}
-                            placeholder="Enter location name"
-                        />
-                        {useMapLocationForm.errors.location && (
-                            <p className="text-red-500 text-xs">{useMapLocationForm.errors.location}</p>
-                        )}
+            <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+                <div className="space-y-1.5">
+                    <Label htmlFor="loc-name" className="text-xs font-bold text-slate-700">
+                        Location Name *
+                    </Label>
+                    <Input
+                        id="loc-name"
+                        required
+                        value={useMapLocationForm.data.location}
+                        onChange={(e) =>
+                            useMapLocationForm.setData("location", e.target.value)
+                        }
+                        placeholder="e.g. ZCMC OPD Building Main Entrance"
+                        className="h-11 rounded-xl text-sm"
+                    />
+                </div>
+
+                <div className="space-y-1.5">
+                    <Label htmlFor="loc-desc" className="text-xs font-bold text-slate-700">
+                        Description / Floor (Optional)
+                    </Label>
+                    <Input
+                        id="loc-desc"
+                        value={useMapLocationForm.data.description}
+                        onChange={(e) =>
+                            useMapLocationForm.setData("description", e.target.value)
+                        }
+                        placeholder="e.g. Ground Floor Lobby"
+                        className="h-11 rounded-xl text-sm"
+                    />
+                </div>
+
+                {/* Map Picker */}
+                <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                        <Label className="font-bold text-slate-700">
+                            Pin Location on Map
+                        </Label>
+                        <span className="text-slate-400 text-[11px]">
+                            Tap map to set GPS
+                        </span>
                     </div>
-                    <div className="grid gap-3">
-                        <Label htmlFor="description">Description</Label>
-                        <Input
-                            id="description"
-                            name="description"
-                            value={useMapLocationForm.data.description}
-                            onChange={(e) => useMapLocationForm.setData("description", e.target.value)}
-                            placeholder="Enter description (optional)"
-                        />
-                    </div>
-                    <div className="grid gap-3">
-                        <Label>Pin Location on Map</Label>
-                        <p className="text-xs text-gray-500">Click on the map to set coordinates. You can still manually edit below.</p>
-                        {mapsReady ? (
-                            <div className="rounded-md overflow-hidden border border-gray-200">
-                                <GoogleMap
-                                    mapContainerStyle={{ width: "100%", height: "300px" }}
-                                    center={mapCenter}
-                                    zoom={16}
-                                    options={mapOptions}
-                                    onClick={handleMapClick}
-                                    onLoad={handleMapLoad}
-                                >
-                                    {useMapLocationForm.data.lat && useMapLocationForm.data.lng && (
+
+                    {mapsReady ? (
+                        <div className="h-48 sm:h-56 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-inner">
+                            <GoogleMap
+                                mapContainerStyle={{ width: "100%", height: "100%" }}
+                                center={mapCenter}
+                                zoom={17}
+                                options={{
+                                    zoomControl: true,
+                                    mapTypeControl: false,
+                                    streetViewControl: false,
+                                    fullscreenControl: false,
+                                }}
+                                onClick={handleMapClick}
+                            >
+                                {useMapLocationForm.data.lat &&
+                                    useMapLocationForm.data.lng && (
                                         <>
                                             <Marker
                                                 position={{
@@ -658,138 +682,162 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
                                                     fillColor: "#3b82f6",
                                                     fillOpacity: 0.2,
                                                     strokeColor: "#3b82f6",
-                                                    strokeOpacity: 0.6,
                                                     strokeWeight: 2,
                                                 }}
                                             />
                                         </>
                                     )}
-                                </GoogleMap>
-                            </div>
-                        ) : (
-                            <div className="h-[300px] flex items-center justify-center bg-gray-100 rounded-md">
-                                <LoaderCircle className="h-6 w-6 animate-spin text-gray-400" />
-                            </div>
-                        )}
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="grid gap-3">
-                            <Label htmlFor="lat">Latitude</Label>
-                            <Input
-                                id="lat"
-                                name="lat"
-                                value={useMapLocationForm.data.lat}
-                                onChange={(e) => useMapLocationForm.setData("lat", e.target.value)}
-                                placeholder="Enter latitude"
-                                type="number"
-                                step="any"
-                            />
-                            {useMapLocationForm.errors.lat && (
-                                <p className="text-red-500 text-xs">{useMapLocationForm.errors.lat}</p>
-                            )}
+                            </GoogleMap>
                         </div>
-                        <div className="grid gap-3">
-                            <Label htmlFor="lng">Longitude</Label>
-                            <Input
-                                id="lng"
-                                name="lng"
-                                value={useMapLocationForm.data.lng}
-                                onChange={(e) => useMapLocationForm.setData("lng", e.target.value)}
-                                placeholder="Enter longitude"
-                                type="number"
-                                step="any"
-                            />
-                            {useMapLocationForm.errors.lng && (
-                                <p className="text-red-500 text-xs">{useMapLocationForm.errors.lng}</p>
-                            )}
-                        </div>
-                    </div>
-                    <div className="grid gap-3">
-                        <Label htmlFor="schedule_id">Schedule</Label>
-                        <select
-                            id="schedule_id"
-                            value={useMapLocationForm.data.schedule_id}
-                            onChange={(e) => useMapLocationForm.setData("schedule_id", e.target.value)}
-                            className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                        >
-                            <option value="">Custom (manual times)</option>
-                            {schedules.map((sched) => (
-                                <option key={sched.id} value={sched.id}>
-                                    {sched.name} ({sched.open_time?.slice(0, 5)} - {sched.closing_time?.slice(0, 5)})
-                                </option>
-                            ))}
-                        </select>
-                        <p className="text-xs text-gray-500">Select a predefined schedule or choose Custom to set times manually.</p>
-                    </div>
-                    {!useMapLocationForm.data.schedule_id && (
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="grid gap-3">
-                                <Label htmlFor="open_time">Open Time *</Label>
-                                <Input
-                                    id="open_time"
-                                    name="open_time"
-                                    value={useMapLocationForm.data.open_time}
-                                    onChange={(e) => useMapLocationForm.setData("open_time", e.target.value)}
-                                    type="time"
-                                    className="w-full block rounded-md p-2"
-                                    required
-                                />
-                            </div>
-                            <div className="grid gap-3">
-                                <Label htmlFor="closing_time">Closing Time *</Label>
-                                <Input
-                                    id="closing_time"
-                                    name="closing_time"
-                                    value={useMapLocationForm.data.closing_time}
-                                    onChange={(e) => useMapLocationForm.setData("closing_time", e.target.value)}
-                                    type="time"
-                                    className="w-full block rounded-md p-2"
-                                    required
-                                />
-                            </div>
+                    ) : (
+                        <div className="h-48 rounded-2xl bg-slate-100 flex items-center justify-center text-xs text-slate-400">
+                            Loading Google Maps...
                         </div>
                     )}
-                    <div className="flex items-center gap-6 pt-2">
-                        <div className="flex items-center gap-2">
-                            <Checkbox
-                                id="is_default"
-                                checked={!!useMapLocationForm.data.is_default}
-                                onCheckedChange={(checked) => useMapLocationForm.setData("is_default", !!checked)}
-                            />
-                            <Label htmlFor="is_default" className="text-sm font-normal cursor-pointer">
-                                Set as default location
-                            </Label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Checkbox
-                                id="w_map"
-                                checked={!!useMapLocationForm.data.w_map}
-                                onCheckedChange={(checked) => useMapLocationForm.setData("w_map", !!checked)}
-                            />
-                            <Label htmlFor="w_map" className="text-sm font-normal cursor-pointer">
-                                Show map on warning
-                            </Label>
-                        </div>
+                </div>
+
+                {/* Coordinates manual inputs */}
+                <div className="grid grid-cols-2 gap-2.5">
+                    <div className="space-y-1">
+                        <Label htmlFor="lat" className="text-[11px] font-bold text-slate-700">
+                            Latitude *
+                        </Label>
+                        <Input
+                            id="lat"
+                            required
+                            type="number"
+                            step="any"
+                            value={useMapLocationForm.data.lat}
+                            onChange={(e) =>
+                                useMapLocationForm.setData("lat", e.target.value)
+                            }
+                            className="h-10 rounded-xl font-mono text-xs"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor="lng" className="text-[11px] font-bold text-slate-700">
+                            Longitude *
+                        </Label>
+                        <Input
+                            id="lng"
+                            required
+                            type="number"
+                            step="any"
+                            value={useMapLocationForm.data.lng}
+                            onChange={(e) =>
+                                useMapLocationForm.setData("lng", e.target.value)
+                            }
+                            className="h-10 rounded-xl font-mono text-xs"
+                        />
                     </div>
                 </div>
-                <DialogFooter>
+
+                {/* Schedule Selector */}
+                <div className="space-y-1.5">
+                    <Label htmlFor="sched-select" className="text-xs font-bold text-slate-700">
+                        Linked Schedule
+                    </Label>
+                    <select
+                        id="sched-select"
+                        value={useMapLocationForm.data.schedule_id}
+                        onChange={(e) =>
+                            useMapLocationForm.setData("schedule_id", e.target.value)
+                        }
+                        className="w-full h-11 rounded-xl border border-input bg-transparent px-3 text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="">Custom (manual hours below)</option>
+                        {schedules.map((s) => (
+                            <option key={s.id} value={s.id}>
+                                {s.name} ({s.open_time?.slice(0, 5)} - {s.closing_time?.slice(0, 5)})
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                {!useMapLocationForm.data.schedule_id && (
+                    <div className="grid grid-cols-2 gap-2.5">
+                        <div className="space-y-1">
+                            <Label className="text-[11px] font-bold text-slate-700">
+                                Open Time *
+                            </Label>
+                            <Input
+                                type="time"
+                                required
+                                value={useMapLocationForm.data.open_time}
+                                onChange={(e) =>
+                                    useMapLocationForm.setData("open_time", e.target.value)
+                                }
+                                className="h-10 rounded-xl text-xs"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <Label className="text-[11px] font-bold text-slate-700">
+                                Closing Time *
+                            </Label>
+                            <Input
+                                type="time"
+                                required
+                                value={useMapLocationForm.data.closing_time}
+                                onChange={(e) =>
+                                    useMapLocationForm.setData("closing_time", e.target.value)
+                                }
+                                className="h-10 rounded-xl text-xs"
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* Options */}
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 space-y-2.5">
+                    <label className="flex items-center gap-2.5 cursor-pointer">
+                        <Checkbox
+                            id="is_default"
+                            checked={useMapLocationForm.data.is_default}
+                            onCheckedChange={(checked) =>
+                                useMapLocationForm.setData("is_default", !!checked)
+                            }
+                        />
+                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                            Set as Default Location
+                        </span>
+                    </label>
+
+                    <label className="flex items-center gap-2.5 cursor-pointer pt-2 border-t border-slate-200/60">
+                        <Checkbox
+                            id="w_map"
+                            checked={useMapLocationForm.data.w_map}
+                            onCheckedChange={(checked) =>
+                                useMapLocationForm.setData("w_map", !!checked)
+                            }
+                        />
+                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                            Show live map on Out-of-Location warning
+                        </span>
+                    </label>
+                </div>
+
+                <DialogFooter className="flex-row gap-2 pt-2 sm:justify-end">
                     <DialogClose asChild>
-                        <Button type="button" variant="outline">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="flex-1 sm:flex-none h-11 rounded-xl text-xs"
+                        >
                             Cancel
                         </Button>
                     </DialogClose>
-                    <Button disabled={loading} type="submit">
+                    <Button
+                        type="submit"
+                        disabled={loading}
+                        className="flex-1 sm:flex-none h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs active:scale-95 shadow-sm"
+                    >
                         {loading ? (
-                            <div className="flex items-center">
-                                <LoaderCircle
-                                    size="sm"
-                                    color="green"
-                                    className="mr-2 animate-spin"
-                                />
+                            <>
+                                <LoaderCircle className="w-4 h-4 mr-1.5 animate-spin" />
                                 Saving...
-                            </div>
+                            </>
                         ) : (
-                            "Save"
+                            "Save Location"
                         )}
                     </Button>
                 </DialogFooter>
@@ -797,651 +845,881 @@ export default function Settings({ attendanceList, is_admin, map_coordinates, ma
         );
     };
 
-    const displayStatus = (attendance) => {
-        if (!attendance.is_active) {
-            return <Badge variant="secondary">Inactive</Badge>;
-        }
-
-        const now = new Date();
-        const today = now.toISOString().split('T')[0];
-        const currentTime = now.toTimeString().slice(0, 8);
-        const openDate = attendance.open_date;
-        const closingDate = attendance.closing_date;
-        const mapLocations = attendance.map_locations || [];
-
-        if (!openDate || !closingDate || mapLocations.length === 0) {
-            return <Badge variant="secondary" className="bg-gray-400 text-white">No Schedule</Badge>;
-        }
-
-        if (today < openDate) {
-            return <Badge variant="secondary" className="bg-blue-500 text-white">Scheduled</Badge>;
-        }
-        if (today > closingDate) {
-            return <Badge variant="secondary" className="bg-gray-500 text-white">Closed</Badge>;
-        }
-
-        const hasActiveLocation = mapLocations.some((loc) => {
-            return loc.open_time && loc.closing_time &&
-                currentTime >= loc.open_time && currentTime < loc.closing_time;
+    const ScheduleForm = () => {
+        const [loading, setLoading] = useState(false);
+        const useScheduleForm = useForm({
+            id: selectedSchedule?.id || "",
+            name: selectedSchedule?.name || "",
+            open_time: selectedSchedule?.open_time
+                ? selectedSchedule.open_time.slice(0, 5)
+                : "",
+            closing_time: selectedSchedule?.closing_time
+                ? selectedSchedule.closing_time.slice(0, 5)
+                : "",
         });
 
-        if (!hasActiveLocation) {
-            const hasNotOpenYet = mapLocations.some((loc) =>
-                loc.open_time && currentTime < loc.open_time
-            );
-            if (hasNotOpenYet) {
-                return <Badge variant="secondary" className="bg-blue-500 text-white">Not Open Yet</Badge>;
+        const handleSubmit = async (e) => {
+            e.preventDefault();
+            setLoading(true);
+
+            try {
+                const payload = {
+                    name: useScheduleForm.data.name,
+                    open_time: useScheduleForm.data.open_time,
+                    closing_time: useScheduleForm.data.closing_time,
+                };
+
+                if (useScheduleForm.data.id) {
+                    await axios.put(`/api/schedules/${useScheduleForm.data.id}`, payload);
+                    toast.success("Schedule updated successfully!");
+                } else {
+                    await axios.post("/api/schedules", payload);
+                    toast.success("Schedule created successfully!");
+                }
+
+                setScheduleModalOpen(false);
+                fetchSchedules();
+            } catch (error) {
+                if (error.response?.data?.errors) {
+                    useScheduleForm.setError(error.response.data.errors);
+                }
+                toast.error("Failed to save schedule");
+            } finally {
+                setLoading(false);
             }
-            return <Badge variant="secondary" className="bg-gray-500 text-white">Closed</Badge>;
-        }
+        };
 
         return (
-            <Badge
-                variant="secondary"
-                className="bg-green-500 text-white dark:bg-green-600"
-            >
-                <BadgeCheckIcon />
-                Active
-            </Badge>
-        );
-    };
+            <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+                <div className="space-y-1.5">
+                    <Label htmlFor="sched-name" className="text-xs font-bold text-slate-700">
+                        Schedule Name *
+                    </Label>
+                    <Input
+                        id="sched-name"
+                        required
+                        value={useScheduleForm.data.name}
+                        onChange={(e) => useScheduleForm.setData("name", e.target.value)}
+                        placeholder="e.g. Flag Ceremony AM or Shift 1"
+                        className="h-11 rounded-xl text-sm"
+                    />
+                </div>
 
-    const displayMapLocationStatus = (mapLocation) => {
-        const now = new Date();
-        const currentTime = now.toTimeString().slice(0, 8);
-        const openTime = mapLocation.open_time;
-        const closingTime = mapLocation.closing_time;
+                <div className="grid grid-cols-2 gap-2.5">
+                    <div className="space-y-1">
+                        <Label htmlFor="open_time" className="text-xs font-bold text-slate-700">
+                            Open Time *
+                        </Label>
+                        <Input
+                            id="open_time"
+                            type="time"
+                            required
+                            value={useScheduleForm.data.open_time}
+                            onChange={(e) =>
+                                useScheduleForm.setData("open_time", e.target.value)
+                            }
+                            className="h-11 rounded-xl text-xs"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor="closing_time" className="text-xs font-bold text-slate-700">
+                            Closing Time *
+                        </Label>
+                        <Input
+                            id="closing_time"
+                            type="time"
+                            required
+                            value={useScheduleForm.data.closing_time}
+                            onChange={(e) =>
+                                useScheduleForm.setData("closing_time", e.target.value)
+                            }
+                            className="h-11 rounded-xl text-xs"
+                        />
+                    </div>
+                </div>
 
-        if (!openTime || !closingTime) {
-            return <Badge variant="secondary" className="bg-gray-400 text-white">No Schedule</Badge>;
-        }
-
-        if (currentTime < openTime) {
-            return (
-                <Badge variant="secondary" className="bg-blue-500 text-white">
-                    Not Open Yet
-                </Badge>
-            );
-        }
-
-        if (currentTime >= closingTime) {
-            return (
-                <Badge variant="secondary" className="bg-gray-500 text-white">
-                    Closed
-                </Badge>
-            );
-        }
-
-        return (
-            <Badge
-                variant="secondary"
-                className="bg-green-500 text-white dark:bg-green-600"
-            >
-                <BadgeCheckIcon />
-                Active
-            </Badge>
-        );
-    };
-
-    const handleDeleteMapLocation = async (id) => {
-        if (!confirm("Are you sure you want to delete this map location?")) {
-            return;
-        }
-
-        try {
-            await axios.delete(`/api/map-locations/${id}`);
-            toast.success("Map location deleted successfully!");
-            fetchMapLocations();
-        } catch (error) {
-            console.error('Error deleting map location:', error);
-            toast.error("Failed to delete map location");
-        }
-    };
-
-    const isEnabled = (attendance) => {
-        if (!attendance.is_active) {
-            return false;
-        }
-
-        const now = new Date();
-        const today = now.toISOString().split('T')[0];
-        const currentTime = now.toTimeString().slice(0, 8);
-        const openDate = attendance.open_date;
-        const closingDate = attendance.closing_date;
-        const mapLocations = attendance.map_locations || [];
-
-        if (!openDate || !closingDate || mapLocations.length === 0) {
-            return false;
-        }
-
-        if (today < openDate || today > closingDate) {
-            return false;
-        }
-
-        return mapLocations.some((loc) =>
-            loc.open_time && loc.closing_time &&
-            currentTime >= loc.open_time && currentTime < loc.closing_time
+                <DialogFooter className="flex-row gap-2 pt-2 sm:justify-end">
+                    <DialogClose asChild>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="flex-1 sm:flex-none h-11 rounded-xl text-xs"
+                        >
+                            Cancel
+                        </Button>
+                    </DialogClose>
+                    <Button
+                        type="submit"
+                        disabled={loading}
+                        className="flex-1 sm:flex-none h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs active:scale-95 shadow-sm"
+                    >
+                        {loading ? (
+                            <>
+                                <LoaderCircle className="w-4 h-4 mr-1.5 animate-spin" />
+                                Saving...
+                            </>
+                        ) : (
+                            "Save Schedule"
+                        )}
+                    </Button>
+                </DialogFooter>
+            </form>
         );
     };
 
     return (
         <AppLayout title="Settings" is_admin={is_admin} w_admin={true}>
-
-            <div className="flex flex-col items-start my-5">
-                <div className="text-lg font-semibold">Attendance Setting</div>
-                <div className="mt-2 text-xs">Manage or create new attendance and map locations</div>
-            </div>
-
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full max-w-md grid-cols-3 mb-6">
-                    <TabsTrigger value="attendance">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Attendance
-                    </TabsTrigger>
-                    <TabsTrigger value="map-location">
-                        <MapPin className="w-4 h-4 mr-2" />
-                        Map Location
-                    </TabsTrigger>
-                    <TabsTrigger value="schedules">
-                        <Clock className="w-4 h-4 mr-2" />
-                        Schedules
-                    </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="attendance" className="space-y-4">
-                    <div className="mt-5 flex  sm:flex-row flex-col gap-2  md:w-full">
-                        <Input
-                            type="text"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search attendance"
-                            size="sm"
-                        />
-
-                        <Button
-                            onClick={() => {
-                                router.get(
-                                    "/settings",
-                                    { search },
-                                    {
-                                        preserveState: true,
-                                        preserveScroll: true,
-                                    }
-                                );
-                            }}
-                        >
-                            Search
-                        </Button>
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setSearch("");
-                                router.visit("/settings", {
-                                    preserveState: true,
-                                    preserveScroll: true,
-                                });
-                            }}
-                        >
-                            Reset
-                        </Button>
-
-                        <Dialog open={mapModalOpen} onOpenChange={setMapModalOpen}>
-                            <DialogTrigger asChild>
-                                {/* <Button
-                                    variant="outline"
-                                    onClick={() => setMapModalOpen(true)}
-                                >
-                                    Set Map Coordinates
-                                </Button> */}
-                            </DialogTrigger>
-                            <DialogContent
-                                className="sm:max-w-[425px]"
-                                onInteractOutside={(e) => {
-                                    e.preventDefault();
-                                }}
-                            >
-                                <DialogHeader>
-                                    <DialogTitle>Set Map Coordinates</DialogTitle>
-                                    <DialogDescription>
-                                        Enter the latitude and longitude coordinates for the map location.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <MapCoordinatesModal map_coordinates={map_coordinates} />
-                            </DialogContent>
-                        </Dialog>
-
-                        <Dialog open={open} onOpenChange={setOpen}>
-                            <DialogTrigger asChild>
-                                <Button
-                                    variant="primary"
-                                    className={
-                                        "bg-blue-900 hover:bg-blue-800 text-white"
-                                    }
-                                    onClick={() => setSelectedAttendance(null)}
-                                >
-                                    Create Attendance <Plus className="ml-2 size-4" />
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent
-                                className="sm:max-w-[425px]"
-                                onInteractOutside={(e) => {
-                                    e.preventDefault(); // 🚫 prevent closing when clicking outside
-                                }}
-                            >
-                                <DialogHeader>
-                                    <DialogTitle>
-                                        {selectedAttendance ? "Edit " : "Create "}
-                                        Attendance
-                                    </DialogTitle>
-                                    <DialogDescription>
-                                        {selectedAttendance
-                                            ? "Edit attendance. Click save when you're done."
-                                            : "Create a new attendance. Click save when you're done."}
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <CreateAttendance />
-                            </DialogContent>
-                        </Dialog>
+            <div className="w-full max-w-sm sm:max-w-4xl mx-auto space-y-4 py-1 animate-in fade-in duration-300">
+                {/* Title and Intro */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 pb-1">
+                    <div>
+                        <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                            System Settings
+                        </h1>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            Configure attendance sessions, campus geofences, and schedules
+                        </p>
                     </div>
-                    <div className="mt-5  overflow-y-auto max-[600px]:w-[400px] max-[520px]:w-[350px] max-[470px]:w-[300px]  max-[412px]:w-[280px] max-[390px]:w-[auto]">
-                        <Table>
-                            <TableCaption>List of Attendances</TableCaption>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[100px]">
-                                        Attendance title
-                                    </TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Type</TableHead>
-                                    <TableHead>Locations</TableHead>
-                                    <TableHead>Date Range</TableHead>
-                                    <TableHead className="text-right">
-                                        Actions
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {attendanceList?.data?.map((attendance) => (
-                                    <TableRow key={attendance.id}>
-                                        <TableCell className="font-medium">
-                                            {attendance.title}
-                                        </TableCell>
-                                        <TableCell>
-                                            {displayStatus(attendance)}
-                                        </TableCell>
-                                        <TableCell>
-                                            {attendance.no_location ? (
-                                                <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs">Free Entry</Badge>
-                                            ) : (
-                                                <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">Location</Badge>
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            {attendance.no_location ? (
-                                                <span className="text-xs text-gray-400">—</span>
-                                            ) : (attendance.map_locations || []).length > 0 ? (
-                                                <span className="text-xs text-gray-600">
-                                                    {attendance.map_locations.map((loc) => loc.location).join(", ")}
-                                                </span>
-                                            ) : (
-                                                <span className="text-xs text-gray-400">
-                                                    No locations
-                                                </span>
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            {attendance.open_date && attendance.closing_date ? (
-                                                <span className="text-xs text-gray-600">
-                                                    {attendance.open_date} → {attendance.closing_date}
-                                                </span>
-                                            ) : (
-                                                <span className="text-xs text-gray-400">
-                                                    Not set
-                                                </span>
-                                            )}
-                                        </TableCell>
 
-                                        <TableCell className="text-right">
-                                            <div className="flex gap-2">
+                    <div className="inline-flex items-center gap-1.5 text-xs text-blue-700 dark:text-blue-300 font-semibold bg-blue-50 dark:bg-blue-950/40 px-3 py-1 rounded-full border border-blue-200 dark:border-blue-800 self-start sm:self-auto">
+                        <Shield className="w-3.5 h-3.5" />
+                        <span>Administrator Mode</span>
+                    </div>
+                </div>
+
+                {/* Main Tabs Container */}
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-4">
+                    {/* Modern Segmented Pill Control */}
+                    <TabsList className="grid grid-cols-3 p-1.5 bg-slate-200/60 dark:bg-slate-800/80 rounded-2xl h-auto">
+                        <TabsTrigger
+                            value="attendance"
+                            className="rounded-xl py-2.5 text-xs font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm transition-all flex items-center justify-center gap-1.5"
+                        >
+                            <Calendar className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">Sessions</span>
+                        </TabsTrigger>
+
+                        <TabsTrigger
+                            value="map-location"
+                            className="rounded-xl py-2.5 text-xs font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm transition-all flex items-center justify-center gap-1.5"
+                        >
+                            <MapPin className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">Locations</span>
+                        </TabsTrigger>
+
+                        <TabsTrigger
+                            value="schedules"
+                            className="rounded-xl py-2.5 text-xs font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm transition-all flex items-center justify-center gap-1.5"
+                        >
+                            <Clock className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">Schedules</span>
+                        </TabsTrigger>
+                    </TabsList>
+
+                    {/* =========================================================================
+                        TAB 1: ATTENDANCE SESSIONS
+                    ========================================================================= */}
+                    <TabsContent value="attendance" className="space-y-4 focus:outline-none">
+                        {/* Search & Create Action Bar */}
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center">
+                            <div className="relative flex-1">
+                                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                                <Input
+                                    type="text"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    placeholder="Search attendance sessions..."
+                                    className="pl-9 h-11 text-xs rounded-xl"
+                                />
+                                {search && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSearch("");
+                                            router.visit("/settings");
+                                        }}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="flex gap-2">
+                                <Button
+                                    onClick={() => {
+                                        router.get(
+                                            "/settings",
+                                            { search },
+                                            { preserveState: true, preserveScroll: true }
+                                        );
+                                    }}
+                                    className="h-11 px-4 rounded-xl text-xs bg-slate-900 hover:bg-slate-800 text-white active:scale-95"
+                                >
+                                    Filter
+                                </Button>
+
+                                <Dialog
+                                    open={openAttendanceModal}
+                                    onOpenChange={setOpenAttendanceModal}
+                                >
+                                    <DialogTrigger asChild>
+                                        <Button
+                                            className="flex-1 sm:flex-none h-11 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 active:scale-95"
+                                            onClick={() => setSelectedAttendance(null)}
+                                        >
+                                            <Plus className="w-4 h-4 mr-1.5" />
+                                            <span>New Session</span>
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto rounded-3xl">
+                                        <DialogHeader>
+                                            <DialogTitle className="text-base font-bold">
+                                                {selectedAttendance ? "Edit Session" : "Create New Session"}
+                                            </DialogTitle>
+                                            <DialogDescription className="text-xs">
+                                                Define attendance title, allowed geofence locations, and dates.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <CreateAttendanceForm />
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
+                        </div>
+
+                        {/* Mobile Cards (Screen < 768px) */}
+                        <div className="block md:hidden space-y-3">
+                            {attendanceList?.data?.length === 0 ? (
+                                <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-dashed border-slate-300 text-center text-xs text-slate-500">
+                                    No attendance sessions found.
+                                </div>
+                            ) : (
+                                attendanceList?.data?.map((att) => {
+                                    const status = getStatusInfo(att);
+                                    return (
+                                        <div
+                                            key={att.id}
+                                            className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3"
+                                        >
+                                            {/* Header with Badges */}
+                                            <div className="flex items-center justify-between gap-2">
+                                                <div
+                                                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border ${status.badgeClass}`}
+                                                >
+                                                    <span
+                                                        className={`w-1.5 h-1.5 rounded-full ${status.dotClass}`}
+                                                    />
+                                                    <span>{status.label}</span>
+                                                </div>
+
+                                                <span
+                                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                                                        att.no_location
+                                                            ? "bg-blue-100 text-blue-700"
+                                                            : "bg-emerald-100 text-emerald-800"
+                                                    }`}
+                                                >
+                                                    {att.no_location ? "Free Entry" : "Geofenced"}
+                                                </span>
+                                            </div>
+
+                                            {/* Title */}
+                                            <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                                                {att.title}
+                                            </h3>
+
+                                            {/* Details */}
+                                            <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
+                                                <div className="flex items-center gap-2">
+                                                    <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                                    <span>
+                                                        {att.open_date && att.closing_date
+                                                            ? `${att.open_date} → ${att.closing_date}`
+                                                            : "No active date set"}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex items-start gap-2">
+                                                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                                                    <span className="truncate">
+                                                        {att.no_location
+                                                            ? "Any Location"
+                                                            : (att.map_locations || []).length > 0
+                                                            ? att.map_locations
+                                                                  .map((l) => l.location)
+                                                                  .join(", ")
+                                                            : "No locations linked"}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Actions */}
+                                            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
                                                     onClick={() => {
-                                                        setSelectedAttendance(
-                                                            attendance
-                                                        );
-
-                                                        setOpen(true);
+                                                        setSelectedAttendance(att);
+                                                        setOpenAttendanceModal(true);
                                                     }}
+                                                    className="h-9 px-3 rounded-xl text-xs gap-1.5 font-semibold text-blue-600"
                                                 >
-                                                    <Edit
-                                                        size={12}
-                                                        className="text-blue-400"
-                                                    />
+                                                    <Edit className="w-3.5 h-3.5" />
+                                                    <span>Edit Session</span>
                                                 </Button>
                                             </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                        <Pagination className="mt-5">
-                            <PaginationContent>
-                                {attendanceList?.meta?.links?.map((link, key) => {
-                                    if (key == 0) {
-                                        return (
-                                            <PaginationItem
-                                                key={key}
-                                                className="cursor-pointer"
-                                            >
-                                                <PaginationPrevious
-                                                    href={attendanceList?.links?.prev}
-                                                />
-                                            </PaginationItem>
-                                        );
-                                    }
-
-                                    if (
-                                        key ==
-                                        attendanceList?.meta?.links?.length - 1
-                                    ) {
-                                        return (
-                                            <PaginationItem className="cursor-pointer">
-                                                <PaginationNext
-                                                    href={attendanceList?.links?.next}
-                                                />
-                                            </PaginationItem>
-                                        );
-                                    }
-
-                                    return (
-                                        <PaginationItem key={link.label}>
-                                            <PaginationLink
-                                                href={link.url}
-                                                isActive={link.active}
-                                            >
-                                                {link.label}
-                                            </PaginationLink>
-                                        </PaginationItem>
+                                        </div>
                                     );
-                                })}
+                                })
+                            )}
+                        </div>
 
-                                {/* <PaginationItem>
-                                    <PaginationEllipsis />
-                                </PaginationItem> */}
-                            </PaginationContent>
-                        </Pagination>
-                    </div>
-                </TabsContent>
+                        {/* Desktop Table (Screen >= 768px) */}
+                        <div className="hidden md:block bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-slate-50 dark:bg-slate-800/50">
+                                        <TableHead className="font-bold">Session Title</TableHead>
+                                        <TableHead className="font-bold">Status</TableHead>
+                                        <TableHead className="font-bold">Type</TableHead>
+                                        <TableHead className="font-bold">Locations</TableHead>
+                                        <TableHead className="font-bold">Date Range</TableHead>
+                                        <TableHead className="text-right font-bold">Action</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {attendanceList?.data?.map((att) => {
+                                        const status = getStatusInfo(att);
+                                        return (
+                                            <TableRow key={att.id}>
+                                                <TableCell className="font-bold text-slate-900 dark:text-white">
+                                                    {att.title}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span
+                                                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${status.badgeClass}`}
+                                                    >
+                                                        <span
+                                                            className={`w-1.5 h-1.5 rounded-full ${status.dotClass}`}
+                                                        />
+                                                        <span>{status.label}</span>
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span
+                                                        className={`text-xs font-semibold px-2 py-0.5 rounded-md ${
+                                                            att.no_location
+                                                                ? "bg-blue-100 text-blue-700"
+                                                                : "bg-emerald-100 text-emerald-800"
+                                                        }`}
+                                                    >
+                                                        {att.no_location ? "Free Entry" : "Geofenced"}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="text-xs text-slate-600 dark:text-slate-300 max-w-xs truncate">
+                                                    {att.no_location
+                                                        ? "—"
+                                                        : (att.map_locations || []).length > 0
+                                                        ? att.map_locations.map((l) => l.location).join(", ")
+                                                        : "No locations"}
+                                                </TableCell>
+                                                <TableCell className="text-xs font-mono text-slate-500">
+                                                    {att.open_date && att.closing_date
+                                                        ? `${att.open_date} → ${att.closing_date}`
+                                                        : "—"}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            setSelectedAttendance(att);
+                                                            setOpenAttendanceModal(true);
+                                                        }}
+                                                        className="h-8 px-2.5 rounded-lg text-xs"
+                                                    >
+                                                        <Edit className="w-3.5 h-3.5 text-blue-500 mr-1" />
+                                                        Edit
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </div>
 
-                <TabsContent value="map-location" className="space-y-4">
-                    <div className="mt-5 flex sm:flex-row flex-col gap-2 md:w-full">
-                        <Input
-                            type="text"
-                            value={mapLocationSearch}
-                            onChange={(e) => setMapLocationSearch(e.target.value)}
-                            placeholder="Search map locations"
-                            size="sm"
-                        />
+                        {/* Pagination */}
+                        {attendanceList?.meta?.links?.length > 3 && (
+                            <div className="py-2 flex justify-center">
+                                <Pagination>
+                                    <PaginationContent className="flex-wrap justify-center gap-1">
+                                        {attendanceList?.meta?.links?.map((link, key) => {
+                                            if (key === 0) {
+                                                return (
+                                                    <PaginationItem key={key}>
+                                                        <PaginationPrevious
+                                                            href={attendanceList?.links?.prev}
+                                                        />
+                                                    </PaginationItem>
+                                                );
+                                            }
+                                            if (
+                                                key ===
+                                                attendanceList?.meta?.links?.length - 1
+                                            ) {
+                                                return (
+                                                    <PaginationItem key={key}>
+                                                        <PaginationNext
+                                                            href={attendanceList?.links?.next}
+                                                        />
+                                                    </PaginationItem>
+                                                );
+                                            }
+                                            return (
+                                                <PaginationItem key={link.label}>
+                                                    <PaginationLink
+                                                        href={link.url}
+                                                        isActive={link.active}
+                                                        className="text-xs rounded-lg"
+                                                    >
+                                                        {link.label}
+                                                    </PaginationLink>
+                                                </PaginationItem>
+                                            );
+                                        })}
+                                    </PaginationContent>
+                                </Pagination>
+                            </div>
+                        )}
+                    </TabsContent>
 
-                        <Dialog open={mapLocationModalOpen} onOpenChange={setMapLocationModalOpen}>
-                            <DialogTrigger asChild>
-                                <Button
-                                    variant="primary"
-                                    className="bg-blue-900 hover:bg-blue-800 text-white"
-                                    onClick={() => setSelectedMapLocation(null)}
-                                >
-                                    Create Map Location <Plus className="ml-2 size-4" />
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent
-                                className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto"
-                                onInteractOutside={(e) => {
-                                    e.preventDefault();
-                                }}
+                    {/* =========================================================================
+                        TAB 2: MAP LOCATIONS
+                    ========================================================================= */}
+                    <TabsContent value="map-location" className="space-y-4 focus:outline-none">
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center">
+                            <div className="relative flex-1">
+                                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                                <Input
+                                    type="text"
+                                    value={mapLocationSearch}
+                                    onChange={(e) => setMapLocationSearch(e.target.value)}
+                                    placeholder="Search campus locations..."
+                                    className="pl-9 h-11 text-xs rounded-xl"
+                                />
+                                {mapLocationSearch && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setMapLocationSearch("")}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
+
+                            <Dialog
+                                open={mapLocationModalOpen}
+                                onOpenChange={setMapLocationModalOpen}
                             >
-                                <DialogHeader>
-                                    <DialogTitle>
-                                        {selectedMapLocation ? "Edit " : "Create "}
-                                        Map Location
-                                    </DialogTitle>
-                                    <DialogDescription>
-                                        {selectedMapLocation
-                                            ? "Edit map location. Click save when you're done."
-                                            : "Create a new map location. Click save when you're done."}
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <MapLocationForm />
-                            </DialogContent>
-                        </Dialog>
-                    </div>
+                                <DialogTrigger asChild>
+                                    <Button
+                                        className="h-11 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 active:scale-95"
+                                        onClick={() => setSelectedMapLocation(null)}
+                                    >
+                                        <Plus className="w-4 h-4 mr-1.5" />
+                                        <span>New Location</span>
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto rounded-3xl">
+                                    <DialogHeader>
+                                        <DialogTitle className="text-base font-bold">
+                                            {selectedMapLocation
+                                                ? "Edit Location"
+                                                : "Create Campus Location"}
+                                        </DialogTitle>
+                                        <DialogDescription className="text-xs">
+                                            Configure GPS coordinates, geofence radius, and daily schedule.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <MapLocationForm />
+                                </DialogContent>
+                            </Dialog>
+                        </div>
 
-                    <div className="mt-5 overflow-y-auto max-[600px]:w-[400px] max-[520px]:w-[350px] max-[470px]:w-[300px] max-[412px]:w-[280px] max-[390px]:w-[auto]">
-                        <Table>
-                            <TableCaption>List of Map Locations</TableCaption>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[150px]">Location Name</TableHead>
-                                    <TableHead>Description</TableHead>
-                                    <TableHead>Coordinates</TableHead>
-                                    <TableHead>Token</TableHead>
-                                    <TableHead>Schedule</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Default</TableHead>
-                                    <TableHead>Map</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {mapLocations
-                                    .filter((loc) =>
-                                        loc.location.toLowerCase().includes(mapLocationSearch.toLowerCase()) ||
-                                        (loc.description && loc.description.toLowerCase().includes(mapLocationSearch.toLowerCase()))
-                                    )
-                                    .map((mapLocation) => (
-                                        <TableRow key={mapLocation.id}>
-                                            <TableCell className="font-medium">
-                                                {mapLocation.location}
-                                            </TableCell>
-                                            <TableCell>
-                                                {mapLocation.description || (
-                                                    <span className="text-xs text-gray-400">No description</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="text-xs">
-                                                    <div>Lat: {mapLocation.lat}</div>
-                                                    <div>Lng: {mapLocation.lng}</div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-1">
-                                                    {mapLocation.token ? (
-                                                        <>
-                                                            <a
-                                                                href={`/?token=${mapLocation.token}`}
-                                                                target="_blank"
-                                                                className="text-xs text-blue-600 hover:underline font-mono max-w-[140px] truncate inline-block"
-                                                            >
-                                                                {window.location.origin}/?token={mapLocation.token.slice(0, 8)}...
-                                                            </a>
-                                                            <button
-                                                                onClick={() => {
-                                                                    navigator.clipboard.writeText(`${window.location.origin}/?token=${mapLocation.token}`);
-                                                                    toast.success("URL copied!");
-                                                                }}
-                                                                className="text-blue-500 hover:text-blue-700 text-xs"
-                                                            >
-                                                                Copy URL
-                                                            </button>
-                                                        </>
-                                                    ) : (
-                                                        <span className="text-xs text-gray-400">—</span>
+                        {/* Mobile Cards (Screen < 768px) */}
+                        <div className="block md:hidden space-y-3">
+                            {filteredLocations.length === 0 ? (
+                                <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-dashed border-slate-300 text-center text-xs text-slate-500">
+                                    No locations match your search.
+                                </div>
+                            ) : (
+                                filteredLocations.map((loc) => {
+                                    const status = getLocationStatusInfo(loc);
+                                    const effective = getEffectiveLocationTime(loc, schedules);
+                                    return (
+                                        <div
+                                            key={loc.id}
+                                            className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3"
+                                        >
+                                            {/* Header */}
+                                            <div className="flex items-start justify-between gap-2">
+                                                <div>
+                                                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                                                        {loc.location}
+                                                    </h3>
+                                                    {loc.description && (
+                                                        <p className="text-xs text-slate-400 mt-0.5">
+                                                            {loc.description}
+                                                        </p>
                                                     )}
                                                 </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                {mapLocation.schedule_id ? (
-                                                    (() => {
-                                                        const sched = schedules.find(s => s.id === mapLocation.schedule_id);
-                                                        return sched ? (
-                                                            <div className="text-xs">
-                                                                <div className="font-medium text-blue-600">{sched.name}</div>
-                                                                <div className="text-gray-400">{sched.open_time?.slice(0, 5)} - {sched.closing_time?.slice(0, 5)}</div>
-                                                            </div>
+
+                                                <div className="flex items-center gap-1.5 shrink-0">
+                                                    <span
+                                                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${status.badgeClass}`}
+                                                    >
+                                                        {status.label}
+                                                    </span>
+                                                    {loc.is_default && (
+                                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white">
+                                                            Default
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Badges / Hours / Coordinates */}
+                                            <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
+                                                <div className="flex items-center gap-2">
+                                                    <Clock className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                                    <span className="font-medium text-slate-700 dark:text-slate-200">
+                                                        {effective.name ? `${effective.name} • ` : ""}
+                                                        {effective.open_time?.slice(0, 5) || "—"} →{" "}
+                                                        {effective.closing_time?.slice(0, 5) || "—"}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex items-center gap-2">
+                                                    <Navigation className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                                    <span className="font-mono text-[11px]">
+                                                        {loc.lat}, {loc.lng}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Quick Copy Link */}
+                                            {loc.token && (
+                                                <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                                                    <span className="text-[11px] font-mono text-slate-500 truncate">
+                                                        /?token={loc.token.slice(0, 12)}...
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => copyTokenUrl(loc.token)}
+                                                        className="text-[11px] font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 shrink-0 px-2 py-1 rounded-md active:bg-blue-50"
+                                                    >
+                                                        {copiedToken === loc.token ? (
+                                                            <>
+                                                                <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                                                <span className="text-emerald-600">Copied</span>
+                                                            </>
                                                         ) : (
-                                                            <span className="text-xs text-gray-400">Schedule #{mapLocation.schedule_id}</span>
-                                                        );
-                                                    })()
-                                                ) : (
-                                                    <div className="text-xs">
-                                                        <div>{mapLocation.open_time || "N/A"}</div>
-                                                        <div className="text-gray-400">to {mapLocation.closing_time || "N/A"}</div>
-                                                    </div>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                {displayMapLocationStatus(mapLocation)}
-                                            </TableCell>
-                                            <TableCell>
-                                                {mapLocation.is_default ? (
-                                                    <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white text-xs">Default</Badge>
-                                                ) : (
-                                                    <span className="text-xs text-gray-400">—</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                {mapLocation.w_map ? (
-                                                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs">On</Badge>
-                                                ) : (
-                                                    <span className="text-xs text-gray-400">—</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex gap-2 justify-end">
+                                                            <>
+                                                                <Copy className="w-3.5 h-3.5" />
+                                                                <span>Copy Link</span>
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {/* Actions */}
+                                            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                                                <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                                                    {loc.w_map ? "Map Enabled" : "Map Disabled"}
+                                                </div>
+
+                                                <div className="flex gap-2">
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
                                                         onClick={() => {
-                                                            setSelectedMapLocation(mapLocation);
+                                                            setSelectedMapLocation(loc);
                                                             setMapLocationModalOpen(true);
                                                         }}
+                                                        className="h-8 px-2.5 rounded-lg text-xs"
                                                     >
-                                                        <Edit size={12} className="text-blue-400" />
+                                                        <Edit className="w-3.5 h-3.5 text-blue-500 mr-1" />
+                                                        Edit
                                                     </Button>
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
-                                                        onClick={() => handleDeleteMapLocation(mapLocation.id)}
+                                                        onClick={() => handleDeleteMapLocation(loc.id)}
+                                                        className="h-8 px-2.5 rounded-lg text-xs text-rose-600 border-rose-200 hover:bg-rose-50"
                                                     >
-                                                        <Trash size={12} className="text-red-400" />
+                                                        <Trash2 className="w-3.5 h-3.5" />
                                                     </Button>
                                                 </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </TabsContent>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
 
-                <TabsContent value="schedules" className="space-y-4">
-                    <div className="mt-5 flex sm:flex-row flex-col gap-2 md:w-full">
-                        <Input
-                            type="text"
-                            value={scheduleSearch}
-                            onChange={(e) => setScheduleSearch(e.target.value)}
-                            placeholder="Search schedules"
-                            size="sm"
-                        />
+                        {/* Desktop Table (Screen >= 768px) */}
+                        <div className="hidden md:block bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-slate-50 dark:bg-slate-800/50">
+                                        <TableHead className="font-bold">Location</TableHead>
+                                        <TableHead className="font-bold">Schedule</TableHead>
+                                        <TableHead className="font-bold">Coordinates</TableHead>
+                                        <TableHead className="font-bold">Token Link</TableHead>
+                                        <TableHead className="font-bold">Status</TableHead>
+                                        <TableHead className="text-right font-bold">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredLocations.map((loc) => {
+                                        const status = getLocationStatusInfo(loc);
+                                        const effective = getEffectiveLocationTime(loc, schedules);
+                                        return (
+                                            <TableRow key={loc.id}>
+                                                <TableCell>
+                                                    <div className="font-bold text-slate-900 dark:text-white">
+                                                        {loc.location}
+                                                    </div>
+                                                    {loc.description && (
+                                                        <div className="text-xs text-slate-400">
+                                                            {loc.description}
+                                                        </div>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                                        {effective.name || "Custom Hours"}
+                                                    </span>
+                                                    <div className="text-slate-400 font-mono text-[11px]">
+                                                        {effective.open_time?.slice(0, 5) || "—"} -{" "}
+                                                        {effective.closing_time?.slice(0, 5) || "—"}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="font-mono text-xs text-slate-500">
+                                                    {loc.lat}, {loc.lng}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {loc.token ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => copyTokenUrl(loc.token)}
+                                                            className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 font-semibold"
+                                                        >
+                                                            <Copy className="w-3.5 h-3.5" />
+                                                            <span>Copy Link</span>
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-xs text-slate-400">—</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span
+                                                        className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${status.badgeClass}`}
+                                                    >
+                                                        {status.label}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex gap-1.5 justify-end">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => {
+                                                                setSelectedMapLocation(loc);
+                                                                setMapLocationModalOpen(true);
+                                                            }}
+                                                            className="h-8 px-2 rounded-lg"
+                                                        >
+                                                            <Edit className="w-3.5 h-3.5 text-blue-500" />
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => handleDeleteMapLocation(loc.id)}
+                                                            className="h-8 px-2 rounded-lg text-rose-500 border-rose-200 hover:bg-rose-50"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </TabsContent>
 
-                        <Dialog open={scheduleModalOpen} onOpenChange={setScheduleModalOpen}>
-                            <DialogTrigger asChild>
-                                <Button
-                                    variant="primary"
-                                    className="bg-blue-900 hover:bg-blue-800 text-white"
-                                    onClick={() => setSelectedSchedule(null)}
-                                >
-                                    Create Schedule <Plus className="ml-2 size-4" />
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent
-                                className="sm:max-w-[425px]"
-                                onInteractOutside={(e) => {
-                                    e.preventDefault();
-                                }}
+                    {/* =========================================================================
+                        TAB 3: SCHEDULES
+                    ========================================================================= */}
+                    <TabsContent value="schedules" className="space-y-4 focus:outline-none">
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center">
+                            <div className="relative flex-1">
+                                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                                <Input
+                                    type="text"
+                                    value={scheduleSearch}
+                                    onChange={(e) => setScheduleSearch(e.target.value)}
+                                    placeholder="Search predefined schedules..."
+                                    className="pl-9 h-11 text-xs rounded-xl"
+                                />
+                                {scheduleSearch && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setScheduleSearch("")}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
+
+                            <Dialog
+                                open={scheduleModalOpen}
+                                onOpenChange={setScheduleModalOpen}
                             >
-                                <DialogHeader>
-                                    <DialogTitle>
-                                        {selectedSchedule ? "Edit " : "Create "}
-                                        Schedule
-                                    </DialogTitle>
-                                    <DialogDescription>
-                                        {selectedSchedule
-                                            ? "Edit schedule. Click save when you're done."
-                                            : "Create a new time schedule. Click save when you're done."}
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <ScheduleForm />
-                            </DialogContent>
-                        </Dialog>
-                    </div>
+                                <DialogTrigger asChild>
+                                    <Button
+                                        className="h-11 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 active:scale-95"
+                                        onClick={() => setSelectedSchedule(null)}
+                                    >
+                                        <Plus className="w-4 h-4 mr-1.5" />
+                                        <span>New Schedule</span>
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-md rounded-3xl">
+                                    <DialogHeader>
+                                        <DialogTitle className="text-base font-bold">
+                                            {selectedSchedule ? "Edit Schedule" : "Create Schedule"}
+                                        </DialogTitle>
+                                        <DialogDescription className="text-xs">
+                                            Define opening and closing time window.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <ScheduleForm />
+                                </DialogContent>
+                            </Dialog>
+                        </div>
 
-                    <div className="mt-5 overflow-y-auto max-[600px]:w-[400px] max-[520px]:w-[350px] max-[470px]:w-[300px] max-[412px]:w-[280px] max-[390px]:w-[auto]">
-                        <Table>
-                            <TableCaption>List of Time Schedules</TableCaption>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[200px]">Schedule Name</TableHead>
-                                    <TableHead>Open Time</TableHead>
-                                    <TableHead>Closing Time</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {schedules
-                                    .filter((sched) =>
-                                        sched.name.toLowerCase().includes(scheduleSearch.toLowerCase())
-                                    )
-                                    .map((schedule) => (
-                                        <TableRow key={schedule.id}>
-                                            <TableCell className="font-medium">
-                                                {schedule.name}
+                        {/* Mobile Cards (Screen < 768px) */}
+                        <div className="block md:hidden space-y-3">
+                            {filteredSchedules.length === 0 ? (
+                                <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-dashed border-slate-300 text-center text-xs text-slate-500">
+                                    No schedules match your search.
+                                </div>
+                            ) : (
+                                filteredSchedules.map((sched) => (
+                                    <div
+                                        key={sched.id}
+                                        className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between gap-3"
+                                    >
+                                        <div className="space-y-1">
+                                            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                                                {sched.name}
+                                            </h3>
+                                            <div className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-md">
+                                                <Clock className="w-3.5 h-3.5" />
+                                                <span>
+                                                    {sched.open_time?.slice(0, 5)} →{" "}
+                                                    {sched.closing_time?.slice(0, 5)}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-1.5 shrink-0">
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => {
+                                                    setSelectedSchedule(sched);
+                                                    setScheduleModalOpen(true);
+                                                }}
+                                                className="h-9 px-2.5 rounded-xl text-xs"
+                                            >
+                                                <Edit className="w-3.5 h-3.5 text-blue-500" />
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => handleDeleteSchedule(sched.id)}
+                                                className="h-9 px-2.5 rounded-xl text-xs text-rose-600 border-rose-200 hover:bg-rose-50"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        {/* Desktop Table (Screen >= 768px) */}
+                        <div className="hidden md:block bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-slate-50 dark:bg-slate-800/50">
+                                        <TableHead className="font-bold">Schedule Name</TableHead>
+                                        <TableHead className="font-bold">Opening Time</TableHead>
+                                        <TableHead className="font-bold">Closing Time</TableHead>
+                                        <TableHead className="text-right font-bold">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredSchedules.map((sched) => (
+                                        <TableRow key={sched.id}>
+                                            <TableCell className="font-bold text-slate-900 dark:text-white">
+                                                {sched.name}
                                             </TableCell>
-                                            <TableCell>
-                                                <span className="text-xs text-gray-600">{schedule.open_time?.slice(0, 5)}</span>
+                                            <TableCell className="font-mono text-xs">
+                                                {sched.open_time?.slice(0, 5)}
                                             </TableCell>
-                                            <TableCell>
-                                                <span className="text-xs text-gray-600">{schedule.closing_time?.slice(0, 5)}</span>
+                                            <TableCell className="font-mono text-xs">
+                                                {sched.closing_time?.slice(0, 5)}
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                <div className="flex gap-2 justify-end">
+                                                <div className="flex gap-1.5 justify-end">
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
                                                         onClick={() => {
-                                                            setSelectedSchedule(schedule);
+                                                            setSelectedSchedule(sched);
                                                             setScheduleModalOpen(true);
                                                         }}
+                                                        className="h-8 px-2 rounded-lg"
                                                     >
-                                                        <Edit size={12} className="text-blue-400" />
+                                                        <Edit className="w-3.5 h-3.5 text-blue-500" />
                                                     </Button>
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
-                                                        onClick={() => handleDeleteSchedule(schedule.id)}
+                                                        onClick={() => handleDeleteSchedule(sched.id)}
+                                                        className="h-8 px-2 rounded-lg text-rose-500 border-rose-200 hover:bg-rose-50"
                                                     >
-                                                        <Trash size={12} className="text-red-400" />
+                                                        <Trash2 className="w-3.5 h-3.5" />
                                                     </Button>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
                                     ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </TabsContent>
-            </Tabs>
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </TabsContent>
+                </Tabs>
+            </div>
         </AppLayout>
     );
 }

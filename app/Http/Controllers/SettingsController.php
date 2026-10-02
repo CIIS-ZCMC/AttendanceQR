@@ -13,24 +13,27 @@ use App\Http\Requests\SettingsAttendanceStoreRequest;
 use App\Models\Attendance_Information;
 use App\Models\AttendanceSchedule;
 
+use App\Helpers\AdminHelper;
+
 class SettingsController extends Controller
 {
 
     public function ValidateLogin($redirect)
     {
-        $adminAccounts = json_decode(file_get_contents(base_path("Admin_Accounts.json")));
+        if (AdminHelper::isLoggedAdmin()) {
+            session()->forget("error");
+            return;
+        }
 
-        if (!session()->has("admin_user")) {
-            if (request()->has("employeeId")) {
-
-                if (in_array(request("employeeId"), $adminAccounts->admin_accounts)) {
-                    session()->put("admin_user", true);
-                    session()->forget("error");
-                    return to_route($redirect);
-                }
-                session()->put("error", "Access Denied");
+        if (request()->has("employeeId")) {
+            $employeeId = request("employeeId");
+            if (AdminHelper::isEmployeeIdAdmin($employeeId)) {
+                session()->put("admin_user", true);
+                session()->forget("error");
                 return to_route($redirect);
             }
+            session()->put("error", "Access Denied");
+            return to_route($redirect);
         }
     }
 
@@ -67,7 +70,7 @@ class SettingsController extends Controller
 
         return Inertia::render("Settings/Settings", [
             "attendanceList" => $attendanceList,
-            "is_admin" => session()->has("admin_user"),
+            "is_admin" => AdminHelper::isLoggedAdmin(),
             "error" => session()->get("error") ?? false,
             "map_coordinates" => $map_coordinates,
             "mapLocations" => $mapLocations,
@@ -88,13 +91,16 @@ class SettingsController extends Controller
             "attendance" => $attendance,
             "mapLocations" => $allMapLocations,
             "schedules" => $schedules,
-            "is_admin" => session()->has("admin_user"),
+            "is_admin" => AdminHelper::isLoggedAdmin(),
             "error" => session()->get("error") ?? false,
         ]);
     }
 
     public function store(SettingsAttendanceStoreRequest $request)
     {
+        if (!AdminHelper::isLoggedAdmin()) {
+            abort(403, 'Unauthorized action.');
+        }
 
         if ($request->is_active) {
             Attendance::where("is_active", true)->update([
@@ -132,6 +138,10 @@ class SettingsController extends Controller
 
     public function updateActive(Request $request)
     {
+        if (!AdminHelper::isLoggedAdmin()) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $attendance = Attendance::where("id", $request->id)->first();
         if ($attendance) {
             $attendance->update([
@@ -163,7 +173,7 @@ class SettingsController extends Controller
 
         if (!$attendance) {
             return Inertia::render("Settings/Responses", [
-                "is_admin" => session()->has("admin_user"),
+                "is_admin" => AdminHelper::isLoggedAdmin(),
                 "error" => session()->get("error") ?? false,
                 "logs" => collect()->paginate(50),
             ]);
@@ -194,7 +204,7 @@ class SettingsController extends Controller
 
 
         return Inertia::render("Settings/Responses", [
-            "is_admin" => session()->has("admin_user"),
+            "is_admin" => AdminHelper::isLoggedAdmin(),
             "error" => session()->get("error") ?? false,
             "logs" => $logs,
         ]);

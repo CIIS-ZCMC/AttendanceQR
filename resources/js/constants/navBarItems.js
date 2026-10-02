@@ -1,15 +1,16 @@
 import {
     CalendarCog,
-    QrCode,
+    UserCheck,
     Settings,
     Clock,
+    Crosshair,
 } from "lucide-react";
 
-export const mainNavItems = [
+export const baseNavItems = [
     {
-        title: "Scan QR",
+        title: "Mark Attendance",
         href: "/",
-        icon: QrCode,
+        icon: UserCheck,
     },
     {
         title: "My Attendances",
@@ -17,11 +18,19 @@ export const mainNavItems = [
         icon: Clock,
     },
     {
+        title: "Location Calibrator",
+        href: "/calibrate",
+        icon: Crosshair,
+    },
+];
+
+export const adminNavItems = [
+    {
         title: "Active Attendance",
         href: "/active-configuration",
         icon: CalendarCog,
     },
-     {
+    {
         title: "Responses",
         href: "/responses",
         icon: Settings,
@@ -32,3 +41,9 @@ export const mainNavItems = [
         icon: Settings,
     },
 ];
+
+export const getNavItems = (isAdmin = false) => {
+    return isAdmin ? [...baseNavItems, ...adminNavItems] : baseNavItems;
+};
+
+export const mainNavItems = [...baseNavItems, ...adminNavItems];

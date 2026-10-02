@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Helpers\AdminHelper;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -37,6 +38,7 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
+            'is_admin' => fn() => AdminHelper::isLoggedAdmin(),
             'flash' => [
                 'message' => fn() => $request->session()->get('message'),
                 'success' => fn() => $request->session()->get('success'),

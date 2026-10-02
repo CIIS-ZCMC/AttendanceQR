@@ -216,13 +216,13 @@ export default function ActiveConfiguration({ attendance, mapLocations: allMapLo
     return (
         <AppLayout title="Active Configuration" is_admin={is_admin} w_admin={true}>
             <style>{pickerStyles}</style>
-            <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 w-full max-w-full sm:max-w-5xl">
-                <div className="mb-8">
-                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900">
-                        Active Attendance Configuration
+            <div className="w-full max-w-sm sm:max-w-2xl mx-auto space-y-4 py-2">
+                <div className="mb-4">
+                    <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+                        Active Configuration
                     </h1>
-                    <p className="mt-1 text-sm text-gray-500">
-                        Manage the currently active attendance session, its schedule, and location.
+                    <p className="mt-0.5 text-xs text-slate-500">
+                        Session schedule, geofence coordinates, and live scanner link
                     </p>
                 </div>
 
