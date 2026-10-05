@@ -11,10 +11,11 @@ Route::middleware([
    \App\Http\Middleware\SessionMiddleware::class,
 ])->group(function () {
    Route::controller(AttendanceController::class)->group(function () {
-      Route::get("/", "index");
+      Route::get("/", "index")->name("login");
       Route::post("/store_attendance", "store")->name("store_attendance");
       Route::get("my-attendance", "myAttendance")->name("my-attendance");
       Route::get("validate-location", "validateLocation")->name("validate-location");
+      Route::get("validate-qr-location", "validateQrLocation")->name("validate-qr-location");
       Route::post("get-summary", "getSummary");
       Route::get("/calibrate", "calibrate")->name("calibrate");
    });

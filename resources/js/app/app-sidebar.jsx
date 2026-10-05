@@ -35,32 +35,12 @@ import {
 } from "lucide-react";
 import logo from "../src/zcmc.jpeg";
 import { Link, usePage } from "@inertiajs/react";
-// Menu items.
-const mainNavItems = [
-    {
-        title: "Scan QR",
-        href: "/",
-        icon: QrCode,
-    },
-    {
-        title: "My Attendances",
-        href: "/my-attendance",
-        icon: Clock,
-    },
-    {
-        title: "Active Attendance",
-        href: "/active-configuration",
-        icon: CalendarCog,
-    },
-    {
-        title: "Settings",
-        href: "/settings",
-        icon: Settings,
-    },
-];
+import { getNavItems } from "@/constants/navBarItems";
 
-export default function AppSidebar() {
+export default function AppSidebar({ is_admin } = {}) {
     const page = usePage();
+    const isAdmin = Boolean(is_admin ?? page.props?.is_admin);
+    const navItems = getNavItems(isAdmin);
     return (
         <Sidebar collapsible="icon" variant="inset" className={"bg-gray-800 "}>
             <SidebarContent className={"bg-gray-800 h-full"}>
@@ -79,12 +59,17 @@ export default function AppSidebar() {
                     </SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu className={"gap-4"}>
-                            {mainNavItems.map((item) => {
+                            {navItems.map((item) => {
                                 let href = item.href;
-                                if (item.title === "Scan QR") {
+                                if (item.title === "Mark Attendance" || item.title === "Scan QR" || item.title === "Save Attendance") {
                                     const savedToken = localStorage.getItem("attendanceToken");
                                     if (savedToken) {
                                         href = `/?token=${savedToken}`;
+                                    }
+                                } else if (item.title === "Location Calibrator" || item.title === "Calibrate" || item.href === "/calibrate") {
+                                    const savedToken = localStorage.getItem("attendanceToken");
+                                    if (savedToken) {
+                                        href = `/calibrate?token=${savedToken}`;
                                     }
                                 }
                                 const pageActive =

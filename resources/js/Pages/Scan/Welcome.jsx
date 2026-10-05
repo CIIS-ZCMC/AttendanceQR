@@ -1,11 +1,21 @@
-import { QrCode, MapPin, Smartphone, Globe } from "lucide-react";
-import React, { useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { router } from "@inertiajs/react";
+import React, { useEffect, useState } from "react";
+import {
+    MapPin,
+    Smartphone,
+    Globe,
+    ShieldCheck,
+    CheckCircle2,
+    ChevronDown,
+    ChevronUp,
+    Loader2,
+} from "lucide-react";
 import logo from "../../src/zcmc.jpeg";
 import googleLogo from "../../src/googleLogin.png";
 
 export default function Welcome({ mapToken }) {
+    const [showInstructions, setShowInstructions] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+
     useEffect(() => {
         if (mapToken) {
             localStorage.setItem("attendanceToken", mapToken);
@@ -13,79 +23,132 @@ export default function Welcome({ mapToken }) {
             localStorage.removeItem("attendanceToken");
         }
     }, [mapToken]);
+
+    const handleGoogleLogin = () => {
+        setIsLoading(true);
+        const savedToken =
+            typeof window !== "undefined"
+                ? localStorage.getItem("attendanceToken")
+                : null;
+        window.location.href = savedToken
+            ? `/auth/google?token=${savedToken}`
+            : "/auth/google";
+    };
+
     return (
-        <div className="max-w-md  mx-auto mt-10 p-6 text-center space-y-4">
-            <div className="flex items-center gap-2 justify-center text-xl font-bold">
-                <img src={logo} alt="" className="w-10 h-12" />
-                UMIS - Geofencing Attendance
+        <div className="min-h-[100dvh] flex flex-col justify-between max-w-sm sm:max-w-md mx-auto p-4 sm:p-6 text-center animate-in fade-in duration-300">
+            {/* Top Branding Section */}
+            <div className="pt-6 sm:pt-10 space-y-4">
+                <div className="relative inline-flex items-center justify-center">
+                    <div className="absolute w-28 h-28 rounded-3xl bg-blue-500/15 blur-xl animate-pulse" />
+                    <img
+                        src={logo}
+                        alt="ZCMC Logo"
+                        className="w-20 h-20 rounded-2xl object-cover ring-4 ring-white dark:ring-slate-800 shadow-xl relative z-10"
+                    />
+                </div>
+
+                <div className="space-y-1">
+                    <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest block">
+                        Zamboanga City Medical Center
+                    </span>
+                    <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                        UMIS Attendance
+                    </h1>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto leading-relaxed">
+                        Official mobile portal for automated geofence-verified employee attendance
+                    </p>
+                </div>
+
+                {/* Subtle trust badges */}
+                <div className="pt-1 flex items-center justify-center gap-2.5 text-[11px] font-medium text-slate-600 dark:text-slate-300">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        Campus GPS Geofence
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
+                        <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                        Secure SSO
+                    </span>
+                </div>
             </div>
 
-            <div className="flex justify-center">
-                <MapPin className="w-12 h-12 text-blue-500" />
+            {/* Actions & Instructions */}
+            <div className="py-6 space-y-4">
+                <div className="space-y-2">
+                    <button
+                        type="button"
+                        onClick={handleGoogleLogin}
+                        disabled={isLoading}
+                        aria-label="Sign In with Google"
+                        className="w-full h-13 sm:h-14 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-base px-5 flex items-center justify-center gap-3 shadow-md hover:shadow-lg shadow-blue-600/25 transition-all duration-150 active:scale-[0.99] cursor-pointer disabled:opacity-70 disabled:cursor-wait"
+                    >
+                        {isLoading ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                            <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center shrink-0 shadow-xs">
+                                <img
+                                    src={googleLogo}
+                                    alt="Google"
+                                    className="w-4 h-4 object-contain"
+                                />
+                            </div>
+                        )}
+                        <span>{isLoading ? "Signing in..." : "Sign in with Google"}</span>
+                    </button>
+
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 text-center">
+                        Use your official <span className="font-semibold text-slate-700 dark:text-slate-200">@zcmc.gov.ph</span> or registered account
+                    </p>
+                </div>
+
+                {/* Location Help Accordion */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3 shadow-xs text-left">
+                    <button
+                        type="button"
+                        onClick={() => setShowInstructions(!showInstructions)}
+                        className="w-full flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-200 p-1 cursor-pointer"
+                    >
+                        <span className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-blue-500" />
+                            First time? Enable Location Services
+                        </span>
+                        {showInstructions ? (
+                            <ChevronUp className="w-4 h-4 text-slate-400" />
+                        ) : (
+                            <ChevronDown className="w-4 h-4 text-slate-400" />
+                        )}
+                    </button>
+
+                    {showInstructions && (
+                        <div className="pt-3 mt-2 border-t border-slate-100 dark:border-slate-800 space-y-3 text-xs text-slate-600 dark:text-slate-400 animate-in fade-in">
+                            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-1">
+                                <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200 text-xs">
+                                    <Smartphone className="w-3.5 h-3.5 text-emerald-500" />
+                                    <span>Android Devices</span>
+                                </div>
+                                <p className="text-[11px] leading-relaxed">
+                                    Turn on <b>Location</b> in notification shade → Allow browser location permission when prompted.
+                                </p>
+                            </div>
+
+                            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-1">
+                                <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200 text-xs">
+                                    <Globe className="w-3.5 h-3.5 text-blue-500" />
+                                    <span>Apple iPhone (iOS)</span>
+                                </div>
+                                <p className="text-[11px] leading-relaxed">
+                                    Settings → Privacy & Security → Location Services → Safari → <b>While Using the App</b> with <b>Precise Location</b> ON.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <div className="text-[10px] text-slate-400 text-center pt-2">
+                    ZCMC IMISS • Health Information Systems Development
+                </div>
             </div>
-
-            <h2 className="text-2xl font-semibold">Enable Location Services</h2>
-            <p className="text-gray-600 text-sm">
-                We need access to your location to verify your attendance
-                accurately. Please make sure your location is turned on before
-                proceeding.
-            </p>
-
-            <div className="border-t pt-4 mt-4 text-left space-y-3">
-                <h3 className="font-medium flex items-center gap-2 text-gray-800">
-                    <Smartphone className="w-5 h-5 text-green-500" /> For
-                    Android:
-                </h3>
-                <ul className="list-disc pl-6 text-gray-600 text-sm space-y-1">
-                    <li>
-                        Open <b>Settings</b> → <b>Location</b>
-                    </li>
-                    <li>
-                        Turn on <b>Use location</b>
-                    </li>
-                    <li>
-                        Allow this app or browser to access your location when
-                        prompted
-                    </li>
-                </ul>
-
-                <h3 className="font-medium flex items-center gap-2 text-gray-800">
-                    <Globe className="w-5 h-5 text-blue-500" /> For iOS:
-                </h3>
-                <ul className="list-disc pl-6 text-gray-600 text-sm space-y-1">
-                    <li>
-                        Open <b>Settings</b> → <b>Privacy & Security</b> →{" "}
-                        <b>Location Services</b>
-                    </li>
-                    <li>
-                        Ensure <b>Location Services</b> is turned on
-                    </li>
-                    <li>
-                        Find your browser (e.g. Safari, Chrome) and set it to{" "}
-                        <b>While Using the App</b>
-                    </li>
-                    <li>
-                        Ensure all location permissions are enabled
-                    </li>
-                </ul>
-            </div>
-
-            <p className="text-xs text-gray-400 mt-2">
-                Having trouble? Refresh the page after enabling location. This
-                setup is once only, you won't need to do it again.
-            </p>
-
-          
-            <Button
-                className="mt-6 text-primary shadow-lg h-15 w-full flex items-center justify-center gap-2 border border-gray-200 rounded-md p-2 bg-white hover:bg-gray-100"
-                onClick={() => {
-                    const savedToken = localStorage.getItem("attendanceToken");
-                    window.location.href = savedToken ? `/auth/google?token=${savedToken}` : "/auth/google";
-                }}
-            >
-                <img src={googleLogo} alt="Google login" className="w-4 h-4" />
-                Login with Google
-            </Button>
         </div>
     );
 }

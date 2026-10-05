@@ -29,6 +29,7 @@ class GoogleController extends Controller
                 'avatar' => $googleUser->getAvatar(),
                 'id' => $googleUser->getId()
             ]);
+            \App\Helpers\AdminHelper::checkAndSyncAdminSession();
         } catch (\Exception $e) {
             Log::error('Google Login Error: ' . $e->getMessage());
         }

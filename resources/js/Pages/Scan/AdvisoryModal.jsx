@@ -85,7 +85,7 @@ export default function AdvisoryModal({ open, setOpen }) {
                 <div className="px-4 py-4 sm:px-6 bg-gray-50 border-t border-gray-100">
                     <button
                         onClick={() => setOpen(false)}
-                        className="w-full px-8 py-3 bg-blue-900 hover:bg-blue-800 text-white text-sm font-bold rounded-lg transition-all active:scale-[0.98] shadow-md shadow-blue-200 uppercase tracking-widest"
+                        className="w-full px-8 py-3.5 bg-blue-900 hover:bg-blue-800 text-white text-sm font-bold rounded-xl transition-all active:scale-[0.98] shadow-md shadow-blue-200 uppercase tracking-widest cursor-pointer"
                     >
                         I UNDERSTAND
                     </button>

@@ -13,24 +13,27 @@ use App\Http\Requests\SettingsAttendanceStoreRequest;
 use App\Models\Attendance_Information;
 use App\Models\AttendanceSchedule;
 
+use App\Helpers\AdminHelper;
+
 class SettingsController extends Controller
 {
 
     public function ValidateLogin($redirect)
     {
-        $adminAccounts = json_decode(file_get_contents(base_path("Admin_Accounts.json")));
+        if (AdminHelper::isLoggedAdmin()) {
+            session()->forget("error");
+            return;
+        }
 
-        if (!session()->has("admin_user")) {
-            if (request()->has("employeeId")) {
-
-                if (in_array(request("employeeId"), $adminAccounts->admin_accounts)) {
-                    session()->put("admin_user", true);
-                    session()->forget("error");
-                    return to_route($redirect);
-                }
-                session()->put("error", "Access Denied");
+        if (request()->has("employeeId")) {
+            $employeeId = request("employeeId");
+            if (AdminHelper::isEmployeeIdAdmin($employeeId)) {
+                session()->put("admin_user", true);
+                session()->forget("error");
                 return to_route($redirect);
             }
+            session()->put("error", "Access Denied");
+            return to_route($redirect);
         }
     }
 
@@ -67,7 +70,7 @@ class SettingsController extends Controller
 
         return Inertia::render("Settings/Settings", [
             "attendanceList" => $attendanceList,
-            "is_admin" => session()->has("admin_user"),
+            "is_admin" => AdminHelper::isLoggedAdmin(),
             "error" => session()->get("error") ?? false,
             "map_coordinates" => $map_coordinates,
             "mapLocations" => $mapLocations,
@@ -81,20 +84,25 @@ class SettingsController extends Controller
         $this->ValidateLogin("active-configuration");
 
         $attendance = Attendance::with('mapLocations.schedule')->where("is_active", true)->first();
-        $allMapLocations = \App\Models\MapLocation::with('schedule')->get();
-        $schedules = AttendanceSchedule::orderBy('created_at', 'desc')->get();
+        $allMapLocations = \App\Models\MapLocation::with('schedule')->orderBy('location', 'asc')->get();
+        $schedules = AttendanceSchedule::orderBy('name', 'asc')->get();
+        $allAttendances = Attendance::with('mapLocations.schedule')->orderBy('created_at', 'desc')->take(25)->get();
 
         return Inertia::render("Settings/ActiveConfiguration", [
             "attendance" => $attendance,
             "mapLocations" => $allMapLocations,
             "schedules" => $schedules,
-            "is_admin" => session()->has("admin_user"),
+            "allAttendances" => $allAttendances,
+            "is_admin" => AdminHelper::isLoggedAdmin(),
             "error" => session()->get("error") ?? false,
         ]);
     }
 
     public function store(SettingsAttendanceStoreRequest $request)
     {
+        if (!AdminHelper::isLoggedAdmin()) {
+            abort(403, 'Unauthorized action.');
+        }
 
         if ($request->is_active) {
             Attendance::where("is_active", true)->update([
@@ -132,15 +140,59 @@ class SettingsController extends Controller
 
     public function updateActive(Request $request)
     {
+        if (!AdminHelper::isLoggedAdmin()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // Quick switch active attendance session
+        if ($request->has('switch_active_id') && $request->switch_active_id) {
+            Attendance::where("is_active", true)->update(["is_active" => false]);
+            Attendance::where("id", $request->switch_active_id)->update(["is_active" => true]);
+            return to_route("active-configuration");
+        }
+
         $attendance = Attendance::where("id", $request->id)->first();
         if ($attendance) {
-            $attendance->update([
+            $updateData = [
                 "is_active" => true,
                 "open_date" => $request->open_date,
                 "closing_date" => $request->closing_date,
-            ]);
+            ];
 
-            if ($request->map_location_id) {
+            if ($request->has('no_location')) {
+                $updateData["no_location"] = $request->boolean('no_location');
+            }
+
+            $attendance->update($updateData);
+
+            // Sync assigned map locations if provided
+            if ($request->has('map_location_ids') && is_array($request->map_location_ids)) {
+                $attendance->mapLocations()->sync($request->map_location_ids);
+            }
+
+            // Process per-location schedules if provided
+            if ($request->has('location_schedules') && is_array($request->location_schedules)) {
+                foreach ($request->location_schedules as $locId => $schedData) {
+                    $mapLocation = \App\Models\MapLocation::find($locId);
+                    if ($mapLocation) {
+                        $schedId = !empty($schedData['schedule_id']) ? $schedData['schedule_id'] : null;
+                        $mapLocation->update([
+                            'schedule_id' => $schedId,
+                            'open_time' => $schedId ? null : ($schedData['open_time'] ?? null),
+                            'closing_time' => $schedId ? null : ($schedData['closing_time'] ?? null),
+                        ]);
+                    }
+                }
+            } elseif ($request->boolean('apply_to_all')) {
+                // Apply schedule/times across all linked stations
+                foreach ($attendance->mapLocations as $loc) {
+                    $loc->update([
+                        'schedule_id' => $request->schedule_id ?: null,
+                        'open_time' => $request->schedule_id ? null : ($request->open_time ?? null),
+                        'closing_time' => $request->schedule_id ? null : ($request->closing_time ?? null),
+                    ]);
+                }
+            } elseif ($request->map_location_id) {
                 $mapLocation = $attendance->mapLocations()->where('maplocation.id', $request->map_location_id)->first();
                 if ($mapLocation) {
                     $mapLocation->update([
@@ -163,13 +215,14 @@ class SettingsController extends Controller
 
         if (!$attendance) {
             return Inertia::render("Settings/Responses", [
-                "is_admin" => session()->has("admin_user"),
+                "is_admin" => AdminHelper::isLoggedAdmin(),
                 "error" => session()->get("error") ?? false,
                 "logs" => collect()->paginate(50),
+                "totalCount" => 0,
             ]);
         }
 
-        $logs = $attendance->logs()->with("employeeProfile")->paginate(50);
+        $totalLogsCount = $attendance->logs()->count();
 
         if (request()->has('search') && ($search = request('search'))) {
 
@@ -194,9 +247,10 @@ class SettingsController extends Controller
 
 
         return Inertia::render("Settings/Responses", [
-            "is_admin" => session()->has("admin_user"),
+            "is_admin" => AdminHelper::isLoggedAdmin(),
             "error" => session()->get("error") ?? false,
             "logs" => $logs,
+            "totalCount" => $totalLogsCount,
         ]);
     }
 }

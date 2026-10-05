@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Helpers\AdminHelper;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -15,12 +16,7 @@ class SessionMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        //session()->forget('userToken');
-        // if (!session()->has('userToken')) {
-        //     $token = request()->ip();
-        //     session()->put('userToken', );
-        // }
-
+        AdminHelper::checkAndSyncAdminSession();
 
         return $next($request);
     }
