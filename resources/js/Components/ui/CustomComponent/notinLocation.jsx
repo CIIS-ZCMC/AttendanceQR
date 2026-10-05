@@ -12,7 +12,8 @@ import {
     ChevronUp,
     ShieldAlert,
 } from "lucide-react";
-import { GoogleMap, Circle, Marker } from "@react-google-maps/api";
+import { GoogleMap, CircleF as Circle, MarkerF as Marker } from "@react-google-maps/api";
+import useGoogleMaps from "@/hooks/use-google-maps";
 
 const GEOFENCE_RADIUS = 30;
 
@@ -22,18 +23,8 @@ export const NotInLocation = ({
     activeMapLocation,
     userCoords,
 }) => {
-    const [mapsReady, setMapsReady] = useState(false);
+    const { isLoaded: mapsReady } = useGoogleMaps();
     const [showSteps, setShowSteps] = useState(false);
-
-    useEffect(() => {
-        const checkMaps = setInterval(() => {
-            if (window.google && window.google.maps) {
-                setMapsReady(true);
-                clearInterval(checkMaps);
-            }
-        }, 200);
-        return () => clearInterval(checkMaps);
-    }, []);
 
     const getGreeting = () => {
         const hour = new Date().getHours();

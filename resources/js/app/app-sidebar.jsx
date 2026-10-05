@@ -66,6 +66,11 @@ export default function AppSidebar({ is_admin } = {}) {
                                     if (savedToken) {
                                         href = `/?token=${savedToken}`;
                                     }
+                                } else if (item.title === "Location Calibrator" || item.title === "Calibrate" || item.href === "/calibrate") {
+                                    const savedToken = localStorage.getItem("attendanceToken");
+                                    if (savedToken) {
+                                        href = `/calibrate?token=${savedToken}`;
+                                    }
                                 }
                                 const pageActive =
                                     page.url.split("?")[0] === item.href;

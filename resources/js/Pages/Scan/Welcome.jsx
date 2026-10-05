@@ -7,8 +7,6 @@ import {
     CheckCircle2,
     ChevronDown,
     ChevronUp,
-    Sparkles,
-    ArrowRight,
     Loader2,
 } from "lucide-react";
 import logo from "../../src/zcmc.jpeg";
@@ -77,54 +75,27 @@ export default function Welcome({ mapToken }) {
 
             {/* Actions & Instructions */}
             <div className="py-6 space-y-4">
-                {/* Noticeable Google Sign In Action Block */}
                 <div className="space-y-2">
-                    <div className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        Ready to Time In / Out • Sign In Below
-                    </div>
-
-                    {/* Highly noticeable button with animated ambient glow */}
-                    <div className="relative group">
-                        <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-500 to-cyan-400 opacity-80 blur-md group-hover:opacity-100 group-hover:blur-lg transition duration-300 animate-pulse-subtle" />
-
-                        <button
-                            type="button"
-                            onClick={handleGoogleLogin}
-                            disabled={isLoading}
-                            aria-label="Sign In with Hospital Google Account"
-                            className="relative w-full h-16 rounded-2xl bg-white hover:bg-slate-50 active:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-850 px-4 sm:px-5 flex items-center justify-between border-2 border-blue-500/40 hover:border-blue-500/70 shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-75 disabled:cursor-wait"
-                        >
-                            {/* Google Logo Icon Box & Labels */}
-                            <div className="flex items-center gap-3.5 text-left">
-                                <div className="w-11 h-11 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-xs border border-slate-200/80 dark:border-slate-700 shrink-0">
-                                    <img
-                                        src={googleLogo}
-                                        alt="Google"
-                                        className="w-6 h-6 object-contain"
-                                    />
-                                </div>
-                                <div>
-                                    <div className="text-[15px] sm:text-base font-bold text-slate-900 dark:text-white leading-tight flex items-center gap-1.5">
-                                        <span>Sign In with Google</span>
-                                        <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                                    </div>
-                                    <div className="text-[11px] font-semibold text-blue-600 dark:text-blue-400">
-                                        Hospital Google Account
-                                    </div>
-                                </div>
+                    <button
+                        type="button"
+                        onClick={handleGoogleLogin}
+                        disabled={isLoading}
+                        aria-label="Sign In with Google"
+                        className="w-full h-13 sm:h-14 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-base px-5 flex items-center justify-center gap-3 shadow-md hover:shadow-lg shadow-blue-600/25 transition-all duration-150 active:scale-[0.99] cursor-pointer disabled:opacity-70 disabled:cursor-wait"
+                    >
+                        {isLoading ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                            <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center shrink-0 shadow-xs">
+                                <img
+                                    src={googleLogo}
+                                    alt="Google"
+                                    className="w-4 h-4 object-contain"
+                                />
                             </div>
-
-                            {/* Action Arrow / Loading spinner */}
-                            <div className="w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shrink-0 shadow-md shadow-blue-500/30 group-hover:translate-x-0.5 transition-transform">
-                                {isLoading ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <ArrowRight className="w-4 h-4 stroke-[2.5]" />
-                                )}
-                            </div>
-                        </button>
-                    </div>
+                        )}
+                        <span>{isLoading ? "Signing in..." : "Sign in with Google"}</span>
+                    </button>
 
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 text-center">
                         Use your official <span className="font-semibold text-slate-700 dark:text-slate-200">@zcmc.gov.ph</span> or registered account

@@ -11,16 +11,18 @@ import {
     Filter,
     CalendarDays,
     FileSpreadsheet,
+    MapPin,
+    User,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/Components/ui/input";
 import { Button } from "@/Components/ui/button";
 import { attendanceContants } from "@/constants/contants";
 
-export default function Myattendances({ attendanceList, employeeID }) {
+export default function Myattendances({ attendanceList, employeeID, employeeName, isOtherEmployee, selectedDate }) {
     const [search, setSearch] = useState({
-        employee_id: "",
-        date: "",
+        employee_id: employeeID || "",
+        date: selectedDate || "",
     });
 
     const { header, description, recorded, noAttendances } = attendanceContants;
@@ -37,13 +39,12 @@ export default function Myattendances({ attendanceList, employeeID }) {
     }, [attendanceList]);
 
     useEffect(() => {
-        if (employeeID) {
-            setSearch((prev) => ({
-                ...prev,
-                employee_id: employeeID,
-            }));
-        }
-    }, [employeeID]);
+        setSearch((prev) => ({
+            ...prev,
+            employee_id: employeeID || prev.employee_id,
+            date: selectedDate !== undefined ? (selectedDate || "") : prev.date,
+        }));
+    }, [employeeID, selectedDate]);
 
     const handleSearch = (e) => {
         e?.preventDefault();
@@ -158,6 +159,28 @@ export default function Myattendances({ attendanceList, employeeID }) {
 
                 {/* Attendance Feed / Mobile Cards */}
                 <div className="space-y-3">
+                    {/* Searched Employee Info Banner (when searching another employee) */}
+                    {isOtherEmployee && employeeID && (
+                        <div className="bg-blue-50/70 dark:bg-blue-950/40 rounded-2xl p-3 border border-blue-200 dark:border-blue-900/60 flex items-center justify-between gap-3 shadow-xs">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                                    <User className="w-4 h-4" />
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                        {employeeName || "Employee Record"}
+                                    </div>
+                                    <div className="text-[11px] font-mono text-blue-700 dark:text-blue-300">
+                                        ID: {employeeID}
+                                    </div>
+                                </div>
+                            </div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 shrink-0">
+                                Searched User
+                            </span>
+                        </div>
+                    )}
+
                     {attendanceList?.length === 0 ? (
                         <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-dashed border-slate-300 dark:border-slate-800 text-center space-y-3">
                             <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
@@ -216,6 +239,12 @@ export default function Myattendances({ attendanceList, employeeID }) {
                                             >
                                                 {item.attendance?.title || "Attendance Log"}
                                             </div>
+                                            {isOtherEmployee && (item.name || employeeName) && (
+                                                <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1 mt-0.5 truncate">
+                                                    <User className="w-3 h-3 text-slate-400 shrink-0" />
+                                                    <span className="truncate">{item.name || employeeName}</span>
+                                                </div>
+                                            )}
                                             <div className="font-mono text-base font-extrabold text-blue-600 dark:text-blue-400 leading-tight mt-0.5">
                                                 {formattedTime}
                                             </div>
@@ -223,6 +252,14 @@ export default function Myattendances({ attendanceList, employeeID }) {
                                                 <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
                                                 <span className="truncate">{formattedDate}</span>
                                             </div>
+                                            {item.map_location?.location && (
+                                                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1 font-medium">
+                                                    <MapPin className="w-3 h-3 text-rose-500 shrink-0" />
+                                                    <span className="truncate" title={item.map_location.description || item.map_location.location}>
+                                                        {item.map_location.location}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 

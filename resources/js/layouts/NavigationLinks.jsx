@@ -10,6 +10,11 @@ const NavigationLinks = ({ href, title, icon: IconProp, Icon: AltIcon, page, onC
         if (savedToken) {
             finalHref = `/?token=${savedToken}`;
         }
+    } else if (title === "Location Calibrator" || title === "Calibrate" || href === "/calibrate") {
+        const savedToken = typeof window !== "undefined" ? localStorage.getItem("attendanceToken") : null;
+        if (savedToken) {
+            finalHref = `/calibrate?token=${savedToken}`;
+        }
     }
 
     const currentPath = page?.url?.split("?")[0] || "";

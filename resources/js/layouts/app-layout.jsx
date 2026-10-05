@@ -1,10 +1,10 @@
 import React, { useEffect } from "react";
-import { LoadScript } from "@react-google-maps/api";
 import { Toaster, toast } from "sonner";
 import { usePage } from "@inertiajs/react";
 
 // custom component
 import LogAdmin from "../Components/ui/CustomComponent/LogAdmin";
+import useGoogleMaps from "../hooks/use-google-maps";
 
 // layout components
 import Header from "./Header";
@@ -17,6 +17,9 @@ export default function AppLayout({
     hideBottomNav = false,
 }) {
     const page = usePage();
+
+    // Start loading Google Maps app-wide (used by geofence checks, maps, etc.).
+    useGoogleMaps();
 
     const isAdmin = Boolean(is_admin || page.props?.is_admin);
 
@@ -34,11 +37,6 @@ export default function AppLayout({
             {/* Main Content Area */}
             <main className="flex-1 w-full max-w-xl mx-auto px-3.5 sm:px-5 pt-20 pb-28 flex flex-col transition-all">
                 {w_admin ? (isAdmin ? children : <LogAdmin />) : children}
-
-                <LoadScript
-                    googleMapsApiKey="AIzaSyDok3Z6YRFk0Oj1f_bMTuWCDwDMOp6u4Sw"
-                    libraries={["geometry"]}
-                />
 
                 <Toaster
                     position="top-center"

@@ -17,6 +17,7 @@ export default function BottomNavigation({ page, is_admin }) {
             ? localStorage.getItem("attendanceToken")
             : null;
     const scanHref = savedToken ? `/?token=${savedToken}` : "/";
+    const calibrateHref = savedToken ? `/calibrate?token=${savedToken}` : "/calibrate";
     const isScanActive = currentPath === "/" || currentPath === "";
 
     // Items on the left side of Mark Attendance
@@ -31,7 +32,7 @@ export default function BottomNavigation({ page, is_admin }) {
             ? [
                   {
                       title: "Calibrate",
-                      href: "/calibrate",
+                      href: calibrateHref,
                       icon: Crosshair,
                       isActive: currentPath.startsWith("/calibrate"),
                   },
@@ -60,7 +61,7 @@ export default function BottomNavigation({ page, is_admin }) {
         : [
               {
                   title: "Calibrate",
-                  href: "/calibrate",
+                  href: calibrateHref,
                   icon: Crosshair,
                   isActive: currentPath.startsWith("/calibrate"),
               },

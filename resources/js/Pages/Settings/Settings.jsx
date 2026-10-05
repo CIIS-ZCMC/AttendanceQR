@@ -57,7 +57,8 @@ import { Checkbox } from "@/Components/ui/checkbox";
 import { useForm, router, usePage } from "@inertiajs/react";
 import { toast } from "sonner";
 import { LoaderCircle } from "lucide-react";
-import { GoogleMap, Marker, Circle } from "@react-google-maps/api";
+import { GoogleMap, MarkerF as Marker, CircleF as Circle } from "@react-google-maps/api";
+import useGoogleMaps from "@/hooks/use-google-maps";
 import axios from "axios";
 
 // Helper for effective schedule times
@@ -513,7 +514,7 @@ export default function Settings({
 
     const MapLocationForm = () => {
         const [loading, setLoading] = useState(false);
-        const [mapsReady, setMapsReady] = useState(false);
+        const { isLoaded: mapsReady } = useGoogleMaps();
         const mapRef = useRef(null);
 
         const useMapLocationForm = useForm({
@@ -532,16 +533,6 @@ export default function Settings({
             is_default: !!selectedMapLocation?.is_default,
             w_map: !!selectedMapLocation?.w_map,
         });
-
-        useEffect(() => {
-            const check = setInterval(() => {
-                if (window.google && window.google.maps) {
-                    setMapsReady(true);
-                    clearInterval(check);
-                }
-            }, 200);
-            return () => clearInterval(check);
-        }, []);
 
         const mapCenter =
             useMapLocationForm.data.lat && useMapLocationForm.data.lng

@@ -20,12 +20,28 @@ use App\Helpers\AdminHelper;
 class AttendanceController extends Controller
 {
 
-    public function calibrate()
+    public function calibrate(Request $request)
     {
-        $mapLocations = \App\Models\MapLocation::orderBy('location', 'asc')->get();
+        $isAdmin = AdminHelper::isLoggedAdmin();
+        $token = $request->token ?? session()->get('activeMapToken');
+
+        if ($token) {
+            $activeMapLocation = \App\Models\MapLocation::with('schedule')->where('token', $token)->first();
+        } else {
+            $activeMapLocation = \App\Models\MapLocation::with('schedule')->where('is_default', true)->first();
+        }
+
+        if ($isAdmin) {
+            $mapLocations = \App\Models\MapLocation::orderBy('location', 'asc')->get();
+        } else {
+            // For non-admin, calibrate only works on the current location the user is set in
+            $mapLocations = $activeMapLocation ? collect([$activeMapLocation]) : collect([]);
+        }
+
         return Inertia::render("Scan/Calibrate", [
             "mapLocations" => $mapLocations,
-            "is_admin" => AdminHelper::isLoggedAdmin(),
+            "activeMapLocation" => $activeMapLocation,
+            "is_admin" => $isAdmin,
         ]);
     }
 
@@ -150,8 +166,8 @@ class AttendanceController extends Controller
 
         $Saved = false;
 
-        $userLat =6.9069749679137;
-        $userLng = 122.08160398685;
+        // $userLat =6.9069749679137;
+        // $userLng = 122.08160398685;
 
         /**
          * Add Validation here soon , that active attendance does not need location based.
@@ -588,45 +604,32 @@ class AttendanceController extends Controller
         $employeeID = $request->employee_id ?? null;
 
         if (!$userInformation) {
-            return redirect()->route('login');
+            return redirect('/');
         }
+
+        $targetEmployeeID = $request->employee_id ?: null;
+        $loggedEmployeeID = null;
 
         $contact = Contact::where("email_address", $userInformation['email'])->first();
-        $UserName = $userInformation['name'];
-        $Employee = null;
-        $email = $userInformation['email'];
-        $profilePhoto = $userInformation['avatar'];
         if ($contact) {
-            $personalInformation = $contact->personalInformation;
-            $fullName = $personalInformation->fullName();
-            $employeeProfile = $personalInformation->employeeProfile;
-
-            $employeeID = $employeeProfile->employee_id;
-            $UserName = $personalInformation->fullName();
-            $Employee = $employeeProfile;
+            $employeeProfile = $contact->personalInformation?->employeeProfile;
+            $loggedEmployeeID = $employeeProfile?->employee_id;
         }
 
+        $loggedEmployeeID = $loggedEmployeeID ?? AdminHelper::getLoggedEmployeeId();
 
+        // If employee_id is passed in the query, use that; otherwise fall back to logged user's ID
+        $employeeID = $targetEmployeeID ?: $loggedEmployeeID;
 
-
-
-
-
-        $employeeID = $employeeID ?? AdminHelper::getLoggedEmployeeId();
-        if (!$Employee && $employeeID) {
-            $Employee = EmployeeProfile::where("employee_id", $employeeID)->first();
+        $employeeName = null;
+        $biometric_id = null;
+        if ($employeeID) {
+            $employee = EmployeeProfile::where("employee_id", $employeeID)->first();
+            $biometric_id = $employee?->biometric_id;
+            $employeeName = $employee?->name;
         }
 
-        $attendance = [];
-
-        if ($Employee) {
-            $biometric_id = $Employee->biometric_id;
-        }
-
-        if (!$Employee && !empty($request->employee_id)) {
-            $biometric_id = EmployeeProfile::firstWhere("employee_id", $request->employee_id)?->biometric_id;
-        }
-
+        $isOtherEmployee = !empty($targetEmployeeID) && ($targetEmployeeID !== $loggedEmployeeID);
 
         $from = date("Y-m-d 00:00:00", strtotime("-3 months"));
         $to = date("Y-m-d 23:59:59");
@@ -649,6 +652,9 @@ class AttendanceController extends Controller
         return Inertia::render('MyAttendances/Myattendances', [
             'attendanceList' => !$employeeID ? [] : $attendance,
             'employeeID' => $employeeID,
+            'employeeName' => $employeeName,
+            'isOtherEmployee' => $isOtherEmployee,
+            'selectedDate' => $date,
             'is_admin' => AdminHelper::isLoggedAdmin(),
         ]);
     }

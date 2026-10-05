@@ -159,10 +159,6 @@ class SettingsController extends Controller
                 "closing_date" => $request->closing_date,
             ];
 
-            if ($request->filled('name')) {
-                $updateData["title"] = $request->name;
-            }
-
             if ($request->has('no_location')) {
                 $updateData["no_location"] = $request->boolean('no_location');
             }
@@ -222,10 +218,11 @@ class SettingsController extends Controller
                 "is_admin" => AdminHelper::isLoggedAdmin(),
                 "error" => session()->get("error") ?? false,
                 "logs" => collect()->paginate(50),
+                "totalCount" => 0,
             ]);
         }
 
-        $logs = $attendance->logs()->with("employeeProfile")->paginate(50);
+        $totalLogsCount = $attendance->logs()->count();
 
         if (request()->has('search') && ($search = request('search'))) {
 
@@ -253,6 +250,7 @@ class SettingsController extends Controller
             "is_admin" => AdminHelper::isLoggedAdmin(),
             "error" => session()->get("error") ?? false,
             "logs" => $logs,
+            "totalCount" => $totalLogsCount,
         ]);
     }
 }

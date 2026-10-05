@@ -32,11 +32,99 @@ import {
     Loader2,
     SlidersHorizontal,
     Sparkles,
+    Lock,
 } from "lucide-react";
 import { toast } from "sonner";
-import { GoogleMap, Circle, Marker, Polyline } from "@react-google-maps/api";
+import {
+    GoogleMap,
+    CircleF as Circle,
+    MarkerF as Marker,
+    useGoogleMap,
+} from "@react-google-maps/api";
+import useGoogleMaps from "@/hooks/use-google-maps";
 
 const GEOFENCE_RADIUS = 30; // Standard 30 meters geofence radius for ZCMC Attendance
+
+/**
+ * Minimal, crash-safe replacement for <PolylineF>.
+ *
+ * Google Maps can throw "Cannot read properties of undefined (reading 'setAt')"
+ * inside Polyline#setPath when its internal path array isn't initialised.
+ * Thrown from a React effect, that unmounts the whole page (white screen).
+ * Here any such failure is caught and the line is simply not drawn.
+ */
+function SafePolyline({ path, options }) {
+    const map = useGoogleMap();
+
+    // Primitive deps so a new array/object literal each render doesn't recreate the line
+    const pathKey = JSON.stringify(path);
+    const optionsKey = JSON.stringify(options);
+
+    useEffect(() => {
+        if (!map || !window.google?.maps?.Polyline) return;
+
+        const points = JSON.parse(pathKey);
+        const valid = points.every(
+            (p) => p && Number.isFinite(p.lat) && Number.isFinite(p.lng)
+        );
+        if (!valid) return;
+
+        let line = null;
+        try {
+            line = new window.google.maps.Polyline({
+                ...JSON.parse(optionsKey),
+                map,
+            });
+            line.setPath(points);
+        } catch (err) {
+            console.warn("[SafePolyline] Could not draw polyline:", err);
+            try {
+                line?.setMap(null);
+            } catch {
+                /* ignore */
+            }
+            return;
+        }
+
+        return () => line.setMap(null);
+    }, [map, pathKey, optionsKey]);
+
+    return null;
+}
+
+/** Keeps a Google Maps error from blanking the whole page. */
+class MapErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { error: null };
+    }
+
+    static getDerivedStateFromError(error) {
+        return { error };
+    }
+
+    componentDidCatch(error) {
+        console.error("[MapErrorBoundary] Map failed to render:", error);
+    }
+
+    render() {
+        if (this.state.error) {
+            return (
+                <div className="h-[320px] flex flex-col items-center justify-center gap-2 text-center px-6 text-sm text-slate-500 dark:text-slate-400">
+                    <AlertTriangle className="w-6 h-6 text-amber-500" />
+                    <p>The map could not be displayed. Distance and location readings still work.</p>
+                    <button
+                        onClick={() => this.setState({ error: null })}
+                        className="text-xs font-semibold text-blue-600 hover:underline"
+                    >
+                        Try again
+                    </button>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
 
 // Mathematical Haversine Distance (meters)
 function computeHaversineDistance(lat1, lon1, lat2, lon2) {
@@ -81,10 +169,24 @@ function getCompassDirection(bearing) {
     return directions[index];
 }
 
-export default function Calibrate({ mapLocations = [], is_admin = false }) {
-    const [selectedLocationId, setSelectedLocationId] = useState(
-        mapLocations.length > 0 ? mapLocations[0].id : ""
-    );
+export default function Calibrate({
+    mapLocations = [],
+    activeMapLocation = null,
+    is_admin = false,
+}) {
+    // If user is not admin and an active location is set, lock to that location.
+    // Otherwise fallback to the active location or first available map location.
+    const initialLocationId = useMemo(() => {
+        if (!is_admin && activeMapLocation?.id) {
+            return activeMapLocation.id;
+        }
+        if (activeMapLocation?.id && mapLocations.some((loc) => loc.id === activeMapLocation.id)) {
+            return activeMapLocation.id;
+        }
+        return mapLocations.length > 0 ? mapLocations[0].id : "";
+    }, [is_admin, activeMapLocation, mapLocations]);
+
+    const [selectedLocationId, setSelectedLocationId] = useState(initialLocationId);
     const [userLocation, setUserLocation] = useState(null);
     const [locationError, setLocationError] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -96,31 +198,34 @@ export default function Calibrate({ mapLocations = [], is_admin = false }) {
     const [deviceInfo, setDeviceInfo] = useState(null);
     const [distance, setDistance] = useState(null);
     const [bearing, setBearing] = useState(null);
-    const [mapsReady, setMapsReady] = useState(false);
     const [mapTypeId, setMapTypeId] = useState("roadmap");
     const [activeTab, setActiveTab] = useState("calibrate");
 
     const watchIdRef = useRef(null);
     const mapRef = useRef(null);
 
-    // Check if Google Maps script has loaded
+    // True only once the Google Maps API is fully loaded
+    const { isLoaded: mapsReady } = useGoogleMaps();
+
+    // Keep selectedLocationId in sync if props change or if locked to non-admin active location
     useEffect(() => {
-        const checkMaps = setInterval(() => {
-            if (window.google && window.google.maps) {
-                setMapsReady(true);
-                clearInterval(checkMaps);
-            }
-        }, 200);
-        return () => clearInterval(checkMaps);
-    }, []);
+        if (!is_admin && activeMapLocation?.id) {
+            setSelectedLocationId(activeMapLocation.id);
+        }
+    }, [is_admin, activeMapLocation]);
 
     // Selected Map Location
     const selectedLocation = useMemo(() => {
+        if (!is_admin && activeMapLocation) {
+            // Prioritize the user's assigned active location if not admin
+            const foundInList = mapLocations.find((loc) => loc.id === activeMapLocation.id);
+            return foundInList || activeMapLocation;
+        }
         return (
             mapLocations.find((loc) => loc.id === parseInt(selectedLocationId)) ||
             (mapLocations.length > 0 ? mapLocations[0] : null)
         );
-    }, [mapLocations, selectedLocationId]);
+    }, [is_admin, activeMapLocation, mapLocations, selectedLocationId]);
 
     // Recalculate distance and bearing whenever userLocation or selectedLocation changes
     useEffect(() => {
@@ -490,45 +595,81 @@ export default function Calibrate({ mapLocations = [], is_admin = false }) {
                                                 Target Map Location
                                             </CardTitle>
                                             <CardDescription className="text-xs text-slate-500 dark:text-slate-400">
-                                                Select the attendance station to calibrate
+                                                {is_admin
+                                                    ? "Select the attendance station to calibrate"
+                                                    : "Current attendance location to calibrate"}
                                             </CardDescription>
                                         </div>
                                     </div>
-                                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full">
-                                        {mapLocations.length} Locations
-                                    </span>
+                                    {is_admin ? (
+                                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full">
+                                            {mapLocations.length} Locations
+                                        </span>
+                                    ) : (
+                                        <Badge
+                                            variant="outline"
+                                            className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center gap-1 py-0.5 px-2"
+                                        >
+                                            <Lock className="w-3 h-3 text-slate-400" />
+                                            <span>Current Location</span>
+                                        </Badge>
+                                    )}
                                 </div>
                             </CardHeader>
 
                             <CardContent className="px-4 sm:px-5 pb-5 pt-0 space-y-3.5">
-                                {mapLocations.length === 0 ? (
+                                {!selectedLocation && mapLocations.length === 0 ? (
                                     <div className="text-center py-6 text-slate-400 text-xs">
                                         No map locations configured. Please contact the system administrator.
                                     </div>
                                 ) : (
                                     <>
-                                        {/* Styled Dropdown */}
-                                        <div className="relative">
-                                            <select
-                                                value={selectedLocationId}
-                                                onChange={(e) => setSelectedLocationId(e.target.value)}
-                                                className="w-full h-12 pl-3.5 pr-9 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-850 text-sm font-medium text-slate-900 dark:text-slate-100 shadow-xs focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all appearance-none cursor-pointer"
-                                            >
-                                                {mapLocations.map((loc) => (
-                                                    <option
-                                                        key={loc.id}
-                                                        value={loc.id}
-                                                        className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 py-1"
-                                                    >
-                                                        {loc.location}
-                                                        {loc.description ? ` (${loc.description})` : ""}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                                <SlidersHorizontal className="w-4 h-4" />
+                                        {/* Dropdown for Admin, Locked Display for Non-Admin */}
+                                        {is_admin ? (
+                                            <div className="relative">
+                                                <select
+                                                    value={selectedLocationId}
+                                                    onChange={(e) => setSelectedLocationId(e.target.value)}
+                                                    className="w-full h-12 pl-3.5 pr-9 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-850 text-sm font-medium text-slate-900 dark:text-slate-100 shadow-xs focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all appearance-none cursor-pointer"
+                                                >
+                                                    {mapLocations.map((loc) => (
+                                                        <option
+                                                            key={loc.id}
+                                                            value={loc.id}
+                                                            className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 py-1"
+                                                        >
+                                                            {loc.location}
+                                                            {loc.description ? ` (${loc.description})` : ""}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                    <SlidersHorizontal className="w-4 h-4" />
+                                                </div>
                                             </div>
-                                        </div>
+                                        ) : (
+                                            <div className="flex items-center justify-between px-3.5 py-3 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-850/60">
+                                                <div className="flex items-center gap-2.5 min-w-0">
+                                                    <div className="w-8 h-8 rounded-xl bg-blue-100/70 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                                                        <MapPin className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <div className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
+                                                            {selectedLocation?.location || "No Location Assigned"}
+                                                        </div>
+                                                        {selectedLocation?.description && (
+                                                            <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                                                                {selectedLocation.description}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <span className="shrink-0 text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-200/60 dark:bg-slate-800 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                                    <Lock className="w-2.5 h-2.5" />
+                                                    Locked
+                                                </span>
+                                            </div>
+                                        )}
 
                                         {/* Location Quick Info Pill */}
                                         {selectedLocation && (
@@ -882,6 +1023,7 @@ export default function Calibrate({ mapLocations = [], is_admin = false }) {
                                 </CardHeader>
 
                                 <CardContent className="p-0 relative">
+                                    <MapErrorBoundary>
                                     <GoogleMap
                                         mapContainerStyle={{ width: "100%", height: "320px" }}
                                         center={mapCenter}
@@ -979,7 +1121,7 @@ export default function Calibrate({ mapLocations = [], is_admin = false }) {
                                                 />
 
                                                 {/* Distance Connecting Polyline */}
-                                                <Polyline
+                                                <SafePolyline
                                                     path={[
                                                         {
                                                             lat: userLocation.lat,
@@ -999,6 +1141,7 @@ export default function Calibrate({ mapLocations = [], is_admin = false }) {
                                             </>
                                         )}
                                     </GoogleMap>
+                                    </MapErrorBoundary>
 
                                     {/* Map Floating Quick Center Buttons */}
                                     <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-1 rounded-2xl shadow-md border border-slate-200/80 dark:border-slate-800">

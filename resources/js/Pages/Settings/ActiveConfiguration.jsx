@@ -213,50 +213,6 @@ export default function ActiveConfiguration({
         }
     }, [attendance, allMapLocations]);
 
-    // Quick Date Presets
-    const applyDatePreset = (presetType) => {
-        const today = new Date();
-        let open = "";
-        let close = "";
-
-        if (presetType === "today") {
-            const todayStr = formatDate(today);
-            open = todayStr;
-            close = todayStr;
-        } else if (presetType === "this_week") {
-            const dayOfWeek = today.getDay();
-            const distToMon = (dayOfWeek + 6) % 7;
-            const mon = new Date(today);
-            mon.setDate(today.getDate() - distToMon);
-            const sun = new Date(mon);
-            sun.setDate(mon.getDate() + 6);
-            open = formatDate(mon);
-            close = formatDate(sun);
-        } else if (presetType === "next_7_days") {
-            const nextWeek = new Date(today);
-            nextWeek.setDate(today.getDate() + 7);
-            open = formatDate(today);
-            close = formatDate(nextWeek);
-        } else if (presetType === "this_month") {
-            const first = new Date(today.getFullYear(), today.getMonth(), 1);
-            const last = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-            open = formatDate(first);
-            close = formatDate(last);
-        } else if (presetType === "year_end") {
-            const yearEnd = new Date(today.getFullYear(), 11, 31);
-            open = formatDate(today);
-            close = formatDate(yearEnd);
-        }
-
-        setData((prev) => ({
-            ...prev,
-            open_date: open,
-            closing_date: close,
-        }));
-
-        toast.success(`Date preset applied: ${open} to ${close}`);
-    };
-
     // Toggle Station Assignment
     const toggleStationAssignment = (stationId) => {
         setData((prev) => {
@@ -675,71 +631,38 @@ export default function ActiveConfiguration({
                                 </CardHeader>
 
                                 <CardContent className="p-4 sm:p-5 space-y-4">
-                                    {/* Session Title Field */}
+                                    {/* Session Title Field (Read-only) */}
                                     <div className="space-y-1.5">
-                                        <Label htmlFor="session_name" className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                            Session Name
-                                        </Label>
+                                        <div className="flex items-center justify-between">
+                                            <Label htmlFor="session_name" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                                Session Name
+                                            </Label>
+                                            <span className="text-[10px] font-semibold text-slate-400">
+                                                Read-only
+                                            </span>
+                                        </div>
                                         <Input
                                             id="session_name"
                                             value={data.name}
-                                            onChange={(e) => setData("name", e.target.value)}
-                                            placeholder="e.g. Regular Staff Attendance - 2026"
-                                            className="h-11 rounded-2xl bg-slate-50 dark:bg-slate-850 border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-medium"
+                                            readOnly
+                                            disabled
+                                            placeholder="Attendance Session Name"
+                                            className="h-11 rounded-2xl bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 cursor-not-allowed select-none"
                                         />
                                     </div>
 
-                                    {/* Date Range & 1-Click Date Presets */}
+                                    {/* Date Range */}
                                     <div className="space-y-2 pt-1">
                                         <div className="flex items-center justify-between">
                                             <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                                                <Zap className="w-3.5 h-3.5 text-amber-500" />
-                                                <span>Quick Date Shortcuts</span>
+                                                <Calendar className="w-3.5 h-3.5 text-blue-500" />
+                                                <span>Active Date Range</span>
                                             </Label>
                                             {daysDuration && (
                                                 <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-900">
                                                     Duration: {daysDuration}
                                                 </span>
                                             )}
-                                        </div>
-
-                                        {/* Date Preset Buttons */}
-                                        <div className="flex flex-wrap gap-1.5">
-                                            <button
-                                                type="button"
-                                                onClick={() => applyDatePreset("today")}
-                                                className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 transition-all border border-slate-200/80 dark:border-slate-700 active:scale-95"
-                                            >
-                                                ⚡ Today Only
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => applyDatePreset("this_week")}
-                                                className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 transition-all border border-slate-200/80 dark:border-slate-700 active:scale-95"
-                                            >
-                                                📅 This Week (Mon-Sun)
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => applyDatePreset("next_7_days")}
-                                                className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 transition-all border border-slate-200/80 dark:border-slate-700 active:scale-95"
-                                            >
-                                                🗓️ Next 7 Days
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => applyDatePreset("this_month")}
-                                                className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 transition-all border border-slate-200/80 dark:border-slate-700 active:scale-95"
-                                            >
-                                                📊 Entire Month
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => applyDatePreset("year_end")}
-                                                className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 transition-all border border-slate-200/80 dark:border-slate-700 active:scale-95"
-                                            >
-                                                ♾️ Year-End
-                                            </button>
                                         </div>
 
                                         {/* Date Inputs Grid */}
