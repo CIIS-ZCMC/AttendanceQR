@@ -90,6 +90,39 @@ class CreateFlagAttendanceCommand extends Command
             $attendance->mapLocations()->sync($validLocationIds);
         }
 
+        // Assign schedules to locations depending on event type:
+        // Flag Ceremony:
+        //   - Both Admin Lobby (1) and Bucas Center (3) => Schedule ID 1 ("Flag Ceremony - 8:15 - 9am")
+        // Flag Retreat:
+        //   - Bucas Center (3) => Schedule ID 3 ("Flag Retreat - 3:30 - 5pm")
+        //   - Admin Lobby (1)  => Schedule ID 2 ("Flag Retreat - 4:45-05pm")
+        foreach ($validLocationIds as $locId) {
+            $loc = MapLocation::find($locId);
+            if (!$loc) {
+                continue;
+            }
+
+            if ($eventType === 'Flag Ceremony') {
+                $schedId = 1;
+            } else { // Flag Retreat
+                if ($locId == 3) {
+                    $schedId = 3;
+                } elseif ($locId == 1) {
+                    $schedId = 2;
+                } else {
+                    $schedId = null;
+                }
+            }
+
+            $loc->update([
+                'schedule_id'  => $schedId,
+                'open_time'    => $schedId ? null : $loc->open_time,
+                'closing_time' => $schedId ? null : $loc->closing_time,
+            ]);
+
+            $this->info("Assigned location {$loc->location} (ID: {$loc->id}) -> schedule_id: " . ($schedId ?? 'none'));
+        }
+
         $this->info("Successfully created attendance: {$attendance->title} (ID: {$attendance->id})");
         $this->info("Attached map locations: " . implode(', ', $validLocationIds));
         $this->info("Active status: " . ($attendance->is_active ? 'Yes' : 'No'));
