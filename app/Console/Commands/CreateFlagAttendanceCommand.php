@@ -6,6 +6,7 @@ use App\Models\Attendance;
 use App\Models\MapLocation;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class CreateFlagAttendanceCommand extends Command
 {
@@ -43,7 +44,9 @@ class CreateFlagAttendanceCommand extends Command
                 $eventType = 'Flag Retreat';
             } else {
                 $dayName = $date->format('l');
-                $this->info("Skipped: {$date->toDateString()} is {$dayName}. Flag attendance is only created on Mondays (Flag Ceremony) and Fridays (Flag Retreat).");
+                $message = "Skipped: {$date->toDateString()} is {$dayName}. Flag attendance is only created on Mondays (Flag Ceremony) and Fridays (Flag Retreat).";
+                $this->info("[" . now()->toDateTimeString() . "] " . $message);
+                Log::info("[attendance:create-flag] " . $message);
                 return self::SUCCESS;
             }
         } elseif ($typeOption === 'ceremony') {
@@ -52,6 +55,7 @@ class CreateFlagAttendanceCommand extends Command
             $eventType = 'Flag Retreat';
         } else {
             $this->error("Invalid type '{$typeOption}'. Allowed values: ceremony, retreat, auto.");
+            Log::error("[attendance:create-flag] Invalid type '{$typeOption}'.");
             return self::FAILURE;
         }
 
@@ -64,7 +68,9 @@ class CreateFlagAttendanceCommand extends Command
             ->first();
 
         if ($existing) {
-            $this->warn("Attendance already exists for {$eventType} on {$date->toDateString()}: [ID {$existing->id}] {$existing->title}");
+            $warnMsg = "Attendance already exists for {$eventType} on {$date->toDateString()}: [ID {$existing->id}] {$existing->title}";
+            $this->warn("[" . now()->toDateTimeString() . "] " . $warnMsg);
+            Log::warning("[attendance:create-flag] " . $warnMsg);
             return self::SUCCESS;
         }
 
@@ -126,6 +132,8 @@ class CreateFlagAttendanceCommand extends Command
         $this->info("Successfully created attendance: {$attendance->title} (ID: {$attendance->id})");
         $this->info("Attached map locations: " . implode(', ', $validLocationIds));
         $this->info("Active status: " . ($attendance->is_active ? 'Yes' : 'No'));
+
+        Log::info("[attendance:create-flag] Created: {$attendance->title} (ID: {$attendance->id}) with locations: " . implode(', ', $validLocationIds));
 
         return self::SUCCESS;
     }
