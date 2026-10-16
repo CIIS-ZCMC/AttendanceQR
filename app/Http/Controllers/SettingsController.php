@@ -217,7 +217,7 @@ class SettingsController extends Controller
             return Inertia::render("Settings/Responses", [
                 "is_admin" => AdminHelper::isLoggedAdmin(),
                 "error" => session()->get("error") ?? false,
-                "logs" => collect()->paginate(50),
+                "logs" => Attendance_Information::whereRaw("1=0")->paginate(50),
                 "totalCount" => 0,
             ]);
         }
