@@ -25,6 +25,7 @@ class AttendanceResource extends JsonResource
             "closing_at" => $this->closed_at,
             "open_date" => $this->open_date,
             "closing_date" => $this->closing_date,
+            "logs_count" => $this->logs_count ?? ($this->relationLoaded('logs') ? $this->logs->count() : $this->logs()->count()),
             "map_locations" => $this->whenLoaded('mapLocations', function () {
                 return $this->mapLocations->map(function ($loc) {
                     return [

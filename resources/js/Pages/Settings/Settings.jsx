@@ -142,6 +142,43 @@ export default function Settings({
             toast.error("Failed to delete map location");
         }
     };
+    const [sessionToDelete, setSessionToDelete] = useState(null);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [deletingSession, setDeletingSession] = useState(false);
+
+    const handleDeleteAttendance = (attendance) => {
+        if (!attendance) return;
+        if (attendance.logs_count > 0) {
+            toast.error(
+                `Cannot delete "${attendance.title}" because ${attendance.logs_count} attendance log${attendance.logs_count > 1 ? "s" : ""} were already recorded.`
+            );
+            return;
+        }
+        setSessionToDelete(attendance);
+        setDeleteModalOpen(true);
+    };
+
+    const confirmDeleteAttendance = () => {
+        if (!sessionToDelete) return;
+        setDeletingSession(true);
+        router.delete(`/attendance/${sessionToDelete.id}`, {
+            onSuccess: () => {
+                toast.success("Attendance session deleted successfully!");
+                setDeleteModalOpen(false);
+                setSessionToDelete(null);
+            },
+            onError: (errors) => {
+                const errorMsg =
+                    errors?.message ||
+                    errors?.error ||
+                    "Failed to delete attendance session.";
+                toast.error(errorMsg);
+            },
+            onFinish: () => {
+                setDeletingSession(false);
+            },
+        });
+    };
 
     const copyTokenUrl = (token) => {
         if (!token) return;
@@ -483,7 +520,30 @@ export default function Settings({
                     </label>
                 </div>
 
-                <DialogFooter className="flex-row gap-2 pt-2 sm:justify-end">
+                <DialogFooter className="flex-row gap-2 pt-2 sm:justify-end items-center">
+                    {selectedAttendance && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                setOpenAttendanceModal(false);
+                                handleDeleteAttendance(selectedAttendance);
+                            }}
+                            className={`h-11 rounded-xl text-xs font-semibold mr-auto ${
+                                (selectedAttendance.logs_count ?? 0) === 0
+                                    ? "text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                                    : "text-slate-400 border-slate-200 opacity-60 cursor-not-allowed"
+                            }`}
+                            title={
+                                (selectedAttendance.logs_count ?? 0) > 0
+                                    ? `Cannot delete: ${selectedAttendance.logs_count} attendance log(s) recorded`
+                                    : "Delete this unused session"
+                            }
+                        >
+                            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                            <span>Delete Session</span>
+                        </Button>
+                    )}
                     <DialogClose asChild>
                         <Button
                             type="button"
@@ -1145,19 +1205,44 @@ export default function Settings({
                                             </div>
 
                                             {/* Actions */}
-                                            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => {
-                                                        setSelectedAttendance(att);
-                                                        setOpenAttendanceModal(true);
-                                                    }}
-                                                    className="h-9 px-3 rounded-xl text-xs gap-1.5 font-semibold text-blue-600"
-                                                >
-                                                    <Edit className="w-3.5 h-3.5" />
-                                                    <span>Edit Session</span>
-                                                </Button>
+                                            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                                                <div className="text-[11px] font-semibold text-slate-500">
+                                                    {(att.logs_count ?? 0) > 0 ? (
+                                                        <span className="text-slate-600 dark:text-slate-400">
+                                                            {att.logs_count} log{att.logs_count > 1 ? "s" : ""}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-amber-600 dark:text-amber-400 font-medium">
+                                                            No logs
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-1.5">
+                                                    {(att.logs_count ?? 0) === 0 && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => handleDeleteAttendance(att)}
+                                                            className="h-9 px-2.5 rounded-xl text-xs gap-1 font-semibold text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                                                            title="Delete this unused session"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                            <span>Delete</span>
+                                                        </Button>
+                                                    )}
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            setSelectedAttendance(att);
+                                                            setOpenAttendanceModal(true);
+                                                        }}
+                                                        className="h-9 px-3 rounded-xl text-xs gap-1.5 font-semibold text-blue-600"
+                                                    >
+                                                        <Edit className="w-3.5 h-3.5" />
+                                                        <span>Edit</span>
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
                                     );
@@ -1175,12 +1260,14 @@ export default function Settings({
                                         <TableHead className="font-bold">Type</TableHead>
                                         <TableHead className="font-bold">Locations</TableHead>
                                         <TableHead className="font-bold">Date Range</TableHead>
+                                        <TableHead className="font-bold text-center">Logs</TableHead>
                                         <TableHead className="text-right font-bold">Action</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {attendanceList?.data?.map((att) => {
                                         const status = getStatusInfo(att);
+                                        const logsCount = att.logs_count ?? 0;
                                         return (
                                             <TableRow key={att.id}>
                                                 <TableCell className="font-bold text-slate-900 dark:text-white">
@@ -1219,19 +1306,43 @@ export default function Settings({
                                                         ? `${att.open_date} → ${att.closing_date}`
                                                         : "—"}
                                                 </TableCell>
+                                                <TableCell className="text-center">
+                                                    {logsCount > 0 ? (
+                                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                                                            {logsCount}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                                                            0
+                                                        </span>
+                                                    )}
+                                                </TableCell>
                                                 <TableCell className="text-right">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => {
-                                                            setSelectedAttendance(att);
-                                                            setOpenAttendanceModal(true);
-                                                        }}
-                                                        className="h-8 px-2.5 rounded-lg text-xs"
-                                                    >
-                                                        <Edit className="w-3.5 h-3.5 text-blue-500 mr-1" />
-                                                        Edit
-                                                    </Button>
+                                                    <div className="flex items-center justify-end gap-1.5">
+                                                        {logsCount === 0 && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => handleDeleteAttendance(att)}
+                                                                className="h-8 px-2 rounded-lg text-xs text-rose-500 border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                                                                title="Delete this unused session"
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </Button>
+                                                        )}
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => {
+                                                                setSelectedAttendance(att);
+                                                                setOpenAttendanceModal(true);
+                                                            }}
+                                                            className="h-8 px-2.5 rounded-lg text-xs"
+                                                        >
+                                                            <Edit className="w-3.5 h-3.5 text-blue-500 mr-1" />
+                                                            Edit
+                                                        </Button>
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         );
@@ -1711,6 +1822,59 @@ export default function Settings({
                     </TabsContent>
                 </Tabs>
             </div>
+
+            {/* Attendance Session Delete Confirmation Modal */}
+            <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+                <DialogContent className="sm:max-w-md rounded-3xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <AlertCircle className="w-5 h-5 text-rose-500" />
+                            <span>Delete Attendance Session</span>
+                        </DialogTitle>
+                        <DialogDescription className="text-xs text-slate-500 dark:text-slate-400">
+                            Are you sure you want to delete{" "}
+                            <strong className="text-slate-800 dark:text-slate-200">
+                                {sessionToDelete?.title}
+                            </strong>
+                            ? This session has no recorded attendance logs and can be safely removed.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/60 rounded-2xl text-xs text-rose-700 dark:text-rose-300">
+                        This action will unassign any linked map locations and permanently delete the session.
+                    </div>
+
+                    <DialogFooter className="flex-row gap-2 pt-2 sm:justify-end">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setDeleteModalOpen(false)}
+                            disabled={deletingSession}
+                            className="flex-1 sm:flex-none h-11 rounded-xl text-xs"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={confirmDeleteAttendance}
+                            disabled={deletingSession}
+                            className="flex-1 sm:flex-none h-11 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs active:scale-95 shadow-sm"
+                        >
+                            {deletingSession ? (
+                                <>
+                                    <LoaderCircle className="w-4 h-4 mr-1.5 animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : (
+                                <>
+                                    <Trash2 className="w-4 h-4 mr-1.5" />
+                                    Delete Session
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }

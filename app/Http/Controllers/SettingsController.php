@@ -43,10 +43,10 @@ class SettingsController extends Controller
         //session()->forget("admin_user");
         $this->ValidateLogin("index.settings");
 
-        $attendanceList = AttendanceResource::collection(Attendance::with('mapLocations')->orderBy("created_at", "desc")->paginate(5));
+        $attendanceList = AttendanceResource::collection(Attendance::with('mapLocations')->withCount('logs')->orderBy("created_at", "desc")->paginate(5));
 
         if (request()->has("search") && $search = request("search")) {
-            $attendanceList = AttendanceResource::collection(Attendance::with('mapLocations')->where("title", "like", "%{$search}%")->orderBy("created_at", "desc")->paginate(5));
+            $attendanceList = AttendanceResource::collection(Attendance::with('mapLocations')->withCount('logs')->where("title", "like", "%{$search}%")->orderBy("created_at", "desc")->paginate(5));
         }
 
         $map_coordinates = [];
@@ -253,4 +253,32 @@ class SettingsController extends Controller
             "totalCount" => $totalLogsCount,
         ]);
     }
+
+    public function destroy($id)
+    {
+        if (!AdminHelper::isLoggedAdmin()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $attendance = Attendance::find($id);
+
+        if (!$attendance) {
+            return back()->with('error', 'Attendance session not found.');
+        }
+
+        $logsCount = $attendance->logs()->count();
+
+        if ($logsCount > 0) {
+            return back()->with('error', "Cannot delete session. {$logsCount} attendance logs have been recorded for this session.");
+        }
+
+        // Detach linked map locations
+        $attendance->mapLocations()->detach();
+
+        // Delete attendance session
+        $attendance->delete();
+
+        return to_route("index.settings")->with('success', 'Attendance session deleted successfully.');
+    }
 }
+
