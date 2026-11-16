@@ -26,6 +26,10 @@ class Attendance extends Model
         'no_location' => 'boolean',
     ];
 
+    protected $attributes = [
+        'attendance_key' => 1,
+    ];
+
     public function logs()
     {
         return $this->hasMany(Attendance_Information::class, "attendances_id", "id");

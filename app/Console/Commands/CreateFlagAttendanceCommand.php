@@ -82,6 +82,7 @@ class CreateFlagAttendanceCommand extends Command
 
         $attendance = Attendance::create([
             'title' => $concattedTitle,
+            'attendance_key' => 1,
             'is_active' => $activate,
             'open_date' => $date->toDateString(),
             'closing_date' => $date->toDateString(),

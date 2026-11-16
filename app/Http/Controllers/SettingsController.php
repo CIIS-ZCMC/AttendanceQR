@@ -126,6 +126,7 @@ class SettingsController extends Controller
         $concattedName = $request->name . "-" . date("Y_m_d") . "_" . time();
         $attendance = Attendance::create([
             "title" => $concattedName,
+            "attendance_key" => 1,
             "is_active" => $request->is_active,
             "open_date" => $request->open_date,
             "closing_date" => $request->closing_date,
