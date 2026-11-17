@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\RoletaAttendanceController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AttendanceScheduleController;
 use App\Http\Controllers\MapLocationController;
@@ -26,3 +27,7 @@ Route::get('/schedules', [AttendanceScheduleController::class, 'index']);
 Route::post('/schedules', [AttendanceScheduleController::class, 'store']);
 Route::put('/schedules/{id}', [AttendanceScheduleController::class, 'update']);
 Route::delete('/schedules/{id}', [AttendanceScheduleController::class, 'destroy']);
+
+// Roleta integration endpoints
+Route::post('/roleta/resolve-employees', [RoletaAttendanceController::class, 'resolveEmployees']);
+Route::post('/roleta/sync-attendance', [RoletaAttendanceController::class, 'syncAttendance']);

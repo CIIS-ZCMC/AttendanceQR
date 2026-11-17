@@ -41,4 +41,8 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    'roleta' => [
+        'token' => env('ROLETA_API_TOKEN'),
+    ],
+
 ];
